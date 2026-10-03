@@ -15,7 +15,7 @@ After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory="{app}"
+WorkingDirectory={app}
 ExecStart=/usr/bin/env -u PYTHONPATH "{app}/.venv/bin/python" -m hydroships
 Environment=PYTHONNOUSERSITE=1
 Environment=HYDROSHIPS_HOST=127.0.0.1

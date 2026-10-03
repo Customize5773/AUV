@@ -32,7 +32,7 @@ with sync_playwright() as p:
     expect(page.locator(".status-chip")).to_contain_text("Terhubung", timeout=10000)
     expect(page.locator(".demo-banner")).to_contain_text("Mode demo")
     expect(page.locator("main")).to_contain_text("15.80")
-    page.screenshot(path=str(args.output / "dashboard-demo.png"), full_page=True)
+    page.screenshot(path=str(args.output / "dashboard-demo.png"), full_page=True, animations="disabled")
 
     page.get_by_role("link", name="Parameter", exact=True).click()
     page.get_by_role("textbox", name="Cari parameter").fill("PILOT_SPEED_DN")
@@ -47,7 +47,7 @@ with sync_playwright() as p:
     with page.expect_download() as download:
         page.get_by_role("link", name="Ekspor", exact=True).click()
     assert "PILOT_SPEED_DN\t40\t9" in Path(download.value.path()).read_text()
-    page.screenshot(path=str(args.output / "parameters-demo.png"), full_page=True)
+    page.screenshot(path=str(args.output / "parameters-demo.png"), full_page=True, animations="disabled")
 
     for name in ("Telemetri", "Sistem", "Log", "Koneksi", "Dashboard"):
         page.get_by_role("link", name=name, exact=True).click()
@@ -67,7 +67,9 @@ with sync_playwright() as p:
         assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth"), name
     page.get_by_role("button", name="Buka navigasi").click()
     page.get_by_role("link", name="Dashboard", exact=True).click()
-    page.screenshot(path=str(args.output / "dashboard-mobile.png"), full_page=True)
+    if page.get_by_role("button", name="Tutup notifikasi").count():
+        page.get_by_role("button", name="Tutup notifikasi").click()
+    page.screenshot(path=str(args.output / "dashboard-mobile.png"), full_page=True, animations="disabled")
     page.get_by_role("button", name="Akhiri demo").click()
     expect(page.locator(".demo-banner")).not_to_be_visible()
     expect(page.locator(".status-chip")).to_contain_text("Belum terhubung")
