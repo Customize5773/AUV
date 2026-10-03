@@ -327,6 +327,9 @@ class Vehicle:
             self.params[name] = {"name": name, "value": msg.param_value, "type": msg.param_type,
                                  "index": msg.param_index, "updated": time.time()}
             if 0 < msg.param_count <= 10000:
+                if self.param_state == "complete" and self.param_count != msg.param_count:
+                    self.param_state = "incomplete"
+                    self.storage.event("parameters.changed", "Jumlah parameter berubah; baca ulang daftar parameter.", "warning")
                 self.param_count = msg.param_count
                 if 0 <= msg.param_index < self.param_count:
                     self.param_indices.add(msg.param_index)

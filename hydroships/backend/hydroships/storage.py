@@ -72,8 +72,9 @@ class Storage:
                 self.current_log = self.logs / f"telemetry-{self.started}-{self.log_sequence:04d}.jsonl"
                 self.log_size = 0
                 self.current_log.touch()
-                files = sorted(self.logs.glob("telemetry-*.jsonl"))
-                for path in files[:-self.max_logs]:
+                # Keep the active file even if the host clock moved backwards.
+                files = sorted(p for p in self.logs.glob("telemetry-*.jsonl") if p != self.current_log)
+                for path in files[:max(0, len(files) - (self.max_logs - 1))]:
                     path.unlink(missing_ok=True)
             with self.current_log.open("ab") as stream:
                 stream.write(line)

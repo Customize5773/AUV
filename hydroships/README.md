@@ -90,6 +90,12 @@ env -u PYTHONPATH .venv/bin/python scripts/check-browser.py
 
 Pengujian browser menghubungkan **demo**, mengubah parameter demo, mengunduh hasil, memeriksa enam halaman desktop/mobile, lalu memutus demo. Skrip menolak berjalan jika koneksi perangkat/SITL sedang aktif.
 
+Untuk memeriksa antarmuka dengan koneksi yang sudah aktif tanpa mengubah parameter atau koneksi:
+
+```bash
+env -u PYTHONPATH .venv/bin/python scripts/check-browser.py --read-only --output evidence/sitl-browser
+```
+
 Setelah terhubung ke simulator/perangkat yang hendak diuji, jalankan uji ketahanan baca-saja:
 
 ```bash
@@ -99,6 +105,23 @@ env -u PYTHONPATH .venv/bin/python scripts/soak.py --seconds 3600 --output evide
 Hasil baru lulus jika `completed: true` dan `ok: true`. File diperbarui selama pengujian. Jangan mengganti koneksi atau restart layanan selama satu sesi uji.
 
 Hasil pengujian dan pekerjaan hardware yang tersisa dicatat di [laporan implementasi](../plan/07-hydroships.md).
+
+### ArduSub SITL asli
+
+Build opsional memerlukan Git, GCC/G++, make, rsync, Python/venv, serta internet saat mengambil source/dependensi. Script mengunci commit yang sudah diuji dan menggunakan cache di luar repositori:
+
+```bash
+bash scripts/build-sitl.sh
+mkdir -p "$HOME/.cache/hydroships/sitl-manual"
+cd "$HOME/.cache/hydroships/sitl-manual"
+"$HOME/.cache/hydroships/ardupilot-sub45/build/sitl/bin/ardusub" \
+  --model vectored --speedup 1 \
+  --defaults "$HOME/.cache/hydroships/ardupilot-sub45/Tools/autotest/default_params/sub.parm" \
+  --serial0 udpclient:127.0.0.1:14560 --serial1 none --serial2 none \
+  --home=-35.363261,149.165230,0,0
+```
+
+Kemudian pilih **UDP lokal** dengan alamat `127.0.0.1:14560` pada halaman Koneksi. Jalankan hanya satu simulator pada port/instance yang sama. Simulator yang dibuat pada sesi pengembangan berjalan sebagai unit sementara `hydroships-sitl.service`; hentikan unit itu sebelum memakai perintah manual di atas. Firmware simulator tidak diunggah ke Pixhawk.
 
 ## Struktur
 

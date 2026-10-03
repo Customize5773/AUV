@@ -68,6 +68,18 @@ def test_missing_parameter_is_retried_by_index():
         assert v.params["PILOT_SPEED_UP"]["index"] == 2
 
 
+def test_changed_parameter_count_requires_fresh_download():
+    with connected_vehicle() as (v, _):
+        v.demo.params["EXTRA_PARAM"] = (1.0, 6)
+        assert write(v).result(3)["ok"]
+        assert v.param_state == "incomplete"
+        with pytest.raises(VehicleError, match="selesai dibaca"):
+            write(v, value=41).result(2)
+        v.submit("download").result(2)
+        until(lambda: v.param_state == "complete")
+        assert len(v.params) == 7
+
+
 def test_rejection_timeout_and_no_automatic_write_retry():
     with connected_vehicle(write_timeout=.4) as (v, _):
         v.demo.reject_writes = True
@@ -158,6 +170,8 @@ def test_storage_survives_reopen_and_rotates_with_limit():
         storage = Storage(path, max_log_bytes=250, max_logs=3)
         storage.save("name", "HydroShips test")
         storage.event("test", "persist")
+        for i in range(3):
+            (storage.logs / f"telemetry-9999-{i}.jsonl").touch()
         for i in range(30):
             storage.record({"value": i, "missing": float("nan")}, "demo")
         assert len(storage.log_list()) == 3
