@@ -1,0 +1,7 @@
+{
+    "content": {
+        "preferred_router": "MAVLinkRouter",
+        "sitl_frame": "vectored"
+    },
+    "version": 0
+}

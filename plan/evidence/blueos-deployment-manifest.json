@@ -1,0 +1,18 @@
+{
+  "checked_on": "2026-10-01",
+  "release": "1.4.6",
+  "upstream_commit": "9b9e1643bc8cd2ca5ed843c0addde3d723475290",
+  "image": "bluerobotics/blueos-core:1.4.6",
+  "platform": "linux/arm64",
+  "index_digest": "sha256:f1f3457dc28e6c3c6377538681b45c61e4367f739de6527b64e590f7a22f9d54",
+  "platform_digest": "sha256:729e10290212c4ec5b3d2978afac8fe6973d8b5e4a45dd26d73ba7d5fe8567a3",
+  "registry_compressed_bytes_approx": 466000000,
+  "docker_access": "confirmed after user applied per-user ACL",
+  "preexisting_containers": [],
+  "docker_server": "29.8.1",
+  "docker_default_runtime": "runc",
+  "scope": "local HTTP interface and core services, no peripherals, no host Docker socket inside container",
+  "source": "https://github.com/bluerobotics/BlueOS/releases/tag/1.4.6",
+  "status": "running; initial and post-restart HTTP checks passed; browser pages rendered with recorded limitations",
+  "url": "http://127.0.0.1:8080"
+}

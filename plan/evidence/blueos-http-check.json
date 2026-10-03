@@ -1,0 +1,84 @@
+{
+  "checked_at": "2026-09-30T18:52:26.651233+00:00",
+  "scope": "HTTP, service schemas and read-only runtime data; not browser rendering or hardware operation",
+  "all_passed": true,
+  "checks": [
+    {
+      "name": "frontend",
+      "url": "http://127.0.0.1:8080/",
+      "passed": true,
+      "status": 200,
+      "bytes": 1079
+    },
+    {
+      "name": "nginx_status",
+      "url": "http://127.0.0.1:8080/status",
+      "passed": true,
+      "status": 204,
+      "bytes": 0
+    },
+    {
+      "name": "helper",
+      "url": "http://127.0.0.1:8080/helper/v1.0/openapi.json",
+      "passed": true,
+      "status": 200,
+      "bytes": 7814
+    },
+    {
+      "name": "settings_service",
+      "url": "http://127.0.0.1:8080/bag/v1.0/openapi.json",
+      "passed": true,
+      "status": 200,
+      "bytes": 2235
+    },
+    {
+      "name": "autopilot_manager_api",
+      "url": "http://127.0.0.1:8080/ardupilot-manager/v1.0/openapi.json",
+      "passed": true,
+      "status": 200,
+      "bytes": 15765
+    },
+    {
+      "name": "serial_devices",
+      "url": "http://127.0.0.1:8080/ardupilot-manager/v1.0/serials",
+      "passed": true,
+      "status": 200,
+      "bytes": 2
+    },
+    {
+      "name": "video_sources",
+      "url": "http://127.0.0.1:8080/mavlink-camera-manager/v4l",
+      "passed": true,
+      "status": 200,
+      "bytes": 8880
+    },
+    {
+      "name": "video_streams",
+      "url": "http://127.0.0.1:8080/mavlink-camera-manager/streams",
+      "passed": true,
+      "status": 200,
+      "bytes": 2
+    },
+    {
+      "name": "system_cpu",
+      "url": "http://127.0.0.1:8080/system-information/system/cpu",
+      "passed": true,
+      "status": 200,
+      "bytes": 735
+    },
+    {
+      "name": "system_memory",
+      "url": "http://127.0.0.1:8080/system-information/system/memory",
+      "passed": true,
+      "status": 200,
+      "bytes": 91
+    },
+    {
+      "name": "mavlink_rest",
+      "url": "http://127.0.0.1:8080/mavlink2rest/mavlink",
+      "passed": true,
+      "status": 200,
+      "bytes": 1607
+    }
+  ]
+}

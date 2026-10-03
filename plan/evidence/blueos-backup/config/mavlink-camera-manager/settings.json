@@ -1,0 +1,9 @@
+{
+  "header": {
+    "name": "Camera Manager",
+    "version": 0
+  },
+  "mavlink_endpoint": "tcpout:127.0.0.1:5777",
+  "streams": [],
+  "blocked_sources": []
+}

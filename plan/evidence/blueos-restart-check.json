@@ -1,0 +1,28 @@
+{
+  "checked_at": "2026-09-30T18:53:46.807359+00:00",
+  "restart_passed": true,
+  "seconds_until_api_checks_passed": 19.5,
+  "container_id": "1581f91d396920613f5a09599845c6e0662f7d281d96f2a71c9a048022d3f946",
+  "image_id": "sha256:729e10290212c4ec5b3d2978afac8fe6973d8b5e4a45dd26d73ba7d5fe8567a3",
+  "running": true,
+  "oom_killed": false,
+  "restart_policy": {
+    "Name": "no",
+    "MaximumRetryCount": 0
+  },
+  "port_bindings": {
+    "80/tcp": [
+      {
+        "HostIp": "127.0.0.1",
+        "HostPort": "8080"
+      }
+    ]
+  },
+  "privileged": false,
+  "devices": null,
+  "network_mode": "auv-blueos-bench_default",
+  "memory_limit_bytes": 4294967296,
+  "health_at_api_recovery": "starting",
+  "final_health": "healthy",
+  "final_health_checked_at": "2026-09-30T18:55:18.777150+00:00"
+}

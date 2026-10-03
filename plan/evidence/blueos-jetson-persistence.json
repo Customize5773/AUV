@@ -1,0 +1,22 @@
+{
+  "before": {
+    "hostname": "hydro",
+    "vehicle_name": "HydroShips"
+  },
+  "after_recreate": {
+    "hostname": "hydro",
+    "vehicle_name": "HydroShips"
+  },
+  "beacon_unchanged": true,
+  "bag_unchanged": true,
+  "after_final_recreate": {
+    "hostname": "hydro",
+    "vehicle_name": "HydroShips"
+  },
+  "final_beacon_unchanged": true,
+  "final_bag_unchanged": true,
+  "final_container_id": "1b45069b1fa79058f444d397ab4a63fa922930702275f3dc2f94494a1ebd76ee",
+  "health": "healthy",
+  "checked_at": "2026-09-30T19:19:47.708694+00:00",
+  "readonly_thermal_mount": true
+}

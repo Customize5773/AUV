@@ -1,0 +1,2 @@
+try{let e=typeof window<"u"?window:typeof global<"u"?global:typeof globalThis<"u"?globalThis:typeof self<"u"?self:{},d=new e.Error().stack;d&&(e._sentryDebugIds=e._sentryDebugIds||{},e._sentryDebugIds[d]="b5da7bba-8073-47f2-8e03-8774bdb06b72",e._sentryDebugIdIdentifier="sentry-dbid-b5da7bba-8073-47f2-8e03-8774bdb06b72")}catch{}const t="/assets/temperature-9a8c59f6.svg";export{t as default};
+//# sourceMappingURL=temperature.724e1b1e.js.map

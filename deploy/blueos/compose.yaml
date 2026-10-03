@@ -1,0 +1,50 @@
+name: auv-blueos-bench
+
+services:
+  core:
+    # BlueOS 1.4.6, ARM64 manifest verified from the official registry.
+    image: bluerobotics/blueos-core:1.4.6@sha256:729e10290212c4ec5b3d2978afac8fe6973d8b5e4a45dd26d73ba7d5fe8567a3
+    platform: linux/arm64
+    restart: "no"
+    command: ["/bin/bash", "/opt/jetson/start.sh"]
+    ports:
+      - "127.0.0.1:8080:80"
+    environment:
+      BLUEOS_DISABLE_SERVICES: cable_guy,wifi,commander,kraken,versionchooser
+      BLUEOS_DISABLE_MEMORY_LIMIT: "true"
+      BLUEOS_DISABLE_STARTUP_UPDATE: "true"
+    # Bench-only profile: no host network/PID, Docker socket, or host devices.
+    # Network management and extension/version deployment are intentionally off.
+    volumes:
+      - userdata:/usr/blueos/userdata
+      - logs:/var/logs/blueos
+      - config:/root/.config
+      - settings:/etc/blueos
+      - ./jetson:/opt/jetson:ro
+      - ./jetson/frontend-dist:/home/pi/frontend:ro
+      - ./jetson/nginx.conf:/home/pi/tools/nginx/nginx.conf:ro
+      - /sys/devices/virtual/thermal:/run/jetson/thermal:ro
+      - /sys/firmware/devicetree/base/model:/run/jetson/model:ro
+    mem_limit: 4g
+    pids_limit: 512
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test:
+        - CMD
+        - python3
+        - -c
+        - "import urllib.request; assert urllib.request.urlopen('http://127.0.0.1/status', timeout=3).status == 204; assert urllib.request.urlopen('http://127.0.0.1/jetson-bench/health', timeout=3).status == 200"
+      interval: 15s
+      timeout: 8s
+      start_period: 120s
+      retries: 4
+
+volumes:
+  userdata:
+  logs:
+  config:
+  settings:

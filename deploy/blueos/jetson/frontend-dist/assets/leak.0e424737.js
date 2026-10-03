@@ -1,0 +1,2 @@
+try{let e=typeof window<"u"?window:typeof global<"u"?global:typeof globalThis<"u"?globalThis:typeof self<"u"?self:{},d=new e.Error().stack;d&&(e._sentryDebugIds=e._sentryDebugIds||{},e._sentryDebugIds[d]="6923eee3-9fa3-49bc-a16e-b29540738d00",e._sentryDebugIdIdentifier="sentry-dbid-6923eee3-9fa3-49bc-a16e-b29540738d00")}catch{}const n="/assets/leak-4a741e9a.svg";export{n as default};
+//# sourceMappingURL=leak.0e424737.js.map

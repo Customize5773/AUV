@@ -1,0 +1,2 @@
+try{let e=typeof window<"u"?window:typeof global<"u"?global:typeof globalThis<"u"?globalThis:typeof self<"u"?self:{},t=new e.Error().stack;t&&(e._sentryDebugIds=e._sentryDebugIds||{},e._sentryDebugIds[t]="acb08849-e8c1-46f8-9c02-b16e0a83f994",e._sentryDebugIdIdentifier="sentry-dbid-acb08849-e8c1-46f8-9c02-b16e0a83f994")}catch{}const n="/assets/heartbeat-f27a18c4.svg";export{n as default};
+//# sourceMappingURL=heartbeat.736cd70d.js.map

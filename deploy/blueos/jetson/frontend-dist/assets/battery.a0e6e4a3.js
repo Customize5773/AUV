@@ -1,0 +1,2 @@
+try{let e=typeof window<"u"?window:typeof global<"u"?global:typeof globalThis<"u"?globalThis:typeof self<"u"?self:{},t=new e.Error().stack;t&&(e._sentryDebugIds=e._sentryDebugIds||{},e._sentryDebugIds[t]="484f75e8-2cf0-4641-a384-b6ad1c4e5114",e._sentryDebugIdIdentifier="sentry-dbid-484f75e8-2cf0-4641-a384-b6ad1c4e5114")}catch{}const d="/assets/battery-740d3f81.svg";export{d as default};
+//# sourceMappingURL=battery.a0e6e4a3.js.map

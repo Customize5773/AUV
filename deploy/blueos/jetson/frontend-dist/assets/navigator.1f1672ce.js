@@ -1,0 +1,2 @@
+try{let e=typeof window<"u"?window:typeof global<"u"?global:typeof globalThis<"u"?globalThis:typeof self<"u"?self:{},d=new e.Error().stack;d&&(e._sentryDebugIds=e._sentryDebugIds||{},e._sentryDebugIds[d]="90805ed0-3f61-4083-962b-3d5c68e05d80",e._sentryDebugIdIdentifier="sentry-dbid-90805ed0-3f61-4083-962b-3d5c68e05d80")}catch{}const n="/assets/navigator-dd528c8f.glb";export{n as default};
+//# sourceMappingURL=navigator.1f1672ce.js.map

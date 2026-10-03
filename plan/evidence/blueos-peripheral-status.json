@@ -1,0 +1,1148 @@
+[
+  {
+    "path": "/ardupilot-manager/v1.0/serials",
+    "status": 200,
+    "body": []
+  },
+  {
+    "path": "/ardupilot-manager/v1.0/firmware_info",
+    "status": 503,
+    "body": "No board running, firmware information is unavailable"
+  },
+  {
+    "path": "/mavlink-camera-manager/v4l",
+    "status": 200,
+    "body": [
+      {
+        "name": "Fake source",
+        "source": "ball",
+        "formats": [
+          {
+            "encode": "H264",
+            "sizes": [
+              {
+                "width": 160,
+                "height": 120,
+                "intervals": [
+                  {
+                    "numerator": 1,
+                    "denominator": 60
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 30
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 24
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 16
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 10
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 5
+                  }
+                ]
+              },
+              {
+                "width": 320,
+                "height": 240,
+                "intervals": [
+                  {
+                    "numerator": 1,
+                    "denominator": 60
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 30
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 24
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 16
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 10
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 5
+                  }
+                ]
+              },
+              {
+                "width": 640,
+                "height": 480,
+                "intervals": [
+                  {
+                    "numerator": 1,
+                    "denominator": 60
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 30
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 24
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 16
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 10
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 5
+                  }
+                ]
+              },
+              {
+                "width": 720,
+                "height": 480,
+                "intervals": [
+                  {
+                    "numerator": 1,
+                    "denominator": 60
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 30
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 24
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 16
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 10
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 5
+                  }
+                ]
+              },
+              {
+                "width": 960,
+                "height": 720,
+                "intervals": [
+                  {
+                    "numerator": 1,
+                    "denominator": 60
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 30
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 24
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 16
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 10
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 5
+                  }
+                ]
+              },
+              {
+                "width": 1280,
+                "height": 720,
+                "intervals": [
+                  {
+                    "numerator": 1,
+                    "denominator": 60
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 30
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 24
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 16
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 10
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 5
+                  }
+                ]
+              },
+              {
+                "width": 1280,
+                "height": 1080,
+                "intervals": [
+                  {
+                    "numerator": 1,
+                    "denominator": 60
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 30
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 24
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 16
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 10
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 5
+                  }
+                ]
+              },
+              {
+                "width": 1440,
+                "height": 1080,
+                "intervals": [
+                  {
+                    "numerator": 1,
+                    "denominator": 60
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 30
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 24
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 16
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 10
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 5
+                  }
+                ]
+              },
+              {
+                "width": 1920,
+                "height": 1080,
+                "intervals": [
+                  {
+                    "numerator": 1,
+                    "denominator": 60
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 30
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 24
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 16
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 10
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 5
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "encode": "H265",
+            "sizes": [
+              {
+                "width": 160,
+                "height": 120,
+                "intervals": [
+                  {
+                    "numerator": 1,
+                    "denominator": 60
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 30
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 24
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 16
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 10
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 5
+                  }
+                ]
+              },
+              {
+                "width": 320,
+                "height": 240,
+                "intervals": [
+                  {
+                    "numerator": 1,
+                    "denominator": 60
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 30
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 24
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 16
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 10
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 5
+                  }
+                ]
+              },
+              {
+                "width": 640,
+                "height": 480,
+                "intervals": [
+                  {
+                    "numerator": 1,
+                    "denominator": 60
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 30
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 24
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 16
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 10
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 5
+                  }
+                ]
+              },
+              {
+                "width": 720,
+                "height": 480,
+                "intervals": [
+                  {
+                    "numerator": 1,
+                    "denominator": 60
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 30
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 24
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 16
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 10
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 5
+                  }
+                ]
+              },
+              {
+                "width": 960,
+                "height": 720,
+                "intervals": [
+                  {
+                    "numerator": 1,
+                    "denominator": 60
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 30
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 24
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 16
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 10
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 5
+                  }
+                ]
+              },
+              {
+                "width": 1280,
+                "height": 720,
+                "intervals": [
+                  {
+                    "numerator": 1,
+                    "denominator": 60
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 30
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 24
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 16
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 10
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 5
+                  }
+                ]
+              },
+              {
+                "width": 1280,
+                "height": 1080,
+                "intervals": [
+                  {
+                    "numerator": 1,
+                    "denominator": 60
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 30
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 24
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 16
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 10
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 5
+                  }
+                ]
+              },
+              {
+                "width": 1440,
+                "height": 1080,
+                "intervals": [
+                  {
+                    "numerator": 1,
+                    "denominator": 60
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 30
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 24
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 16
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 10
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 5
+                  }
+                ]
+              },
+              {
+                "width": 1920,
+                "height": 1080,
+                "intervals": [
+                  {
+                    "numerator": 1,
+                    "denominator": 60
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 30
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 24
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 16
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 10
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 5
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "encode": "YUYV",
+            "sizes": [
+              {
+                "width": 160,
+                "height": 120,
+                "intervals": [
+                  {
+                    "numerator": 1,
+                    "denominator": 60
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 30
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 24
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 16
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 10
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 5
+                  }
+                ]
+              },
+              {
+                "width": 320,
+                "height": 240,
+                "intervals": [
+                  {
+                    "numerator": 1,
+                    "denominator": 60
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 30
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 24
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 16
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 10
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 5
+                  }
+                ]
+              },
+              {
+                "width": 640,
+                "height": 480,
+                "intervals": [
+                  {
+                    "numerator": 1,
+                    "denominator": 60
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 30
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 24
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 16
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 10
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 5
+                  }
+                ]
+              },
+              {
+                "width": 720,
+                "height": 480,
+                "intervals": [
+                  {
+                    "numerator": 1,
+                    "denominator": 60
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 30
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 24
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 16
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 10
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 5
+                  }
+                ]
+              },
+              {
+                "width": 960,
+                "height": 720,
+                "intervals": [
+                  {
+                    "numerator": 1,
+                    "denominator": 60
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 30
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 24
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 16
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 10
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 5
+                  }
+                ]
+              },
+              {
+                "width": 1280,
+                "height": 720,
+                "intervals": [
+                  {
+                    "numerator": 1,
+                    "denominator": 60
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 30
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 24
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 16
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 10
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 5
+                  }
+                ]
+              },
+              {
+                "width": 1280,
+                "height": 1080,
+                "intervals": [
+                  {
+                    "numerator": 1,
+                    "denominator": 60
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 30
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 24
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 16
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 10
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 5
+                  }
+                ]
+              },
+              {
+                "width": 1440,
+                "height": 1080,
+                "intervals": [
+                  {
+                    "numerator": 1,
+                    "denominator": 60
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 30
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 24
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 16
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 10
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 5
+                  }
+                ]
+              },
+              {
+                "width": 1920,
+                "height": 1080,
+                "intervals": [
+                  {
+                    "numerator": 1,
+                    "denominator": 60
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 30
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 24
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 16
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 10
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 5
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "encode": "MJPG",
+            "sizes": [
+              {
+                "width": 160,
+                "height": 120,
+                "intervals": [
+                  {
+                    "numerator": 1,
+                    "denominator": 60
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 30
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 24
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 16
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 10
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 5
+                  }
+                ]
+              },
+              {
+                "width": 320,
+                "height": 240,
+                "intervals": [
+                  {
+                    "numerator": 1,
+                    "denominator": 60
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 30
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 24
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 16
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 10
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 5
+                  }
+                ]
+              },
+              {
+                "width": 640,
+                "height": 480,
+                "intervals": [
+                  {
+                    "numerator": 1,
+                    "denominator": 60
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 30
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 24
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 16
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 10
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 5
+                  }
+                ]
+              },
+              {
+                "width": 720,
+                "height": 480,
+                "intervals": [
+                  {
+                    "numerator": 1,
+                    "denominator": 60
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 30
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 24
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 16
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 10
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 5
+                  }
+                ]
+              },
+              {
+                "width": 960,
+                "height": 720,
+                "intervals": [
+                  {
+                    "numerator": 1,
+                    "denominator": 60
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 30
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 24
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 16
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 10
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 5
+                  }
+                ]
+              },
+              {
+                "width": 1280,
+                "height": 720,
+                "intervals": [
+                  {
+                    "numerator": 1,
+                    "denominator": 60
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 30
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 24
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 16
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 10
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 5
+                  }
+                ]
+              },
+              {
+                "width": 1280,
+                "height": 1080,
+                "intervals": [
+                  {
+                    "numerator": 1,
+                    "denominator": 60
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 30
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 24
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 16
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 10
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 5
+                  }
+                ]
+              },
+              {
+                "width": 1440,
+                "height": 1080,
+                "intervals": [
+                  {
+                    "numerator": 1,
+                    "denominator": 60
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 30
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 24
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 16
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 10
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 5
+                  }
+                ]
+              },
+              {
+                "width": 1920,
+                "height": 1080,
+                "intervals": [
+                  {
+                    "numerator": 1,
+                    "denominator": 60
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 30
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 24
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 16
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 10
+                  },
+                  {
+                    "numerator": 1,
+                    "denominator": 5
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "controls": [],
+        "blocked": false
+      },
+      {
+        "name": "Redirect source",
+        "source": "Redirect",
+        "formats": [],
+        "controls": [],
+        "blocked": false
+      }
+    ]
+  },
+  {
+    "path": "/mavlink-camera-manager/streams",
+    "status": 200,
+    "body": []
+  },
+  {
+    "path": "/system-information/platform",
+    "status": 500,
+    "body": "error: UnknownModel"
+  },
+  {
+    "path": "/system-information/system/temperature",
+    "status": 200,
+    "body": []
+  }
+]

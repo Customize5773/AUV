@@ -1,0 +1,2 @@
+try{let e=typeof window<"u"?window:typeof global<"u"?global:typeof globalThis<"u"?globalThis:typeof self<"u"?self:{},n=new e.Error().stack;n&&(e._sentryDebugIds=e._sentryDebugIds||{},e._sentryDebugIds[n]="c361873f-5cab-4234-bd81-0cef139da2a1",e._sentryDebugIdIdentifier="sentry-dbid-c361873f-5cab-4234-bd81-0cef139da2a1")}catch{}const d="/assets/generic_sensor-c69849b8.glb";export{d as default};
+//# sourceMappingURL=generic_sensor.249bf774.js.map

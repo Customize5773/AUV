@@ -1,0 +1,354 @@
+{
+  "research_date": "2026-10-01",
+  "language": "id",
+  "sources": [
+    {
+      "id": "S01",
+      "title": "SAUVC — situs utama",
+      "publisher": "SAUVC",
+      "edition_or_context": "2027",
+      "url": "https://sauvc.org/",
+      "access_method": "halaman dibuka",
+      "limitations": "Tanggal dan kampus 2027; sejumlah bagian masih perlu dicocokkan dengan dokumen edisi baru.",
+      "accessed_on": "2026-10-01"
+    },
+    {
+      "id": "S02",
+      "title": "Pengumuman SAUVC 2027",
+      "publisher": "SAUVC / LinkedIn",
+      "edition_or_context": "2027",
+      "url": "https://www.linkedin.com/posts/sauvc_sauvc2027-marinerobotics-underwaterrobotics-activity-7493565469665341440-uSSF",
+      "access_method": "teks hasil pencarian",
+      "limitations": "Menguatkan pengumuman kembali ke Singapore Polytechnic; tanggal terbit absolut tidak diverifikasi.",
+      "accessed_on": "2026-10-01"
+    },
+    {
+      "id": "S03",
+      "title": "Rulebook v6.1.0",
+      "publisher": "SAUVC",
+      "edition_or_context": "2026",
+      "url": "https://sauvc.org/rulebook/",
+      "access_method": "halaman dibuka",
+      "limitations": "Tanggal dokumen 27 November 2025. Aturan historis; belum dianggap berlaku untuk 2027.",
+      "accessed_on": "2026-10-01",
+      "local_image_archive": "sources/rulebook-images/manifest.json"
+    },
+    {
+      "id": "S04",
+      "title": "Participant Manual",
+      "publisher": "SAUVC",
+      "edition_or_context": "2026",
+      "url": "https://sauvc.org/manual",
+      "access_method": "halaman dibuka",
+      "limitations": "Isi manual Sanya meskipun judul situs 2027.",
+      "accessed_on": "2026-10-01"
+    },
+    {
+      "id": "S05",
+      "title": "Competitions",
+      "publisher": "IEEE OES",
+      "edition_or_context": "umum / tahun tidak dinyatakan",
+      "url": "https://ieeeoes.org/conference-events/competitions/",
+      "access_method": "halaman dibuka",
+      "limitations": "Sumber institusional, tetapi batas jumlah anggota berbeda dari beranda SAUVC.",
+      "accessed_on": "2026-10-01"
+    },
+    {
+      "id": "S06",
+      "title": "Singapore AUV Challenge",
+      "publisher": "OCEANS Sanya",
+      "edition_or_context": "2026",
+      "url": "https://sanya26.oceansconference.org/singapore-auv-challenge/",
+      "access_method": "halaman dibuka",
+      "limitations": "Konteks hubungan SAUVC dengan komunitas marine robotics/OCEANS; bukan pengumuman 2027.",
+      "accessed_on": "2026-10-01"
+    },
+    {
+      "id": "S07",
+      "title": "SAUVC 2025: The 10th Edition",
+      "publisher": "IEEE Earthzine",
+      "edition_or_context": "2025",
+      "url": "https://earthzine.org/the-singapore-autonomous-underwater-vehicle-challenge-sauvc-2025-the-10th-edition/",
+      "access_method": "halaman dibuka",
+      "limitations": "Rekap kompetisi dan capaian; perbedaan dengan laporan kampus dicatat.",
+      "accessed_on": "2026-10-01"
+    },
+    {
+      "id": "S08",
+      "title": "Singapore Autonomous Underwater Vehicle Challenge 2025",
+      "publisher": "Singapore Polytechnic",
+      "edition_or_context": "2025",
+      "url": "https://www.sp.edu.sg/courses/schools/sma/happenings/detail/eee-happenings/singapore-autonomous-underwater-vehicle-challenge-2025",
+      "access_method": "teks hasil pencarian",
+      "limitations": "Pengumuman tuan rumah edisi historis; angka pendaftaran bukan jumlah finalis.",
+      "accessed_on": "2026-10-01"
+    },
+    {
+      "id": "S09",
+      "title": "Tim HYDROships PPNS Raih Juara Lomba Robot Bawah Air Internasional",
+      "publisher": "PPNS",
+      "edition_or_context": "2025",
+      "url": "https://ppns.ac.id/tim-hydroships-ppns-raih-juara-lomba-robot-bawah-air-internasional/",
+      "access_method": "teks hasil pencarian; robots.txt membatasi akses langsung",
+      "limitations": "Laporan institusi peserta; label peringkat dan jumlah finalis berbeda dari Earthzine.",
+      "accessed_on": "2026-10-01"
+    },
+    {
+      "id": "S10",
+      "title": "Our Achievements — SAUVC",
+      "publisher": "Bumblebee",
+      "edition_or_context": "capaian 2024; jalur URL 2026",
+      "url": "https://bumblebee.sg/our-achievements/2026/sauvc/",
+      "access_method": "teks hasil pencarian",
+      "limitations": "Laporan tim sendiri; perhatikan tahun isi, bukan URL.",
+      "accessed_on": "2026-10-01"
+    },
+    {
+      "id": "S11",
+      "title": "The UnderWater Unit (UWU)",
+      "publisher": "Aryanaut / anggota tim SUTD",
+      "edition_or_context": "2025; membahas 2024",
+      "url": "https://aryanaut.github.io/blog/uwu/",
+      "access_method": "halaman dibuka",
+      "limitations": "Pengalaman langsung peserta; bukan aturan panitia.",
+      "accessed_on": "2026-10-01"
+    },
+    {
+      "id": "S12",
+      "title": "SAUVC 2026 Finalists",
+      "publisher": "SAUVC",
+      "edition_or_context": "2026",
+      "url": "https://sauvc.org/slots/qualified.html",
+      "access_method": "halaman dibuka",
+      "limitations": "Masih menampilkan pengumuman tertunda; tidak menyediakan peringkat.",
+      "accessed_on": "2026-10-01"
+    },
+    {
+      "id": "S13",
+      "title": "SAUVC Game Rules presentation",
+      "publisher": "SAUVC",
+      "edition_or_context": "2025",
+      "url": "https://sauvc.org/sauvc-game-rules-presentation/",
+      "access_method": "halaman dibuka",
+      "limitations": "Briefing historis; jangan dipakai sebagai aturan 2027.",
+      "accessed_on": "2026-10-01"
+    },
+    {
+      "id": "S14",
+      "title": "SAUVC GitHub organization",
+      "publisher": "SAUVC",
+      "edition_or_context": "lintas tahun",
+      "url": "https://github.com/sauvc",
+      "access_method": "halaman dibuka",
+      "limitations": "Indeks repositori resmi untuk pemantauan.",
+      "accessed_on": "2026-10-01"
+    },
+    {
+      "id": "S15",
+      "title": "Rulebook repository",
+      "publisher": "SAUVC",
+      "edition_or_context": "lintas versi",
+      "url": "https://github.com/sauvc/rulebook",
+      "access_method": "halaman dibuka",
+      "limitations": "Tersedia sumber Markdown, HTML, PDF; sinkronisasi versi tiap berkas belum diaudit.",
+      "accessed_on": "2026-10-01",
+      "local_image_archive": "sources/rulebook-images/manifest.json"
+    },
+    {
+      "id": "S16",
+      "title": "Props repository",
+      "publisher": "SAUVC",
+      "edition_or_context": "2022",
+      "url": "https://github.com/sauvc/props",
+      "access_method": "halaman dibuka",
+      "limitations": "Dokumentasi/foto properti historis untuk referensi latihan.",
+      "accessed_on": "2026-10-01"
+    },
+    {
+      "id": "S17",
+      "title": "OpenMantaClaus",
+      "publisher": "kushagra77 / pembuat AUV",
+      "edition_or_context": "2026",
+      "url": "https://github.com/kushagra77/OpenMantaClaus",
+      "access_method": "README dibaca",
+      "limitations": "Kode, rancangan, dan klaim hasil/biaya peserta; belum dijalankan.",
+      "accessed_on": "2026-10-01"
+    },
+    {
+      "id": "S18",
+      "title": "Nautilus-One",
+      "publisher": "Offset-official",
+      "edition_or_context": "2025",
+      "url": "https://github.com/Offset-official/Nautilus-One",
+      "access_method": "README dibaca",
+      "limitations": "ROS 2 / ArduSub / Gazebo; belum direproduksi.",
+      "accessed_on": "2026-10-01"
+    },
+    {
+      "id": "S19",
+      "title": "uwv-simulator",
+      "publisher": "AUV Society IIITDM",
+      "edition_or_context": "historis; ROS Noetic/Gazebo 11",
+      "url": "https://github.com/auvsociety/uwv-simulator",
+      "access_method": "teks README dari hasil pencarian",
+      "limitations": "Simulator khusus SAUVC dan model vec6; belum diinstal.",
+      "accessed_on": "2026-10-01"
+    },
+    {
+      "id": "S20",
+      "title": "NYCU AUV control",
+      "publisher": "BenTzuHsien",
+      "edition_or_context": "partisipasi 2022",
+      "url": "https://github.com/BenTzuHsien/nycu-auv-control",
+      "access_method": "README dibaca",
+      "limitations": "Firmware STM32; lapisan tingkat tinggi tidak disertakan.",
+      "accessed_on": "2026-10-01"
+    },
+    {
+      "id": "S21",
+      "title": "Using DSO",
+      "publisher": "AUV Society",
+      "edition_or_context": "eksperimen historis",
+      "url": "https://github.com/auvsociety/sauvc-simulations/blob/master/docs/Using-DSO.md",
+      "access_method": "teks dokumen dari hasil pencarian",
+      "limitations": "Catatan hasil dan keterbatasan odometri; dataset belum diunduh.",
+      "accessed_on": "2026-10-01"
+    },
+    {
+      "id": "S22",
+      "title": "Real-Time Buoyancy Estimation for AUV Simulations Using Convex Hull-Based Submerged Volume Calculation",
+      "publisher": "Ad-Deen Mahbub; Md Ragib Shaharear",
+      "edition_or_context": "2025",
+      "url": "https://arxiv.org/abs/2509.03804",
+      "access_method": "abstrak dan metadata dibaca",
+      "limitations": "arXiv 2509.03804, 4 September 2025; eksperimen belum direproduksi, teks penuh belum ditelaah.",
+      "accessed_on": "2026-10-01"
+    },
+    {
+      "id": "S23",
+      "title": "Underwater vehicles tutorial",
+      "publisher": "Gazebo",
+      "edition_or_context": "dokumentasi Sim 8",
+      "url": "https://gazebosim.org/api/sim/8/underwater_vehicles.html",
+      "access_method": "halaman dibuka",
+      "limitations": "Sumber primer plugin buoyancy, thruster, dan hydrodynamics.",
+      "accessed_on": "2026-10-01"
+    },
+    {
+      "id": "S24",
+      "title": "ULB-362 / ULB-362PL User Manual",
+      "publisher": "RJE International",
+      "edition_or_context": "Mei 2015",
+      "url": "https://www.rjeint.com/wp-content/uploads/2017/01/ULB-362-ULB-362PL-Manual.pdf",
+      "access_method": "teks PDF dibaca; tabel spesifikasi diperiksa",
+      "limitations": "Dokumen produsen yang ditautkan rulebook; bukan konfirmasi model pinger 2027.",
+      "accessed_on": "2026-10-01"
+    },
+    {
+      "id": "S25",
+      "title": "Contact Us",
+      "publisher": "Singapore Polytechnic",
+      "edition_or_context": "aktif saat akses",
+      "url": "https://www.sp.edu.sg/about-sp/contact-us",
+      "access_method": "teks hasil pencarian",
+      "limitations": "Alamat kampus; bukan lokasi check-in lomba.",
+      "accessed_on": "2026-10-01"
+    },
+    {
+      "id": "S26",
+      "title": "Regional Industry Networking Conference — directions",
+      "publisher": "Singapore Polytechnic",
+      "edition_or_context": "acara lain",
+      "url": "https://www.sp.edu.sg/student-life/annual-events/regional-industry-networking-conference",
+      "access_method": "teks hasil pencarian",
+      "limitations": "Referensi Dover MRT; akses acara SAUVC perlu konfirmasi tersendiri.",
+      "accessed_on": "2026-10-01"
+    },
+    {
+      "id": "S27",
+      "title": "Entering Singapore",
+      "publisher": "Immigration & Checkpoints Authority",
+      "edition_or_context": "aktif saat akses",
+      "url": "https://www.ica.gov.sg/enter-transit-depart/entering-singapore",
+      "access_method": "teks hasil pencarian",
+      "limitations": "Sumber otoritas masuk negara; cek lagi menjelang perjalanan.",
+      "accessed_on": "2026-10-01"
+    },
+    {
+      "id": "S28",
+      "title": "Visiting Singapore",
+      "publisher": "Immigration & Checkpoints Authority",
+      "edition_or_context": "aktif saat akses",
+      "url": "https://www.ica.gov.sg/public-education/visiting-singapore",
+      "access_method": "teks hasil pencarian",
+      "limitations": "SG Arrival Card bukan visa; prosedur resmi.",
+      "accessed_on": "2026-10-01"
+    },
+    {
+      "id": "S29",
+      "title": "Baggage Restrictions",
+      "publisher": "Singapore Airlines",
+      "edition_or_context": "aktif saat akses",
+      "url": "https://www.singaporeair.com/en_UK/sg/travel-info/baggage/baggage-restrictions/",
+      "access_method": "halaman dibuka",
+      "limitations": "Kebijakan satu maskapai; tidak otomatis berlaku ke semua rute/operator.",
+      "accessed_on": "2026-10-01"
+    },
+    {
+      "id": "S30",
+      "title": "Temporary Import/Export Scheme",
+      "publisher": "Singapore Customs",
+      "edition_or_context": "aktif saat akses",
+      "url": "https://www.customs.gov.sg/permits-and-licences/import-export-facilitation-schemes/temporary-import-export/",
+      "access_method": "teks hasil pencarian",
+      "limitations": "Pilihan skema, bukan persetujuan impor robot tertentu.",
+      "accessed_on": "2026-10-01"
+    },
+    {
+      "id": "S31",
+      "title": "Foreign ATA Carnet",
+      "publisher": "Singapore Customs",
+      "edition_or_context": "aktif saat akses",
+      "url": "https://www.customs.gov.sg/permits-and-licences/import-export-facilitation-schemes/temporary-import-export/ata-carnet/foreign-ata-carnet/",
+      "access_method": "teks hasil pencarian",
+      "limitations": "Persyaratan penggunaan carnet untuk impor sementara.",
+      "accessed_on": "2026-10-01"
+    },
+    {
+      "id": "S32",
+      "title": "Hand-carried Temporary Imported Goods",
+      "publisher": "Singapore Customs",
+      "edition_or_context": "aktif saat akses",
+      "url": "https://www.customs.gov.sg/doing-business/import-operations/import-procedures/hand-carried-temporary-imported-goods/",
+      "access_method": "teks hasil pencarian",
+      "limitations": "Prosedur checkpoint barang pameran yang dibawa sendiri.",
+      "accessed_on": "2026-10-01"
+    },
+    {
+      "id": "S33",
+      "title": "Daftar Event Robot Internasional yang Diunggah Kemdiktisaintek__.pdf",
+      "publisher": "Kompilasi dari pengguna; penerbit resmi tidak terautentikasi",
+      "edition_or_context": "historis; kompilasi 2026",
+      "url": "sources/daftar-event-internasional-kemdiktisaintek.pdf",
+      "access_method": "PDF lokal: seluruh halaman diperiksa visual, teks dan anotasi diekstrak",
+      "limitations": "Kompilasi unggahan dan berita; bukan dokumen penetapan lomba atau bukti dukungan formal SAUVC 2027.",
+      "accessed_on": "2026-10-01",
+      "source_type": "user_provided_pdf",
+      "page_count": 4,
+      "sha256": "d74d8fd0a6048b029e6385caecc2f199eab6cd6650f04ed3565ca028c727ac9c"
+    },
+    {
+      "id": "S34",
+      "title": "Daftar Juara dan Peserta SAUVC_.pdf",
+      "publisher": "Kompilasi dari pengguna; penerbit resmi tidak terautentikasi",
+      "edition_or_context": "historis; kompilasi 2026",
+      "url": "sources/daftar-juara-dan-peserta-sauvc.pdf",
+      "access_method": "PDF lokal: seluruh halaman diperiksa visual, teks dan anotasi diekstrak",
+      "limitations": "Kompilasi historis; daftar shortlisted berbeda dari kehadiran; peringkat 2025 berkonflik dengan S07.",
+      "accessed_on": "2026-10-01",
+      "source_type": "user_provided_pdf",
+      "page_count": 13,
+      "sha256": "8f8a606cc5d9aff388a4cc6fe3dc17747f8b9544172f2066e119b8c611e0712e"
+    }
+  ]
+}

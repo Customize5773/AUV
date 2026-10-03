@@ -1,0 +1,2 @@
+try{let e=typeof window<"u"?window:typeof global<"u"?global:typeof globalThis<"u"?globalThis:typeof self<"u"?self:{},t=new e.Error().stack;t&&(e._sentryDebugIds=e._sentryDebugIds||{},e._sentryDebugIds[t]="dabcf1f3-6c8b-43a8-a7c1-5516847e851c",e._sentryDebugIdIdentifier="sentry-dbid-dabcf1f3-6c8b-43a8-a7c1-5516847e851c")}catch{}const d="/assets/pilot-input-d0046709.svg";export{d as default};
+//# sourceMappingURL=pilot-input.73b9b4ee.js.map

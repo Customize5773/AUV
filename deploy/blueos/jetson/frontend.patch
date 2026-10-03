@@ -1,0 +1,227 @@
+diff --git a/core/frontend/src/App.vue b/core/frontend/src/App.vue
+index 134bfcf..d6a9d68 100644
+--- a/core/frontend/src/App.vue
++++ b/core/frontend/src/App.vue
+@@ -70,12 +70,12 @@
+         <gps-tray-menu :instance="1" />
+         <gps-tray-menu :instance="2" />
+         <theme-tray-menu />
+-        <system-checker-tray-menu />
++        <!-- system-checker-tray-menu is unavailable in the Jetson bench profile. -->
+         <vehicle-reboot-required-tray-menu />
+         <pirate-mode-tray-menu />
+         <internet-tray-menu />
+-        <wifi-tray-menu />
+-        <ethernet-tray-menu />
++        <!-- wifi-tray-menu is unavailable in the Jetson bench profile. -->
++        <!-- ethernet-tray-menu is unavailable in the Jetson bench profile. -->
+         <cloud-tray-menu v-if="settings.is_dev_mode" />
+         <notification-tray-button />
+       </v-app-bar>
+@@ -309,8 +309,8 @@
+         </v-list>
+         <v-divider />
+         <v-container class="d-flex justify-center">
+-          <power-menu />
+-          <settings-menu />
++          <!-- power-menu is unavailable in the Jetson bench profile. -->
++          <!-- settings-menu is unavailable in the Jetson bench profile. -->
+           <report-menu />
+         </v-container>
+         <span
+@@ -366,13 +366,20 @@
+     </v-navigation-drawer>
+ 
+     <v-main>
+-      <router-view />
++      <v-alert type="info" dense class="ma-3" data-testid="jetson-bench-notice">
++        Jetson · Uji tanpa periferal. Pengelolaan jaringan, ekstensi, pembaruan BlueOS,
++        dan perintah host tidak aktif. Kamera/Pixhawk belum terhubung.
++      </v-alert>
++      <v-alert v-if="benchUnavailableRoute" type="info" class="ma-3">
++        Fitur ini tidak tersedia pada profil uji Jetson.
++      </v-alert>
++      <router-view v-else />
+       <div id="tour-center-hook" />
+     </v-main>
+-    <ethernet-updater />
++    <!-- ethernet-updater is unavailable in the Jetson bench profile. -->
+     <mavlink-updater />
+-    <new-version-notificator />
+-    <Wizard />
++    <!-- new-version-notificator is unavailable in the Jetson bench profile. -->
++    <!-- Wizard is unavailable in the Jetson bench profile. -->
+     <alerter />
+     <VTour
+       name="welcomeTour"
+@@ -538,6 +545,9 @@ export default Vue.extend({
+     svg_outside_style(): string {
+       return `mr-0 ${settings.is_dark_theme ? 'outside-svg-dark' : 'outside-svg-light'}`
+     },
++    benchUnavailableRoute(): boolean {
++      return ['/tools/version-chooser', '/tools/extensions-manager'].includes(this.$route.path)
++    },
+     computed_menu(): menuItem[] {
+       const foundExtensions = helper.services
+         .filter((service: Service) : boolean => service.metadata !== null)
+@@ -571,7 +581,7 @@ export default Vue.extend({
+         ...foundExtensions,
+       ] as menuItem[]
+ 
+-      return [...filteredDefaultMenu, ...extensions].sort((a, b) => a.title.localeCompare(b.title))
++      return filteredDefaultMenu.sort((a, b) => a.title.localeCompare(b.title))
+     },
+     steps() {
+       return [
+@@ -728,7 +738,7 @@ export default Vue.extend({
+     this.checkAddress()
+     this.setupCallbacks()
+     this.checkTour()
+-    updateTime()
++    // Host clock management is disabled in the Jetson bench profile.
+ 
+     const body = document.querySelector('body')
+     body?.addEventListener('click', (event) => {
+@@ -737,7 +747,7 @@ export default Vue.extend({
+         this.context_menu_visible = false
+       }
+     })
+-    this.bootstrap_version = await VCU.loadBootstrapCurrentVersion()
++    // No bootstrap/version chooser in the Jetson bench profile.
+   },
+   methods: {
+     addExtraQuery(url: string, extra_queries?: string) {
+diff --git a/core/frontend/src/components/system-information/AboutThisSystem.vue b/core/frontend/src/components/system-information/AboutThisSystem.vue
+index d61fb34..6255420 100644
+--- a/core/frontend/src/components/system-information/AboutThisSystem.vue
++++ b/core/frontend/src/components/system-information/AboutThisSystem.vue
+@@ -46,7 +46,7 @@ export default Vue.extend({
+ 
+       return [
+         {
+-          title: 'OS Type', value: `${info.system_name} ${info.os_version}`,
++          title: 'Container OS', value: `${info.system_name} ${info.os_version}`,
+         },
+         {
+           title: 'Kernel', value: `${info.kernel_version}`,
+@@ -58,7 +58,7 @@ export default Vue.extend({
+             + `(${system_information.model?.cpu_name ?? 'Unknown CPU'})`,
+         },
+         {
+-          title: 'Hostname', value: `${info.host_name}`,
++          title: 'Container hostname', value: `${info.host_name}`,
+         },
+         {
+           title: 'Time', value: new Date(unix_time_seconds * 1000).toTimeString(),
+diff --git a/core/frontend/src/components/system-information/SystemCondition.vue b/core/frontend/src/components/system-information/SystemCondition.vue
+index 9225273..5760d63 100644
+--- a/core/frontend/src/components/system-information/SystemCondition.vue
++++ b/core/frontend/src/components/system-information/SystemCondition.vue
+@@ -113,9 +113,9 @@ export default Vue.extend({
+       const main_temperature = system_information.cpu_temperature?.toFixed(1) ?? 'Loading..'
+       const temperature_text = temperature_sensors?.map(
+         (sensor) => {
+-          const critical_temp = sensor.critical_temperature || 0
++          const critical_temp = sensor.critical_temperature
+           return `${sensor.name} ${sensor.temperature.toFixed(1)}ºC`
+-        + `, Max: ${sensor.maximum_temperature.toFixed(1)}ºC, Crit: ${critical_temp.toFixed(1)}ºC`
++        + `, Peak (session): ${sensor.maximum_temperature.toFixed(1)}ºC, Crit: ${critical_temp == null ? 'N/A' : critical_temp.toFixed(1) + 'ºC'}`
+         },
+       ).join('<br/>') ?? 'Loading..'
+ 
+diff --git a/core/frontend/src/components/video-manager/VideoManager.vue b/core/frontend/src/components/video-manager/VideoManager.vue
+index b1ed915..7f9683b 100644
+--- a/core/frontend/src/components/video-manager/VideoManager.vue
++++ b/core/frontend/src/components/video-manager/VideoManager.vue
+@@ -63,11 +63,7 @@
+         </v-card-title>
+ 
+         <v-card-actions class="d-flex flex-column justify-space-around align-center pb-6">
+-          <v-switch
+-            v-model="legacy_mode"
+-            label="Raspberry legacy camera support"
+-            @change="toggleLegacyMode"
+-          />
++<!-- No Raspberry Pi legacy-camera control on Jetson. -->
+           <v-btn
+             @click="resetSettings"
+           >
+@@ -162,7 +158,7 @@ export default Vue.extend({
+     },
+   },
+   async mounted() {
+-    await this.updateCameraLegacy()
++    // Raspberry Pi legacy-camera controls do not apply to Jetson.
+   },
+   methods: {
+     async updateCameraLegacy(): Promise<void> {
+diff --git a/core/frontend/src/menus.ts b/core/frontend/src/menus.ts
+index c4b5051..e17b8fa 100644
+--- a/core/frontend/src/menus.ts
++++ b/core/frontend/src/menus.ts
+@@ -124,7 +124,7 @@ const menus = [
+     advanced: false,
+     text: 'Manage your video devices and video streams.',
+   },
+-] as menuItem[]
++].filter((item) => item.route !== '/tools/version-chooser') as menuItem[]
+ 
+ export interface menuItem {
+   title: string,
+diff --git a/core/frontend/src/types/autopilot/parameter-fetcher.ts b/core/frontend/src/types/autopilot/parameter-fetcher.ts
+index 27eebd6..e688570 100644
+--- a/core/frontend/src/types/autopilot/parameter-fetcher.ts
++++ b/core/frontend/src/types/autopilot/parameter-fetcher.ts
+@@ -9,8 +9,6 @@ import autopilot from '@/store/autopilot_manager'
+ export default class ParameterFetcher {
+   parameter_table = new ParametersTable()
+ 
+-  listener = mavlink2rest.startListening('PARAM_VALUE')
+-
+   store = null as (AutopilotStore | null)
+ 
+   loaded_params_count = 0
+@@ -26,7 +24,8 @@ export default class ParameterFetcher {
+   reset_timestamp = 0
+ 
+   constructor() {
+-    this.setupWs()
++    // Both modules import each other. Wait until module evaluation completes.
++    queueMicrotask(() => this.setupWs())
+   }
+ 
+   setStore(store: AutopilotStore): void {
+@@ -91,7 +90,7 @@ export default class ParameterFetcher {
+   }
+ 
+   setupWs(): void {
+-    this.listener.setCallback((receivedMessage) => {
++    mavlink2rest.startListening('PARAM_VALUE').setCallback((receivedMessage) => {
+       // Ignore messages received after reset for 500ms
+       const message_age = performance.now() - this.reset_timestamp
+       if (this.reset_timestamp > 0) {
+diff --git a/core/frontend/src/views/MainView.vue b/core/frontend/src/views/MainView.vue
+index 322e15a..e096c72 100644
+--- a/core/frontend/src/views/MainView.vue
++++ b/core/frontend/src/views/MainView.vue
+@@ -28,7 +28,7 @@
+         </a>
+         .
+       </v-alert>
+-      <self-health-test />
++      <!-- Version chooser is disabled in the Jetson bench profile. -->
+     </v-row>
+     <div class="grid-holder">
+       <div class="grid-holder-container">
+diff --git a/core/frontend/src/views/SystemInformationView.vue b/core/frontend/src/views/SystemInformationView.vue
+index 6a73639..2e06d71 100644
+--- a/core/frontend/src/views/SystemInformationView.vue
++++ b/core/frontend/src/views/SystemInformationView.vue
+@@ -77,6 +77,7 @@ export default Vue.extend({
+   computed: {
+     pages(): Item[] {
+       return this.items
++        .filter((item: Item) => item.value !== 'firmware')
+         .filter((item: Item) => item?.is_pirate !== true || this.settings.is_pirate_mode)
+     },
+     current_page: {

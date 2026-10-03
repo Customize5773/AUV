@@ -1,0 +1,2 @@
+try{let e=typeof window<"u"?window:typeof global<"u"?global:typeof globalThis<"u"?globalThis:typeof self<"u"?self:{},d=new e.Error().stack;d&&(e._sentryDebugIds=e._sentryDebugIds||{},e._sentryDebugIds[d]="be25f5c9-2f64-4587-896e-70ad8bb394a9",e._sentryDebugIdIdentifier="sentry-dbid-be25f5c9-2f64-4587-896e-70ad8bb394a9")}catch{}const n="/assets/TX-905a9aa8.svg";export{n as default};
+//# sourceMappingURL=TX.cf46cec2.js.map

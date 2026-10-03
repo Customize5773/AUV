@@ -1,0 +1,24 @@
+[
+  {
+    "id": "S33",
+    "original_filename": "Daftar Event Robot Internasional yang Diunggah Kemdiktisaintek__.pdf",
+    "local_path": "sources/daftar-event-internasional-kemdiktisaintek.pdf",
+    "pages": 4,
+    "size_bytes": 836252,
+    "sha256": "d74d8fd0a6048b029e6385caecc2f199eab6cd6650f04ed3565ca028c727ac9c",
+    "received_on": "2026-10-01",
+    "review_method": "Ekstraksi teks, anotasi tautan, dan pemeriksaan visual seluruh halaman",
+    "provenance": "Dokumen diberikan pengguna; metadata PDF mencantumkan nabilla putri, Microsoft Word 2021, dibuat 23 September 2026; bukan autentikasi penerbit."
+  },
+  {
+    "id": "S34",
+    "original_filename": "Daftar Juara dan Peserta SAUVC_.pdf",
+    "local_path": "sources/daftar-juara-dan-peserta-sauvc.pdf",
+    "pages": 13,
+    "size_bytes": 6441327,
+    "sha256": "8f8a606cc5d9aff388a4cc6fe3dc17747f8b9544172f2066e119b8c611e0712e",
+    "received_on": "2026-10-01",
+    "review_method": "Ekstraksi teks, anotasi tautan, dan pemeriksaan visual seluruh halaman",
+    "provenance": "Dokumen diberikan pengguna; metadata PDF mencantumkan nabilla putri, Microsoft Word 2021, dibuat 23 September 2026; bukan autentikasi penerbit."
+  }
+]

@@ -1,0 +1,2 @@
+try{let e=typeof window<"u"?window:typeof global<"u"?global:typeof globalThis<"u"?globalThis:typeof self<"u"?self:{},d=new e.Error().stack;d&&(e._sentryDebugIds=e._sentryDebugIds||{},e._sentryDebugIds[d]="8fbdb9f9-ed67-4d0e-acd6-b5a66d874efa",e._sentryDebugIdIdentifier="sentry-dbid-8fbdb9f9-ed67-4d0e-acd6-b5a66d874efa")}catch{}const s="/assets/crash-c5fdc5d3.svg";export{s as default};
+//# sourceMappingURL=crash.94f469cd.js.map
