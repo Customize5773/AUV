@@ -28,7 +28,8 @@ Alamat utama: **http://127.0.0.1:8081**. Panduan pemasangan dan operasi ada di [
 | Putus/sambung SITL | Proses simulator dihentikan sementara dengan SIGSTOP lalu dilanjutkan SIGCONT; kehilangan heartbeat terdeteksi, sesi berganti, daftar parameter terbaca kembali |
 | Restart/crash aplikasi | Restart biasa dan SIGKILL berhasil dipulihkan systemd, konfigurasi sama sebelum/sesudah; [hasil](../hydroships/evidence/service-check.json) |
 | Startup otomatis | User service enabled dan `Linger=yes`; **reboot host belum diuji** |
-| Uji ketahanan 60 menit | Lihat status hidup di [soak-sitl.json](../hydroships/evidence/soak-sitl.json); lulus hanya bila `completed` dan `ok` bernilai `true` |
+| Uji ketahanan 60 menit | Lulus: 3.600,02 detik, 718 pemeriksaan, tanpa kegagalan; `completed: true`, `ok: true`; [hasil](../hydroships/evidence/soak-sitl.json) |
+| Rotasi log setelah uji ketahanan | Lulus: maksimal delapan berkas, masing-masing tidak melebihi 8 MiB; [hasil](../hydroships/evidence/log-retention-check.json) |
 | Pixhawk fisik, USB cabut/pasang | Belum diuji; perangkat belum tersedia pada pengujian ini |
 
 Browser demo dan pemeriksaan awal SITL tidak mencatat error JavaScript, HTTP gagal, atau permintaan aset eksternal. Peringatan deprecation dari dependensi test client dicatat pada output pytest; seluruh pengujian tetap lulus.
@@ -54,7 +55,9 @@ Uji ketahanan awal tidak valid karena ada permintaan koneksi baru selama penguku
 | `hydroships-sitl-validation.service` | Simulator validasi instance 1, UDP 14570 |
 | `hydroships-soak.service` | Pemeriksaan baca-saja setiap lima detik selama 3.600 detik wall-clock |
 
-Uji ketahanan memeriksa health HTTP, heartbeat, identitas sesi, kelengkapan parameter, pertambahan pesan, dan RSS aplikasi. Durasi yang baru berjalan tidak dianggap hasil lulus. Unit simulator/validasi bersifat sementara dan tidak diaktifkan otomatis pada boot.
+Uji ketahanan memeriksa health HTTP, heartbeat, identitas sesi, kelengkapan parameter, pertambahan pesan, dan RSS aplikasi. Pengujian selesai pada 4 Oktober 2026, sekitar 00.15–01.15 WIB, selama 3.600,02 detik wall-clock. Seluruh 718 pemeriksaan lulus tanpa pergantian sesi atau kehilangan heartbeat yang terdeteksi. Penghitung pesan bertambah dari 1.666 menjadi 1.337.091 (1.335.425 pesan selama pengukuran). RSS berada pada 59,4–61,7 MiB.
+
+Pada pemeriksaan akhir, backend dan simulator validasi serta simulator dashboard sudah tidak aktif. Layanan utama `hydroships.service` tetap aktif pada port 8081 dalam keadaan terputus dari kendaraan, siap untuk koneksi berikutnya. Unit simulator/validasi bersifat sementara dan tidak diaktifkan otomatis pada boot. Build frontend dan pemeriksaan browser baca-saja juga diulang setelah perubahan tema/favicon di workspace, dengan hasil lulus.
 
 ## Pekerjaan berikutnya yang memerlukan hardware
 
