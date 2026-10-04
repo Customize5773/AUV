@@ -9,5 +9,8 @@ frontend/dist/
 evidence/**/*.png
 evidence/**/*.json
 .env
+ros2_ws/build/
+ros2_ws/install/
+ros2_ws/log/
 .kilo
 graphify-out

@@ -14,6 +14,7 @@ Tujuan pekerjaan Program adalah mengintegrasikan Jetson, Pixhawk–ArduSub, dan 
 | [Adaptasi BlueOS–Jetson](06-adaptasi-blueos-jetson.md) | Perapian antarmuka, suhu/platform, dan persistensi HydroShips |
 | [Aplikasi mandiri HydroShips](07-hydroships.md) | Implementasi yang disetujui: Jetson–Pixhawk, dashboard, parameter, telemetri, dan pengujian SITL |
 | [Validasi HydroShips langsung di Jetson](08-validasi-jetson-hydroships.md) | Pencocokan metrik host, startup, restart, pemulihan proses, dan integritas konfigurasi |
+| [Platform autonomous ROS 2](09-platform-autonomous-ros2.md) | Editor misi, executor ROS 2, kontrak modul tugas, riwayat, dan pengujian software di Jetson |
 
 **Perkembangan berikutnya:** pengguna menyetujui aplikasi mandiri dengan BlueOS sebagai acuan, lalu meminta seluruh source digabung dalam Git AUV2027. Aplikasi tersedia di [`hydroships/`](../hydroships/README.md), port lokal **8081**. Laporan 07 menjadi acuan implementasi baru; catatan BlueOS di bawah merekam tahap sebelumnya.
 

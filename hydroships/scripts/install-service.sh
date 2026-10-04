@@ -20,6 +20,7 @@ ExecStart=/usr/bin/env -u PYTHONPATH "{app}/.venv/bin/python" -m hydroships
 Environment=PYTHONNOUSERSITE=1
 Environment=HYDROSHIPS_HOST=127.0.0.1
 Environment=HYDROSHIPS_PORT=8081
+Environment=HYDROSHIPS_ROS_ENABLED=1
 Restart=on-failure
 RestartSec=3
 TimeoutStopSec=15

@@ -17,6 +17,7 @@ from . import __version__
 from .storage import Storage
 from .system import system_snapshot
 from .vehicle import Vehicle, VehicleError, serial_devices
+from .autonomy import Autonomy, AutonomyError
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -40,6 +41,23 @@ class SettingsRequest(BaseModel):
     name: str = Field(min_length=1, max_length=60)
 
 
+class MissionPlanRequest(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    revision: int = Field(strict=True, ge=1)
+    plan: dict
+
+
+class MissionRunRequest(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    revision: int = Field(strict=True, ge=1)
+    scenario: Literal['success', 'failure', 'no_response'] = 'success'
+
+
+class MissionAbortRequest(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    run_id: str = Field(pattern=r'^[a-f0-9-]{36}$')
+
+
 def create_app(data_dir=None):
     directory = Path(data_dir or os.environ.get("HYDROSHIPS_DATA_DIR", ROOT / ".data"))
 
@@ -52,7 +70,11 @@ def create_app(data_dir=None):
             app.state.storage = storage = Storage(directory)
             app.state.vehicle = vehicle = Vehicle(storage)
             app.state.system = system_snapshot(directory)
+            app.state.autonomy = autonomy = Autonomy(storage)
             vehicle.start()
+            if os.environ.get('HYDROSHIPS_ROS_ENABLED', '0') == '1':
+                with contextlib.suppress(AutonomyError):
+                    await autonomy.start()
             storage.event("service.started", "HydroShips dimulai.", version=__version__)
 
             async def monitor():
@@ -67,6 +89,7 @@ def create_app(data_dir=None):
                 task.cancel()
                 with contextlib.suppress(asyncio.CancelledError):
                     await task
+                await autonomy.stop()
                 await asyncio.to_thread(vehicle.stop)
                 storage.event("service.stopped", "HydroShips dihentikan.")
                 storage.close()
@@ -75,6 +98,10 @@ def create_app(data_dir=None):
                   docs_url=None, redoc_url=None)
     hosts = os.environ.get("HYDROSHIPS_ALLOWED_HOSTS", "127.0.0.1,localhost").split(",")
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=hosts)
+
+    @app.exception_handler(AutonomyError)
+    async def autonomy_error(request, exc):
+        return JSONResponse({'detail': str(exc)}, status_code=409)
 
     @app.middleware("http")
     async def browser_boundary(request: Request, call_next):
@@ -169,6 +196,45 @@ def create_app(data_dir=None):
     @app.get("/api/events")
     def events(limit: int = 100, after: int = 0):
         return {"items": app.state.storage.events(max(1, min(limit, 10000)), max(0, after))}
+
+    @app.get('/api/autonomy')
+    async def autonomy_state():
+        return app.state.autonomy.snapshot()
+
+    @app.put('/api/autonomy/plan')
+    async def mission_plan(body: MissionPlanRequest):
+        try:
+            return app.state.autonomy.save_plan(body.revision, body.plan)
+        except ValueError as exc:
+            raise HTTPException(422, str(exc)) from exc
+
+    @app.post('/api/autonomy/runtime')
+    async def start_ros():
+        await app.state.autonomy.start()
+        return app.state.autonomy.snapshot()
+
+    @app.delete('/api/autonomy/runtime')
+    async def stop_ros():
+        await app.state.autonomy.stop()
+        return app.state.autonomy.snapshot()
+
+    @app.post('/api/autonomy/run')
+    async def run_mission(body: MissionRunRequest):
+        return await app.state.autonomy.run(body.revision, body.scenario)
+
+    @app.post('/api/autonomy/abort')
+    async def abort_mission(body: MissionAbortRequest):
+        return await app.state.autonomy.abort(body.run_id)
+
+    @app.get('/api/autonomy/runs/{identifier}')
+    async def mission_report(identifier: str):
+        if not re.fullmatch(r'[a-f0-9-]{36}', identifier):
+            raise HTTPException(404, 'Eksekusi tidak ditemukan.')
+        current = app.state.autonomy.current
+        run = current if current and current['run_id'] == identifier else app.state.storage.run(identifier)
+        if run is None:
+            raise HTTPException(404, 'Eksekusi tidak ditemukan atau sudah dirotasi.')
+        return JSONResponse(run, headers={'Content-Disposition': f'attachment; filename="mission-{identifier}.json"'})
 
     @app.get("/api/logs")
     def logs():

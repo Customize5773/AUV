@@ -5,6 +5,7 @@ import { Activity, ArrowDownToLine, ArrowRight, Battery, Cable, Check, ChevronRi
   RefreshCw, Search, Settings2, ShieldCheck, Thermometer, Waves, WifiOff, X } from 'lucide-vue-next'
 import { api, useVehicle, type Connection, type Event } from './state'
 import ParameterComparison from './ParameterComparison.vue'
+import AutonomyPanel from './AutonomyPanel.vue'
 import { typeNames } from './parameterComparison'
 
 const tabs = [
@@ -12,6 +13,7 @@ const tabs = [
   {id: 'connection', label: 'Koneksi', icon: Cable, caption: 'Hubungkan autopilot'},
   {id: 'telemetry', label: 'Telemetri', icon: Activity, caption: 'Data kendaraan secara langsung'},
   {id: 'parameters', label: 'Parameter', icon: Settings2, caption: 'Konfigurasi autopilot'},
+  {id: 'autonomy', label: 'Autonomous', icon: Compass, caption: 'Rencana dan eksekusi misi ROS 2'},
   {id: 'system', label: 'Sistem', icon: Cpu, caption: 'Kesehatan komputer onboard'},
   {id: 'logs', label: 'Log', icon: FileText, caption: 'Rekaman dan riwayat kejadian'},
 ]
@@ -189,6 +191,7 @@ onUnmounted(() => {clearInterval(poll); clearTimeout(noticeTimer); window.remove
           <ParameterComparison v-show="parameterView === 'compare'" :ready="!!connected && parameters.state === 'complete' && parameters.session === vehicle?.session" :session="vehicle?.session || ''" :identity="vehicle?.identity || {}" :source="vehicle?.connection" :items="parameters.items" />
         </template>
 
+        <AutonomyPanel v-else-if="page === 'autonomy'" :online="online" />
         <template v-else-if="page === 'system'">
           <div class="metric-grid four"><article class="metric-card"><div class="metric-top">CPU <Cpu :size="18" /></div><div class="metric-value">{{ system?.cpu_percent.toFixed(1) || '—' }} <small>%</small></div><div class="metric-foot">{{ system?.cpu_count || '—' }} logical cores</div></article><article class="metric-card"><div class="metric-top">RAM <Database :size="18" /></div><div class="metric-value small">{{ bytes(system?.memory.used) }}</div><div class="metric-foot">dari {{ bytes(system?.memory.total) }}</div></article><article class="metric-card"><div class="metric-top">Penyimpanan <Database :size="18" /></div><div class="metric-value small">{{ bytes(system?.disk.used) }}</div><div class="metric-foot">dari {{ bytes(system?.disk.total) }}</div></article><article class="metric-card"><div class="metric-top">Uptime <Activity :size="18" /></div><div class="metric-value small">{{ duration(system?.uptime) }}</div><div class="metric-foot">Sejak host dinyalakan</div></article></div><div class="two-columns"><section class="panel"><div class="panel-heading"><h3><Cpu :size="18" /> Informasi perangkat</h3></div><dl class="detail-list"><div><dt>Model</dt><dd>{{ system?.model || '—' }}</dd></div><div><dt>Hostname</dt><dd>{{ system?.hostname || '—' }}</dd></div><div><dt>Sistem operasi</dt><dd>{{ system?.os || '—' }}</dd></div><div><dt>Kernel</dt><dd>{{ system?.kernel || '—' }}</dd></div><div><dt>RAM aplikasi</dt><dd>{{ system ? (system.process_memory / 1024 ** 2).toFixed(1) + ' MB' : '—' }}</dd></div><div><dt>Pembaruan terakhir</dt><dd>{{ system ? time(system.ts) : '—' }}</dd></div></dl></section><section class="panel"><div class="panel-heading"><h3><Thermometer :size="18" /> Sensor termal</h3><span class="subtle-tag">{{ system?.temperatures.length || 0 }} SENSOR</span></div><div v-if="!system?.temperatures.length" class="empty compact">Sensor termal belum tersedia pada host ini.</div><div class="thermal-list"><div v-for="sensor in system?.temperatures" :key="sensor.name"><span>{{ sensor.name }}</span><meter min="0" max="110" :value="sensor.celsius" :aria-label="`Suhu ${sensor.name}`"></meter><strong>{{ sensor.celsius.toFixed(1) }} <small>°C</small></strong></div></div></section></div><section class="panel identity-panel"><div><h3>Identitas kendaraan</h3><p>Nama yang ditampilkan pada dashboard dan disimpan di Jetson.</p></div><form @submit.prevent="action(() => api('/settings', 'PUT', {name}), 'Nama kendaraan disimpan.')"><label class="sr-only" for="vehicle-name">Nama kendaraan</label><input id="vehicle-name" v-model="name" maxlength="60" required><button class="button primary" :disabled="busy || !online">Simpan</button></form></section>
         </template>
