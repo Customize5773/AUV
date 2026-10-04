@@ -40,6 +40,14 @@ Kemudian buka alamat localhost yang sama pada laptop. Layanan default hanya mend
 
 Mode demo memakai kendaraan MAVLink sederhana dalam proses terpisah secara threading. Ini **bukan ArduSub SITL**, bukan simulasi fisika, dan bukan bukti hardware. Badge demo selalu tampil; data CPU/RAM/suhu tetap berasal dari Jetson nyata.
 
+### Membandingkan cadangan parameter
+
+Pada halaman **Parameter**, tunggu daftar lengkap lalu pilih file pada **Bandingkan cadangan**. Gunakan `.params` hasil tombol **Ekspor** HydroShips; formatnya lima kolom: system ID, component ID, nama, nilai, tipe. Ukuran maksimal 1 MiB. Komentar `#` dan baris kosong diterima; nama duplikat, angka/tipe tidak valid, atau beberapa target dalam satu file ditolak dengan nomor baris.
+
+Hasil membedakan nilai/tipe yang berubah, parameter hanya di file, hanya di kendaraan, dan yang sama. FLOAT32 dibandingkan pada presisi protokol agar pembulatan desimal saat ekspor tidak menghasilkan perbedaan palsu. ID file yang berbeda ditandai; ID yang sama belum memastikan kendaraan fisik yang sama.
+
+File diproses lokal di browser dan tidak diterapkan ke autopilot. **Unduh perbandingan** menyimpan JSON berisi nilai kedua sisi, waktu perbandingan, sesi, identitas, dan sumber koneksi. Hasil merupakan snapshot saat file dipilih; pilih ulang file untuk memperbaruinya. Hasil dibersihkan ketika koneksi/daftar parameter tidak lagi siap, sesi berubah, atau halaman Parameter ditinggalkan. Fitur ini bisa dicoba dengan demo tanpa hardware.
+
 Nilai `Altitude autopilot` berasal dari `VFR_HUD.alt`, belum merupakan kedalaman terhadap permukaan air. Konversi kedalaman memerlukan pemeriksaan sensor, firmware, dan acuan permukaan pada perangkat nyata.
 
 ## Layanan systemd
@@ -86,9 +94,12 @@ env -u PYTHONPATH .venv/bin/python -m pip install -e '.[test]'
 env -u PYTHONPATH .venv/bin/python -m pytest -q
 env -u PYTHONPATH .venv/bin/python -m playwright install chromium
 env -u PYTHONPATH .venv/bin/python scripts/check-browser.py
+cd frontend
+npm test
+cd ..
 ```
 
-Pengujian browser menghubungkan **demo**, mengubah parameter demo, mengunduh hasil, memeriksa enam halaman desktop/mobile, lalu memutus demo. Skrip menolak berjalan jika koneksi perangkat/SITL sedang aktif.
+Pengujian browser menghubungkan **demo**, mengubah parameter demo, mengunduh hasil, memeriksa enam halaman desktop/mobile, lalu memutus demo. Skrip juga memeriksa pembandingan cadangan, ekspor laporan, penolakan file invalid/terlalu besar, peringatan ID berbeda, dan pembersihan hasil saat disconnect. Pembandingan diverifikasi tidak mengirim permintaan perubahan. Skrip menolak berjalan jika koneksi perangkat/SITL sedang aktif. `npm test` memakai test runner bawaan Node untuk parser dan perbandingan parameter.
 
 Untuk memeriksa antarmuka dengan koneksi yang sudah aktif tanpa mengubah parameter atau koneksi:
 
@@ -105,6 +116,18 @@ env -u PYTHONPATH .venv/bin/python scripts/soak.py --seconds 3600 --output evide
 Hasil baru lulus jika `completed: true` dan `ok: true`. File diperbarui selama pengujian. Jangan mengganti koneksi atau restart layanan selama satu sesi uji.
 
 Hasil pengujian dan pekerjaan hardware yang tersisa dicatat di [laporan implementasi](../plan/07-hydroships.md).
+
+### Validasi langsung Jetson
+
+Jalankan dari folder `hydroships/` pada Jetson yang menjalankan layanan lokal port 8081:
+
+```bash
+env -u PYTHONPATH .venv/bin/python scripts/check-jetson.py
+```
+
+Pemeriksaan mencocokkan proses aplikasi, model/arsitektur, CPU, kapasitas RAM/disk, uptime, dan sensor thermal dengan host; memeriksa startup systemd serta integritas SQLite. Sepuluh sampel diambil selama sekitar 27 detik. Bukti tersimpan di `evidence/jetson-check.json`.
+
+Untuk menguji restart dan pemulihan proses setelah SIGKILL, putuskan koneksi kendaraan terlebih dahulu, kemudian tambahkan `--restart`. Opsi ini memutus layanan web sementara, memastikan PID berganti, dan membandingkan konfigurasi sebelum/sesudah. Skrip menolak tahap tersebut bila kendaraan masih terhubung. Pengujian tidak melakukan reboot Jetson atau mengganti mode daya. [Hasil validasi Jetson](../plan/08-validasi-jetson-hydroships.md).
 
 ### ArduSub SITL asli
 

@@ -27,7 +27,7 @@ Alamat utama: **http://127.0.0.1:8081**. Panduan pemasangan dan operasi ada di [
 | Perubahan parameter SITL | `PILOT_SPEED_DN`: 0 → 1 → 0, seluruh respons dikonfirmasi; nilai awal dipulihkan |
 | Putus/sambung SITL | Proses simulator dihentikan sementara dengan SIGSTOP lalu dilanjutkan SIGCONT; kehilangan heartbeat terdeteksi, sesi berganti, daftar parameter terbaca kembali |
 | Restart/crash aplikasi | Restart biasa dan SIGKILL berhasil dipulihkan systemd, konfigurasi sama sebelum/sesudah; [hasil](../hydroships/evidence/service-check.json) |
-| Startup otomatis | User service enabled dan `Linger=yes`; **reboot host belum diuji** |
+| Startup otomatis | User service enabled dan `Linger=yes`; proses teramati mulai 23,7 detik setelah boot saat pemeriksaan 4 Oktober; [bukti Jetson](08-validasi-jetson-hydroships.md). Reboot terkontrol dengan pemeriksaan sebelum/sesudah belum dilakukan |
 | Uji ketahanan 60 menit | Lulus: 3.600,02 detik, 718 pemeriksaan, tanpa kegagalan; `completed: true`, `ok: true`; [hasil](../hydroships/evidence/soak-sitl.json) |
 | Rotasi log setelah uji ketahanan | Lulus: maksimal delapan berkas, masing-masing tidak melebihi 8 MiB; [hasil](../hydroships/evidence/log-retention-check.json) |
 | Pixhawk fisik, USB cabut/pasang | Belum diuji; perangkat belum tersedia pada pengujian ini |
@@ -61,6 +61,8 @@ Pada pemeriksaan akhir, backend dan simulator validasi serta simulator dashboard
 
 ## Pekerjaan berikutnya yang memerlukan hardware
 
+**Ditunda sesuai arahan pengguna pada 4 Oktober 2026:** Pixhawk, kamera USB, dan periferal lainnya belum tersedia. Jetson sendiri tersedia dan HydroShips berjalan langsung di perangkat itu, sehingga validasi host dilanjutkan; lihat [hasil Jetson](08-validasi-jetson-hydroships.md). Integrasi periferal dan reboot terkontrol di bawah ini tetap belum dilakukan.
+
 1. Identifikasi model dan firmware Pixhawk, lalu cadangkan parameter aktual.
 2. Uji pemilihan USB, hak akses serial, deteksi heartbeat, dan seluruh pembacaan telemetri.
 3. Uji cabut/pasang menggunakan identitas perangkat stabil; pastikan tidak berpindah ke perangkat lain.
@@ -68,3 +70,13 @@ Pada pemeriksaan akhir, backend dan simulator validasi serta simulator dashboard
 5. Uji reboot Jetson saat pekerjaan desktop dapat dihentikan, kemudian periksa layanan, konfigurasi, dan koneksi ulang.
 
 Kamera, flashing firmware, perintah aktuator, penggantian mode, dan pelaksana misi belum termasuk versi pertama yang disetujui.
+
+## Pengembangan tanpa hardware — 4 Oktober 2026
+
+Halaman Parameter kini menyediakan **Bandingkan cadangan** untuk file ekspor `.params` HydroShips. File diproses di browser tanpa unggah atau penulisan parameter. Perbandingan menampilkan nilai/tipe yang berubah, parameter hanya di salah satu sisi, dan yang sama; tersedia filter perbedaan, pagination, serta laporan JSON dengan waktu, sesi, sumber, dan identitas kendaraan.
+
+Parser membatasi ukuran 1 MiB, memeriksa lima kolom, target tunggal, nama unik, tipe numerik, dan rentang nilai. Perbedaan ID kendaraan diberi peringatan. Hasil merupakan snapshot, dan dibersihkan ketika koneksi/daftar tidak siap atau sesi berubah. Pembandingan FLOAT32 memperhitungkan representasi protokol sehingga file ekspor tidak menghasilkan perbedaan akibat pembulatan desimal.
+
+Validasi lulus: `npm test` untuk parser/perbandingan, build TypeScript/Vite, dan alur browser demo pada layanan sementara port 8083. Browser tidak mencatat error JavaScript, HTTP gagal, aset eksternal, atau permintaan perubahan selama pembandingan. Pemeriksaan mencakup file invalid/terlalu besar, ID berbeda, ekspor laporan, tampilan desktop/mobile, dan pembersihan hasil saat disconnect. Layanan pengujian sementara sudah dihentikan; aplikasi utama tetap aktif.
+
+Bukti browser tersimpan di `hydroships/evidence/comparison-browser/browser-check.json`; screenshot ponsel di `hydroships/evidence/comparison-browser/parameter-comparison-mobile.png`. Hasil ketahanan 60 menit di atas tetap merujuk pengujian backend sebelumnya; penambahan ini hanya mengubah frontend dan pemeriksaan browser.

@@ -1,5 +1,7 @@
 # Hasil pemeriksaan awal Jetson
 
+**Pembaruan 4 Oktober 2026:** HydroShips kini berjalan native pada Jetson yang sama. Hasil pemeriksaan aplikasi/host terbaru tersedia di [validasi langsung Jetson](08-validasi-jetson-hydroships.md). Inventaris di bawah tetap merekam kondisi awal 1 Oktober.
+
 Diperiksa langsung pada perangkat: 1 Oktober 2026. [Bukti perintah dan keluarannya](evidence/jetson-inventory-2026-10-01.json). Pemeriksaan bersifat baca-saja; perubahan hanya pada dokumentasi workspace. Instalasi BlueOS belum dilakukan.
 
 ## Perangkat dan lingkungan

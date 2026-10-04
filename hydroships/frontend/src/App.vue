@@ -4,6 +4,8 @@ import { Activity, ArrowDownToLine, ArrowRight, Battery, Cable, Check, ChevronRi
   Compass, Cpu, Database, FileText, Gauge, LayoutDashboard, LoaderCircle, Menu, Radio,
   RefreshCw, Search, Settings2, ShieldCheck, Thermometer, Waves, WifiOff, X } from 'lucide-vue-next'
 import { api, useVehicle, type Connection, type Event } from './state'
+import ParameterComparison from './ParameterComparison.vue'
+import { typeNames } from './parameterComparison'
 
 const tabs = [
   {id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, caption: 'Ringkasan kendaraan'},
@@ -87,7 +89,6 @@ const parameterInputValid = computed(() => String(newValue.value).trim() !== '' 
 const dialog = ref<HTMLDialogElement | null>(null)
 const confirmed = ref(false)
 const editAllowed = computed(() => connected.value && vehicle.value?.write_allowed && parameters.value.state === 'complete')
-const typeNames: Record<number, string> = {1: 'UINT8', 2: 'INT8', 3: 'UINT16', 4: 'INT16', 5: 'UINT32', 6: 'INT32', 9: 'FLOAT32'}
 async function loadParameters() {parameters.value = await api('/parameters')}
 function editParameter(p: Parameter) {editing.value = {...p}; editingSession.value = parameters.value.session; newValue.value = String(p.value); confirmed.value = false; dialog.value?.showModal()}
 function closeEditor() {dialog.value?.close(); editing.value = null}
@@ -173,6 +174,7 @@ onUnmounted(() => {clearInterval(poll); clearTimeout(noticeTimer); window.remove
 
         <template v-else-if="page === 'parameters'">
           <div class="banner neutral"><ShieldCheck :size="18" /><span>Perubahan tersedia saat ArduSub teridentifikasi, disarmed, dan daftar parameter lengkap. Setiap nilai menunggu konfirmasi autopilot.</span></div><section class="panel"><div class="parameter-toolbar"><label class="search-field"><Search :size="18" /><input v-model="search" placeholder="Cari parameter…" aria-label="Cari parameter"></label><span class="parameter-count">{{ parameters.items.length }} / {{ parameters.expected }} parameter <span class="subtle-tag">{{ parameters.state }}</span></span><button class="button" :disabled="!connected || busy || vehicle?.parameters.writing" @click="action(async () => {await api('/parameters/refresh', 'POST'); await loadParameters()})"><RefreshCw :size="16" /> Baca ulang</button><a class="button" :class="{disabled: parameters.state !== 'complete' || !connected}" :aria-disabled="parameters.state !== 'complete' || !connected" :href="parameters.state === 'complete' && connected ? '/api/parameters/export' : undefined"><ArrowDownToLine :size="16" /> Ekspor</a></div><div v-if="!parameters.items.length" class="empty"><Settings2 :size="34" /><h3>{{ connected ? 'Membaca parameter…' : 'Hubungkan autopilot terlebih dahulu' }}</h3><p>{{ connected ? 'Parameter akan muncul saat respons autopilot diterima.' : 'Daftar parameter dibaca langsung dari perangkat yang terhubung.' }}</p><button v-if="!connected" class="button" @click="navigate('connection')">Buka koneksi <ArrowRight :size="15" /></button></div><div v-else class="table-scroll"><table><thead><tr><th>Parameter</th><th>Nilai saat ini</th><th>Tipe</th><th>Terakhir diterima</th><th><span class="sr-only">Tindakan</span></th></tr></thead><tbody><tr v-for="p in visibleParams" :key="p.name"><td><code>{{ p.name }}</code></td><td class="numeric">{{ Number(p.value.toPrecision(8)) }}</td><td><span class="subtle-tag">{{ typeNames[p.type] || `TYPE ${p.type}` }}</span></td><td class="secondary">{{ time(p.updated) }}</td><td><button class="text-button" :disabled="!editAllowed || busy" @click="editParameter(p)">Ubah <ChevronRight :size="14" /></button></td></tr><tr v-if="!visibleParams.length"><td colspan="5" class="empty">Tidak ada parameter yang cocok.</td></tr></tbody></table></div><div v-if="parameters.items.length" class="panel-footer"><span>{{ filteredParams.length }} hasil · halaman {{ paramPage }} / {{ paramPages }}</span><div class="pagination"><button class="button small" :disabled="paramPage <= 1" @click="paramPage--">Sebelumnya</button><button class="button small" :disabled="paramPage >= paramPages" @click="paramPage++">Berikutnya</button></div></div></section>
+          <ParameterComparison :ready="!!connected && parameters.state === 'complete' && parameters.session === vehicle?.session" :session="vehicle?.session || ''" :identity="vehicle?.identity || {}" :source="vehicle?.connection" :items="parameters.items" />
         </template>
 
         <template v-else-if="page === 'system'">
