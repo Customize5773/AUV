@@ -80,3 +80,11 @@ Parser membatasi ukuran 1 MiB, memeriksa lima kolom, target tunggal, nama unik, 
 Validasi lulus: `npm test` untuk parser/perbandingan, build TypeScript/Vite, dan alur browser demo pada layanan sementara port 8083. Browser tidak mencatat error JavaScript, HTTP gagal, aset eksternal, atau permintaan perubahan selama pembandingan. Pemeriksaan mencakup file invalid/terlalu besar, ID berbeda, ekspor laporan, tampilan desktop/mobile, dan pembersihan hasil saat disconnect. Layanan pengujian sementara sudah dihentikan; aplikasi utama tetap aktif.
 
 Bukti browser tersimpan di `hydroships/evidence/comparison-browser/browser-check.json`; screenshot ponsel di `hydroships/evidence/comparison-browser/parameter-comparison-mobile.png`. Hasil ketahanan 60 menit di atas tetap merujuk pengujian backend sebelumnya; penambahan ini hanya mengubah frontend dan pemeriksaan browser.
+
+## Penyempurnaan browser desktop — 4 Oktober 2026
+
+Sesuai arahan pengguna, pekerjaan frontend difokuskan pada browser desktop. Tema biru laut/oranye dipertahankan dengan teks, angka, tabel, dan tombol yang lebih terbaca. Header tetap terlihat ketika menggulir; dashboard menampilkan status Jetson, sumber autopilot, heartbeat, dan jumlah parameter secara terpisah. Saat kendaraan belum terhubung, demo dan informasi Jetson bisa dibuka langsung dari dashboard.
+
+Halaman Parameter memisahkan **Daftar parameter** dan **Bandingkan cadangan**, menyediakan penghapus pencarian, status pembacaan dalam bahasa Indonesia, serta tabel dengan kepala kolom yang tetap terlihat. Pemilih cadangan menampilkan nama file dan ringkasan empat kategori hasil. Navigasi keyboard memiliki tautan untuk langsung ke konten.
+
+Build dan pemeriksaan browser desktop lulus: alur demo, konfirmasi parameter, pergantian tampilan, pencarian, ekspor, pembandingan, navigasi keyboard, dan keenam halaman pada lebar 1280/1440/1920 piksel. Tidak ada error JavaScript, HTTP gagal, aset eksternal, atau overflow halaman. Bukti disimpan di `hydroships/evidence/ui-refresh/browser-check.json`; preview di `hydroships/evidence/ui-refresh/dashboard-1440.png` dan `hydroships/evidence/ui-refresh/parameter-list.png`.

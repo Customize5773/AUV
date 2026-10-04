@@ -42,7 +42,7 @@ Mode demo memakai kendaraan MAVLink sederhana dalam proses terpisah secara threa
 
 ### Membandingkan cadangan parameter
 
-Pada halaman **Parameter**, tunggu daftar lengkap lalu pilih file pada **Bandingkan cadangan**. Gunakan `.params` hasil tombol **Ekspor** HydroShips; formatnya lima kolom: system ID, component ID, nama, nilai, tipe. Ukuran maksimal 1 MiB. Komentar `#` dan baris kosong diterima; nama duplikat, angka/tipe tidak valid, atau beberapa target dalam satu file ditolak dengan nomor baris.
+Pada halaman **Parameter**, tunggu daftar lengkap lalu pilih tampilan **Bandingkan cadangan** dan klik **Pilih file**. Gunakan `.params` hasil tombol **Ekspor** pada **Daftar parameter**; formatnya lima kolom: system ID, component ID, nama, nilai, tipe. Ukuran maksimal 1 MiB. Komentar `#` dan baris kosong diterima; nama duplikat, angka/tipe tidak valid, atau beberapa target dalam satu file ditolak dengan nomor baris.
 
 Hasil membedakan nilai/tipe yang berubah, parameter hanya di file, hanya di kendaraan, dan yang sama. FLOAT32 dibandingkan pada presisi protokol agar pembulatan desimal saat ekspor tidak menghasilkan perbedaan palsu. ID file yang berbeda ditandai; ID yang sama belum memastikan kendaraan fisik yang sama.
 
@@ -106,6 +106,8 @@ Untuk memeriksa antarmuka dengan koneksi yang sudah aktif tanpa mengubah paramet
 ```bash
 env -u PYTHONPATH .venv/bin/python scripts/check-browser.py --read-only --output evidence/sitl-browser
 ```
+
+Fokus antarmuka saat ini adalah browser desktop. Tambahkan `--desktop-only` untuk memeriksa enam halaman pada lebar 1280, 1440, dan 1920 piksel tanpa pengujian ponsel. Dashboard memisahkan status Jetson dari sumber autopilot; header tetap terlihat saat menggulir. Pada Parameter, daftar dan pembanding cadangan memiliki tampilan terpisah, dan kepala tabel tetap terlihat saat daftar digulir. Tautan keyboard **Lewati navigasi** membawa fokus langsung ke konten halaman.
 
 Setelah terhubung ke simulator/perangkat yang hendak diuji, jalankan uji ketahanan baca-saja:
 

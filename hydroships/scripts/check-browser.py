@@ -10,6 +10,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--url", default="http://127.0.0.1:8081")
 parser.add_argument("--output", type=Path, default=Path("evidence"))
 parser.add_argument("--read-only", action="store_true", help="Inspect the existing connection without changing it or writing parameters")
+parser.add_argument("--desktop-only", action="store_true", help="Check desktop layouts only")
 args = parser.parse_args()
 args.output.mkdir(exist_ok=True, parents=True)
 with httpx.Client(base_url=args.url) as client:
@@ -30,10 +31,14 @@ with sync_playwright() as p:
     page.on("request", lambda r: mutations.append({"url": r.url, "method": r.method}) if r.method not in ("GET", "HEAD", "OPTIONS") else None)
     page.on("response", lambda r: failures.append({"url": r.url, "status": r.status}) if r.status >= 400 else None)
     page.goto(args.url, wait_until="networkidle")
+    expect(page.locator('.host-indicator')).to_contain_text('Jetson aktif')
     if not args.read_only:
-        page.get_by_role("link", name="Koneksi", exact=True).click()
-        page.get_by_label("Jenis koneksi").select_option("demo")
-        page.get_by_role("button", name="Mulai demo", exact=True).click()
+        if page.get_by_role('button', name='Coba demo', exact=True).count():
+            page.get_by_role('button', name='Coba demo', exact=True).click()
+        else:
+            page.get_by_role("link", name="Koneksi", exact=True).click()
+            page.get_by_label("Jenis koneksi").select_option("demo")
+            page.get_by_role("button", name="Mulai demo", exact=True).click()
     expect(page.locator(".status-chip")).to_contain_text("Terhubung", timeout=10000)
     if not args.read_only:
         expect(page.locator(".demo-banner")).to_contain_text("Mode demo")
@@ -57,6 +62,7 @@ with sync_playwright() as p:
         page.get_by_role("link", name="Ekspor", exact=True).click()
     exported = Path(download.value.path()).read_text()
     assert ("PILOT_SPEED_DN" if args.read_only else "PILOT_SPEED_DN\t40\t9") in exported
+    page.get_by_role("button", name="Bandingkan cadangan", exact=True).click()
     comparison = page.get_by_role("region", name="Bandingkan cadangan")
     upload = comparison.get_by_label("File cadangan parameter")
     before_comparison = len(mutations)
@@ -90,7 +96,21 @@ with sync_playwright() as p:
     expect(comparison.get_by_role("button", name="Unduh perbandingan")).to_be_visible()
     comparison_mutations = mutations[before_comparison:]
     assert not comparison_mutations, 'Comparison must not issue mutations'
+    if page.get_by_role('button', name='Tutup notifikasi').count():
+        page.get_by_role('button', name='Tutup notifikasi').click()
     page.screenshot(path=str(args.output / "parameters-demo.png"), full_page=True, animations="disabled")
+    page.get_by_role('button', name='Daftar parameter', exact=True).click()
+    expect(comparison).not_to_be_visible()
+    page.get_by_role('button', name='Hapus pencarian').click()
+    expect(page.get_by_role('textbox', name='Cari parameter')).to_have_value('')
+    expect(page.get_by_role('region', name='Tabel parameter')).to_be_visible()
+    page.screenshot(path=str(args.output / 'parameter-list.png'), full_page=True, animations='disabled')
+    page.get_by_role('button', name='Bandingkan cadangan', exact=True).click()
+    expect(comparison).to_contain_text('changed.params')
+    page.get_by_role('link', name='Lewati navigasi').focus()
+    page.keyboard.press('Enter')
+    expect(page.locator('#main-content')).to_be_focused()
+    assert page.url.endswith('#parameters')
 
     for name in ("Telemetri", "Sistem", "Log", "Koneksi", "Dashboard"):
         page.get_by_role("link", name=name, exact=True).click()
@@ -103,26 +123,42 @@ with sync_playwright() as p:
         page.get_by_role("link", name="Unduh", exact=True).first.click()
     assert "source" in json.loads(Path(download.value.path()).read_text().splitlines()[0])
 
-    page.set_viewport_size({"width": 390, "height": 844})
-    for name in ("Dashboard", "Koneksi", "Telemetri", "Parameter", "Sistem", "Log"):
+    if args.desktop_only:
+        for width, height in ((1280, 800), (1440, 900), (1920, 1080)):
+            page.set_viewport_size({'width': width, 'height': height})
+            for name in ('Dashboard', 'Koneksi', 'Telemetri', 'Parameter', 'Sistem', 'Log'):
+                page.get_by_role('link', name=name, exact=True).click()
+                expect(page.get_by_role('heading', name=name, exact=True)).to_be_visible()
+                assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth'), (width, name)
+                assert page.evaluate('getComputedStyle(document.querySelector(".topbar")).position') == 'sticky'
+            page.get_by_role('link', name='Dashboard', exact=True).click()
+            if page.get_by_role('button', name='Tutup notifikasi').count():
+                page.get_by_role('button', name='Tutup notifikasi').click()
+            page.screenshot(path=str(args.output / f'dashboard-{width}.png'), full_page=True, animations='disabled')
+
+    if not args.desktop_only:
+        page.set_viewport_size({"width": 390, "height": 844})
+        for name in ("Dashboard", "Koneksi", "Telemetri", "Parameter", "Sistem", "Log"):
+            page.get_by_role("button", name="Buka navigasi").click()
+            page.get_by_role("link", name=name, exact=True).click()
+            expect(page.get_by_role("heading", name=name, exact=True)).to_be_visible()
+            if name == "Parameter":
+                upload.set_input_files({"name": "changed.params", "mimeType": "text/plain", "buffer": changed})
+                expect(comparison.get_by_role("button", name="Unduh perbandingan")).to_be_visible()
+                if page.get_by_role("button", name="Tutup notifikasi").count():
+                    page.get_by_role("button", name="Tutup notifikasi").click()
+                page.screenshot(path=str(args.output / "parameter-comparison-mobile.png"), full_page=True, animations="disabled")
+            assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth"), name
         page.get_by_role("button", name="Buka navigasi").click()
-        page.get_by_role("link", name=name, exact=True).click()
-        expect(page.get_by_role("heading", name=name, exact=True)).to_be_visible()
-        if name == "Parameter":
-            upload.set_input_files({"name": "changed.params", "mimeType": "text/plain", "buffer": changed})
-            expect(comparison.get_by_role("button", name="Unduh perbandingan")).to_be_visible()
-            if page.get_by_role("button", name="Tutup notifikasi").count():
-                page.get_by_role("button", name="Tutup notifikasi").click()
-            page.screenshot(path=str(args.output / "parameter-comparison-mobile.png"), full_page=True, animations="disabled")
-        assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth"), name
-    page.get_by_role("button", name="Buka navigasi").click()
-    page.get_by_role("link", name="Dashboard", exact=True).click()
-    if page.get_by_role("button", name="Tutup notifikasi").count():
-        page.get_by_role("button", name="Tutup notifikasi").click()
-    page.screenshot(path=str(args.output / "dashboard-mobile.png"), full_page=True, animations="disabled")
+        page.get_by_role("link", name="Dashboard", exact=True).click()
+        if page.get_by_role("button", name="Tutup notifikasi").count():
+            page.get_by_role("button", name="Tutup notifikasi").click()
+        page.screenshot(path=str(args.output / "dashboard-mobile.png"), full_page=True, animations="disabled")
     if not args.read_only:
-        page.get_by_role("button", name="Buka navigasi").click()
+        if not args.desktop_only:
+            page.get_by_role("button", name="Buka navigasi").click()
         page.get_by_role("link", name="Parameter", exact=True).click()
+        page.get_by_role("button", name="Bandingkan cadangan", exact=True).click()
         upload.set_input_files({"name": "changed.params", "mimeType": "text/plain", "buffer": changed})
         expect(comparison.get_by_role("button", name="Unduh perbandingan")).to_be_visible()
         page.get_by_role("button", name="Akhiri demo").click()
@@ -133,12 +169,14 @@ with sync_playwright() as p:
     browser.close()
 
 report = {"ok": not errors and not external and not failures and (not args.read_only or not mutations), "read_only": args.read_only,
+          "desktop_only": args.desktop_only,
           "mutations": mutations,
           "comparison_mutations": comparison_mutations,
           "javascript_errors": errors, "external_requests": external, "http_failures": failures,
-          "checks": ["six desktop pages", "six mobile pages without overflow",
+          "checks": ["six desktop pages", "parameter view switching and search clear", "Jetson status indicator",
                      "parameter export", "telemetry download", "read-only backup comparison and report export",
-                     "invalid and oversized backup rejected", "different target warning", "mobile backup comparison without overflow"] +
+                     "invalid and oversized backup rejected", "different target warning"] +
+                    (["1280, 1440, 1920 desktop widths without overflow", "sticky desktop header"] if args.desktop_only else ["six mobile pages without overflow", "mobile backup comparison without overflow"]) +
                     (["parameter dialog opens and cancels"] if args.read_only else
                      ["explicit demo badge", "confirmed parameter write", "disconnect clears comparison"])}
 (args.output / "browser-check.json").write_text(json.dumps(report, indent=2))
