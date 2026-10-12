@@ -1,6 +1,6 @@
 # Topologi keseluruhan sistem AUV2027 / HydroShips
 
-**Versi dokumen:** 1.0 · **Tanggal:** 12 Oktober 2026 · **Bahasa:** Indonesia.
+**Versi dokumen:** 1.1 · **Tanggal:** 12 Oktober 2026 · **Bahasa:** Indonesia.
 
 Dokumen ini menjadi pintu masuk bagi anggota tim Program, Elektrikal, Mekanik, dan penguji yang belum mengikuti pengembangan. Isinya menjelaskan perangkat yang digunakan, proses yang berjalan, jalur komunikasi, batas tanggung jawab, dan tempat menambahkan kemampuan autonomous.
 
@@ -15,6 +15,9 @@ Topologi mencerminkan source di repositori **AUV2027** serta hasil validasi Jets
 5. [Jaringan, port, dan jalur komunikasi](#5-jaringan-port-dan-jalur-komunikasi)
 6. [Aliran MAVLink dan data kendaraan](#6-aliran-mavlink-dan-data-kendaraan)
 7. [Topologi ROS 2 dan kontrak modul](#7-topologi-ros-2-dan-kontrak-modul)
+   - [Topologi autonomous menyeluruh](#75-topologi-autonomous-menyeluruh)
+   - [Kontrak antarmodul autonomous](#77-kontrak-antarmodul-autonomous)
+   - [Contoh alur navigasi gerbang](#78-contoh-alur-navigasi-gerbang)
 8. [Penyimpanan dan struktur source](#8-penyimpanan-dan-struktur-source)
 9. [Startup, shutdown, dan gangguan](#9-startup-shutdown-dan-gangguan)
 10. [Cara anggota tim memeriksa sistem](#10-cara-anggota-tim-memeriksa-sistem)
@@ -315,6 +318,156 @@ Rencana memiliki **1–16 tahap**, timeout tahap **1–600 detik**, batas total 
 6. Uji modul pada rekaman/simulasi, termasuk target hilang, timeout, pembatalan, dan hilangnya data. Setelah adapter kendali dibuat dan divalidasi, integrasikan jalur kendaraan fisik.
 
 Jangan menjalankan driver sintetis bersama modul tugas nyata untuk menilai keberhasilan tugas: respons sintetis bisa menyelesaikan tahap lebih dulu. Tanpa driver sintetis dan tanpa modul yang merespons, tahap akan gagal karena timeout.
+
+### 7.5 Topologi autonomous menyeluruh
+
+Sistem autonomous yang dituju membentuk **loop tertutup**: sensor mengamati kendaraan/target, program memilih tindakan, autopilot menjalankan kendali, lalu sensor memberikan umpan balik untuk tindakan berikutnya. Executor misi menentukan pekerjaan yang harus diselesaikan; modul tugas menentukan cara menyelesaikannya berdasarkan data yang baru.
+
+**Status:** executor, kontrak tugas, bridge, dan telemetri Pixhawk sudah tersedia. Kamera/persepsi, estimator untuk navigasi, modul tugas fisik, pengaman perintah, serta adapter kendali pada diagram berikut adalah **rancangan integrasi**, belum implementasi yang berjalan. Nama node/topic tambahan merupakan usulan internal dan dapat berubah setelah kebutuhan modul dipastikan.
+
+```mermaid
+flowchart TB
+    Operator["Operator: rencana dan konfigurasi"] --> Console["AKTIF: HydroShips / console bridge"]
+    Console <-->|"command / ack / state"| Mission["AKTIF: mission_executor"]
+    Mission -->|"tasks/request"| Switch{"Pelaksana tugas yang dipilih"}
+    Switch --> Synthetic["AKTIF: software_test_tasks<br/>hasil sintetis"]
+    Synthetic -->|"tasks/result"| Mission
+    Switch -.-> Task["RENCANA: modul tugas autonomous<br/>navigation / acquisition / lainnya"]
+    Task -.->|"tasks/result berdasarkan bukti tugas"| Mission
+    Mission -.->|"tasks/cancel"| Task
+
+    Camera["RENCANA: kamera + kalibrasi"] -.-> Vision["RENCANA: persepsi gerbang / target"]
+    Vision -.->|"target, timestamp, confidence"| Task
+    Vision -.-> Estimator["RENCANA: estimasi keadaan<br/>dan kualitas estimasi"]
+    Pix["AKTIF: Pixhawk / ArduSub"] -->|"telemetri MAVLink"| Owner["AKTIF: worker MAVLink tunggal"]
+    Owner --> Relay["AKTIF: ROS vehicle/state"]
+    Relay -.-> Estimator
+    Relay -.-> Task
+    Depth["RENCANA: data kedalaman tervalidasi"] -.-> Estimator
+    Estimator -.->|"arah, kedalaman, keadaan yang tersedia"| Task
+
+    Task -.-> Navigation["RENCANA: navigasi / pemandu<br/>sasaran gerak"]
+    Navigation -.-> Guard["RENCANA: validasi dan prioritas perintah<br/>usia, sesi, batas, pembatalan"]
+    Relay -.-> Guard
+    Mission -.->|"lifecycle dan abort"| Guard
+    Guard -.-> Adapter["RENCANA: adapter kendali ArduSub"]
+    Adapter -.->|"antrean kendali yang perlu ditambahkan"| Owner
+    Owner -.->|"RENCANA: pesan kendali MAVLink"| Pix
+    Pix -.-> Actuator["RENCANA: ESC dan thruster terpetakan"]
+    Actuator -.-> Motion["Gerak kendaraan di lingkungan"]
+    Motion -.-> Camera
+    Motion -.-> Depth
+    Motion -.->|"sensor kendaraan"| Pix
+```
+
+**Cara membaca diagram:** jalur solid menunjukkan integrasi software/data yang sudah tersedia; jalur putus-putus menunjukkan integrasi autonomous fisik yang perlu dibuat. Driver sintetis dan modul tugas autonomous adalah pilihan pelaksana yang berbeda. Hasil sintetis tidak digunakan untuk membuktikan bahwa kendaraan melewati gerbang atau menyelesaikan tugas fisik.
+
+Jalur kendali masa depan harus masuk melalui antrean **worker MAVLink yang sama**. Modul ROS tidak membuat pemilik port serial tambahan. Antrean dan validasi perintah gerak belum tersedia dalam worker saat ini; diagram menunjukkan tempat implementasinya, bukan endpoint yang sudah dapat dipanggil.
+
+### 7.6 Peran setiap lapisan autonomous
+
+| Lapisan | Masukan | Keluaran / keputusan | Status dan batas |
+| --- | --- | --- | --- |
+| Akuisisi sensor | Kamera, telemetri Pixhawk, sensor tambahan yang dipilih | Data bertimestamp dan identitas sumber | Telemetri tersedia; kamera/sensor tambahan belum terintegrasi |
+| Persepsi | Frame kamera dan kalibrasi | Target, lokasi di citra, confidence, status terlihat/hilang | Rencana; bukan langsung perintah thruster |
+| Estimasi keadaan | Telemetri baru, data kedalaman, pengamatan visual yang relevan | Arah/kedalaman/keadaan beserta kualitasnya | Rencana; posisi global tidak diasumsikan tersedia |
+| Executor misi | Rencana, hasil tugas, batas waktu, abort | Tahap aktif, request/cancel, hasil misi | Implementasi aktif untuk software test |
+| Modul tugas | Request tahap, persepsi, estimasi, telemetri | Status internal tugas, sasaran navigasi, hasil berbukti | Driver sintetis tersedia; pelaksana autonomous fisik rencana |
+| Navigasi / pemandu | Sasaran tugas dan keadaan kendaraan | Sasaran gerak yang diperlukan untuk mendekati/menyelesaikan tugas | Rencana; representasi setpoint belum dipilih |
+| Pengaman perintah | Sasaran gerak, kesehatan/usia data, sesi, status tugas | Perintah yang diterima/dibatasi/ditolak, keputusan penghentian | Rencana; wajib bekerja juga ketika browser tidak aktif |
+| Adapter ArduSub | Perintah yang lolos validasi | Permintaan kendali melalui worker MAVLink | Rencana; mode dan pesan MAVLink belum ditetapkan |
+| Autopilot dan aktuator | Perintah kendali serta sensor lokal | Kendali dasar, mixing, output kendaraan | ArduSub aktif; jalur perintah aplikasi dan mapping aktuator belum divalidasi |
+| Observasi / rekaman | State setiap lapisan dan kejadian | Tampilan operator, bukti uji, analisis kegagalan | Logging platform tersedia; log persepsi/kendali perlu ditambahkan |
+
+Lapisan tersebut adalah pembagian tanggung jawab logis. Satu implementasi awal boleh menggabungkan modul tugas dan navigasi dalam satu node jika itu cukup untuk tugas pertama. Pemisahan menjadi banyak package/proses dilakukan ketika kebutuhan nyata menuntutnya.
+
+### 7.7 Kontrak antarmodul autonomous
+
+Kontrak yang **sudah aktif** tetap memakai topic bagian 7.1. Topic tambahan di bawah merupakan **usulan**, belum terdaftar sebagai kontrak produksi. Tipe ROS, schema final, QoS, dan frekuensi harus dipilih serta diuji saat modul dibuat.
+
+| Jalur data | Topic / antarmuka | Isi yang perlu didefinisikan |
+| --- | --- | --- |
+| Kamera → persepsi | Usulan `/auv2027/camera/front/image` dan `/auv2027/camera/front/info` | Frame, waktu pengambilan, identitas kamera/frame, kalibrasi yang sesuai pemasangan |
+| Persepsi → tugas/estimator | Usulan `/auv2027/perception/gate` | Target terlihat/hilang, timestamp frame asal, bounding box/offset, confidence, metode dan validitas estimasi jarak jika ada |
+| Estimator → tugas/navigasi | Usulan `/auv2027/navigation/state` | Arah/kedalaman/keadaan yang tersedia, timestamp, unit, frame koordinat, kualitas/ketidakpastian, status valid |
+| Tugas → navigasi | Antarmuka internal atau topic sasaran, belum ditetapkan | `run_id`, `request_id`, tujuan tugas, batas waktu, kriteria penyelesaian |
+| Navigasi → pengaman perintah | Usulan `/auv2027/control/setpoint` | Sumber, ID tugas/sesi, jenis sasaran, nilai dan unit, frame koordinat, timestamp, masa berlaku |
+| Pengaman → adapter | Antarmuka internal atau topic perintah tervalidasi, belum ditetapkan | Hasil validasi, batas yang diterapkan, prioritas, dan alasan penolakan/penghentian |
+| Status autonomous → operator/log | Usulan `/auv2027/autonomy/health` | Modul siap/tidak siap, usia input, tugas aktif, fault, dan alasan penghentian |
+| Tugas → executor | Aktif `/auv2027/tasks/result` | ID tahap yang cocok, succeeded/failed, serta detail; bukti fisik ditetapkan per tugas |
+
+Ketentuan yang harus disepakati sebelum modul kendali tersambung:
+
+- **Frame dan unit:** arti maju/kanan/atas, tanda kedalaman, acuan heading, derajat/radian, meter, dan transform kamera ke kendaraan. Jangan mencampur offset piksel dengan jarak fisik tanpa kalibrasi/metode estimasi yang sesuai.
+- **Waktu:** data sensor membawa waktu pengambilan; durasi/deadline lokal memakai clock monotonic. Clock perangkat berbeda memerlukan penyelarasan sebelum data digabungkan.
+- **Sumber dan sesi:** data demo/rekaman/serial tetap dapat dibedakan; setpoint tugas lama tidak berlaku pada sesi kendaraan atau request baru.
+- **Masa berlaku:** target, estimasi, dan setpoint memiliki batas usia sendiri berdasarkan hasil uji. Batas relay telemetri 2–3 detik yang ada sekarang bukan spesifikasi frekuensi kendali fisik.
+- **Bukti sukses:** deteksi satu frame belum membuktikan gerbang telah dilewati. Kriteria tugas harus dinyatakan dan diuji sebelum hasil succeeded diterbitkan.
+- **Prioritas:** abort/fault membatalkan sasaran aktif; pengambilalihan manual dan perpindahan mode memerlukan kebijakan eksplisit. Tidak boleh ada dua pengirim setpoint fisik yang bersaing tanpa arbitrasi.
+
+Heading dan attitude yang tersedia saat ini belum cukup untuk mengklaim posisi global atau jarak ke gerbang. Keluaran estimator harus menyatakan komponen yang valid; nilai yang belum dapat diestimasi tetap ditandai tidak tersedia.
+
+### 7.8 Contoh alur navigasi gerbang
+
+Alur di bawah adalah **rancangan FSM tugas navigation**, bukan FSM yang sudah diimplementasikan. Executor tetap menganggap seluruh alur ini sebagai satu request tahap.
+
+```mermaid
+flowchart LR
+    Waiting["WAIT_INPUT<br/>data baru dan konfigurasi tugas tersedia"] --> Search["SEARCH<br/>mencari target sesuai batas tugas"]
+    Search -->|"target konsisten"| Align["ALIGN<br/>memperbaiki arah / offset"]
+    Align -->|"kondisi pendekatan terpenuhi"| Approach["APPROACH<br/>mendekati dengan umpan balik"]
+    Approach -->|"syarat lintasan terpenuhi"| Traverse["TRAVERSE<br/>menjalankan lintasan yang ditetapkan"]
+    Traverse --> Verify["VERIFY<br/>menilai bukti penyelesaian"]
+    Verify -->|"bukti cukup"| Success["SUCCEEDED<br/>publish tasks/result"]
+    Align -->|"target hilang"| Recover["RECOVER<br/>strategi terbatas sesuai kebijakan"]
+    Approach -->|"target hilang"| Recover
+    Recover -->|"target ditemukan kembali"| Align
+    Recover -->|"batas pemulihan habis"| Failed["FAILED<br/>publish hasil dan hentikan perintah"]
+    Verify -->|"bukti tidak cukup / timeout"| Failed
+    Search -->|"batas pencarian habis"| Failed
+```
+
+Setiap state yang aktif juga harus menangani `tasks/cancel`, timeout keseluruhan, input stale, perubahan sesi, serta fault kendali. Diagram menampilkan transisi utama; pemeriksaan gangguan berlaku pada semua state, bukan hanya state yang memiliki panah ke FAILED.
+
+Contoh satu eksekusi:
+
+1. Executor mengirim request navigation dengan ID dan timeout tahap.
+2. Modul memastikan data kamera/keadaan yang diperlukan valid, lalu mencari gerbang.
+3. Persepsi memberi pengamatan bertimestamp. Navigasi memperbarui sasaran arah/gerak dari pengamatan baru.
+4. Pengaman memeriksa setiap sasaran sebelum adapter meminta worker MAVLink mengirimkannya.
+5. Telemetri dan pengamatan berikutnya digunakan untuk memperbaiki sasaran; perintah lama tidak dipertahankan tanpa batas.
+6. Setelah bukti melewati gerbang memenuhi kriteria tugas, modul menghentikan sasaran tahap dan menerbitkan succeeded dengan ID yang cocok.
+7. Executor memulai tahap berikutnya. Jika tugas gagal/timeout/abort, sasaran tahap dibersihkan dan kebijakan penghentian dijalankan.
+
+Parameter pencarian, ambang confidence, batas pendekatan, durasi lintasan, dan cara membuktikan gerbang terlewati harus berasal dari eksperimen. Nilainya belum ditetapkan dalam dokumen ini.
+
+### 7.9 Supervisi, abort, dan kehilangan data
+
+Executor mengawasi lifecycle tugas, sementara pengaman perintah dan autopilot harus mengawasi jalur gerak. **Menghentikan FSM atau proses ROS saja belum menetapkan perilaku kendaraan setelah perintah terakhir.** Respons kendaraan perlu didefinisikan dalam adapter, konfigurasi autopilot, dan pengujian.
+
+| Kejadian | Tindakan autonomous yang direncanakan | Status saat ini |
+| --- | --- | --- |
+| Operator membatalkan tahap | Cancel request, hapus sasaran aktif, jalankan kebijakan penghentian kendaraan | Cancel software tersedia; penghentian kendali fisik belum dibuat |
+| Target hilang | Invalidasi pengamatan lama, batasi pemulihan sesuai tugas, fail bila batas habis | Rencana modul persepsi/navigasi |
+| Kamera berhenti / estimasi stale | Tolak sasaran yang bergantung pada input tersebut dan laporkan fault | Rencana pengaman perintah |
+| Sesi Pixhawk berubah / heartbeat hilang | Invalidasi setpoint sesi lama; lanjut hanya setelah kebijakan pemulihan mengizinkan | Relay/sesi tersedia; kebijakan kendali rencana |
+| Navigator mati / setpoint tidak diperbarui | Deadline lokal mengakhiri validitas perintah; respons kendaraan terdefinisi | Rencana adapter/pengaman dan validasi autopilot |
+| Mission executor mati | Modul/adapter mendeteksi kehilangan lifecycle dan mengakhiri pekerjaan terkait | Backend mendeteksi gangguan runtime; respons fisik belum tersedia |
+| Modul tugas melapor gagal | Executor mengakhiri misi, modul membersihkan sasaran tahap | Alur software tersedia; pembersihan kendali fisik rencana |
+
+Pilihan seperti berhenti, mempertahankan kondisi, naik ke permukaan, atau disarm memiliki konsekuensi berbeda. Strategi tidak dipilih otomatis dalam dokumen ini; tetapkan berdasarkan kemampuan aktuator/sensor, mode ArduSub, serta hasil uji kendaraan. Semua modul pelaksana tetap membutuhkan deadline lokal meskipun executor sudah memiliki timeout.
+
+### 7.10 Tahapan validasi autonomous
+
+| Tahap uji | Susunan sistem | Bukti yang dicari |
+| --- | --- | --- |
+| Rekaman | Video/data rekaman → persepsi → hasil target; tanpa perintah kendaraan | Deteksi/target hilang, timestamp, confidence, kesalahan pengamatan |
+| Simulasi | Simulator sensor/keadaan → tugas/navigasi → adapter simulator | Loop gerak, transisi, timeout, cancel, dan kriteria tugas |
+| Observasi perangkat asli | Kamera/Pixhawk nyata → persepsi/estimasi/navigasi; sasaran dicatat tanpa dikirim ke aktuator | Data valid, koordinat/unit benar, keputusan masuk akal, umur data terukur |
+| Kendali dasar terukur | Satu kemampuan kendali dengan mapping dan kondisi uji yang sudah diverifikasi | Arah/respons perintah, deadline, abort, pengambilalihan yang disepakati |
+| Misi terintegrasi | Semua lapisan autonomous dan robot fisik | Tugas selesai berdasarkan bukti, gangguan ditangani, hasil dapat diulang |
+
+Pengujian sekarang sudah memvalidasi platform misi software dan observasi telemetri Pixhawk. Rekaman kamera/persepsi, simulator loop autonomous, adapter gerak, dan misi kendaraan lengkap masih perlu dibangun. Simulator harus dipilih/dikonfigurasi tersendiri; Gazebo dari proyek KKI belum menjadi simulator terintegrasi AUV2027.
 
 ## 8. Penyimpanan dan struktur source
 

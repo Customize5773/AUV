@@ -21,7 +21,7 @@ Folder ini mengumpulkan temuan dari penyelenggara, institusi peserta, pengembang
 | [08 — Rencana persiapan](08-rencana-persiapan.md) | Usulan tahapan kerja dan kriteria pengujian |
 | [09 — Ketidakpastian](09-ketidakpastian-dan-pemantauan.md) | Pertanyaan terbuka, konflik sumber, dan cara memperbarui riset |
 | [10 — Sumber tambahan pengguna](10-telaah-sumber-tambahan.md) | Telaah dua PDF, jejak halaman, dan konflik data |
-| [11 — Topologi keseluruhan sistem](11-topologi-keseluruhan-sistem.md) | Panduan teknis tim: perangkat, aplikasi, komunikasi, ROS 2, startup, dan titik integrasi |
+| [11 — Topologi keseluruhan sistem](11-topologi-keseluruhan-sistem.md) | Panduan teknis tim: perangkat, aplikasi, ROS 2, alur autonomous sensor–kendali, FSM gerbang, startup, dan titik integrasi |
 | [Arsip PDF lokal](sources/README.md) | Berkas asli, checksum, ekstraksi teks, dan tautan |
 | [Sumber](sumber.md) | Bibliografi beranotasi dengan status akses |
 | [Data sumber](sumber.json) | Bibliografi dalam format yang dapat diproses |
