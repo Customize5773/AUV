@@ -106,7 +106,7 @@ class Autonomy:
                 packet = {'kind': 'vehicle', 'data': {'schema_version': 1, 'captured_at': time.time(), **data}}
                 process.stdin.write((json.dumps(packet, allow_nan=False) + '\n').encode())
                 await asyncio.wait_for(process.stdin.drain(), 2)
-                await asyncio.sleep(.5)
+                await asyncio.sleep(.1)
         except (BrokenPipeError, ConnectionResetError, asyncio.TimeoutError):
             # Reader handles runtime loss; the ROS relay independently expires old data.
             pass

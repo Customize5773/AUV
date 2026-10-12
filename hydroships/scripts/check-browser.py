@@ -43,6 +43,14 @@ with sync_playwright() as p:
     if not args.read_only:
         expect(page.locator(".demo-banner")).to_contain_text("Mode demo")
         expect(page.locator("main")).to_contain_text("15.80")
+    orientation = page.get_by_role('region', name='Orientasi kendaraan', exact=True)
+    expect(orientation).to_contain_text('LIVE')
+    expect(orientation).to_contain_text('HORIZON · ROLL / PITCH')
+    expect(orientation).to_contain_text('HEADING · ARAH KENDARAAN')
+    expect(orientation.locator('.heading-number')).not_to_have_text('—')
+    expect(orientation.locator('.pitch-tick')).to_have_count(36)
+    expect(orientation.locator('.roll-label')).to_have_count(9)
+    expect(orientation.locator('.horizon-readouts')).to_contain_text('R')
     page.screenshot(path=str(args.output / "dashboard-demo.png"), full_page=True, animations="disabled")
 
     page.get_by_role("link", name="Parameter", exact=True).click()
@@ -116,6 +124,13 @@ with sync_playwright() as p:
         page.get_by_role("link", name=name, exact=True).click()
         expect(page.get_by_role("heading", name=name, exact=True)).to_be_visible()
         assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
+    page.get_by_role("link", name="Koneksi", exact=True).click()
+    connection_status = page.get_by_role("region", name="Status koneksi", exact=True)
+    expect(connection_status).to_contain_text("DATA LIVE")
+    expect(connection_status.locator(".connection-metrics strong").nth(0)).to_contain_text("ms")
+    expect(connection_status.locator(".connection-metrics strong").nth(1)).to_contain_text("ms")
+    assert float(connection_status.locator(".connection-metrics strong").nth(0).inner_text().split()[0]) > 0
+    expect(connection_status).to_contain_text("bukan latensi gerakan sensor sampai layar")
     page.get_by_role("link", name="Log", exact=True).click()
     if not args.read_only:
         expect(page.locator(".event-list")).to_contain_text("Nilai parameter dikonfirmasi", timeout=10000)

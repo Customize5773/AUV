@@ -240,6 +240,10 @@ def create_app(data_dir=None):
     def logs():
         return {"items": app.state.storage.log_list(), "max_bytes": 8*8*1024*1024}
 
+    @app.delete("/api/logs")
+    def clear_logs():
+        return {"deleted": app.state.storage.clear_logs()}
+
     @app.get("/api/logs/{name}")
     def download_log(name: str):
         if not re.fullmatch(r"telemetry-[A-Za-z0-9-]+\.jsonl", name):
@@ -263,7 +267,7 @@ def create_app(data_dir=None):
         try:
             while True:
                 await ws.send_json(snapshot())
-                await asyncio.sleep(.5)
+                await asyncio.sleep(.1)
         except (WebSocketDisconnect, OSError, RuntimeError):
             pass
 

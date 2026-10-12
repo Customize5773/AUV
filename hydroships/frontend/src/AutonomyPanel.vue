@@ -16,7 +16,7 @@ type Snapshot = {
   legacy: {state: string | null; age: number | null} | null; current: Run | null;
   history: {run_id: string; status: string; name: string; started_at: number; elapsed: number; scenario: string}[];
 }
-const props = defineProps<{online: boolean}>()
+const props = defineProps<{online: boolean; vehicle?: VehicleSnapshot['vehicle']}>()
 const data = ref<Snapshot | null>(null)
 const draft = ref<Plan | null>(null)
 const revision = ref(0)
@@ -31,7 +31,7 @@ const active = computed(() => ['starting', 'running'].includes(current.value?.st
 const dirty = computed(() => JSON.stringify(draft.value) !== saved.value)
 const conflict = computed(() => !!data.value && revision.value !== data.value.config.revision)
 const ready = computed(() => props.online && !fetchError.value && data.value?.runtime.status === 'ready')
-const vehicle = computed(() => data.value?.vehicle)
+const vehicle = computed(() => props.vehicle ?? data.value?.vehicle)
 const vehicleLive = computed(() => props.online && !fetchError.value && vehicle.value?.status === 'connected' && (vehicle.value.heartbeat_age ?? 99) < 3)
 const bridgeLive = computed(() => ready.value && data.value?.vehicle_bridge?.session === vehicle.value?.session &&
   data.value?.vehicle_bridge?.status === 'connected' && data.value.vehicle_bridge.relay_age <= 2 && vehicleLive.value)

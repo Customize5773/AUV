@@ -163,7 +163,7 @@ class ConsoleBridge(Node):
         self.create_subscription(String, '/hydroships/mission/state', self.receive_legacy, qos_profile_sensor_data)
         self.create_timer(.05, self.send)
         self.create_timer(.5, self.snapshot)
-        self.create_timer(.5, self.publish_vehicle)
+        self.create_timer(.1, self.publish_vehicle)
         self.create_timer(2, self.discover)
         if console:
             threading.Thread(target=self.read, daemon=True).start()

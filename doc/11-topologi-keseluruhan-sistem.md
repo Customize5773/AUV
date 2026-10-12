@@ -157,8 +157,8 @@ HydroShips mandiri merupakan jalur utama integrasi Pixhawk saat ini. Direktori `
 | Jalur / endpoint | Protokol dan isi | Pengguna / cakupan |
 | --- | --- | --- |
 | `127.0.0.1:8081` | HTTP, frontend dan REST API | HydroShips utama, loopback Jetson |
-| `/api/live` pada port 8081 | WebSocket JSON, snapshot kendaraan/host/events sekitar 2 Hz | Dashboard dan halaman pemantauan |
-| `/api/autonomy` pada port 8081 | HTTP JSON, polling sekitar 1 Hz saat halaman Autonomous dibuka | Runtime, rencana, kendaraan, graph, dan riwayat |
+| `/api/live` pada port 8081 | WebSocket JSON, snapshot kendaraan/host/events sekitar 10 Hz | Dashboard dan halaman pemantauan |
+| `/api/autonomy` pada port 8081 | HTTP JSON, polling sekitar 1 Hz saat halaman Autonomous dibuka | Runtime, rencana, graph, dan riwayat; telemetri kendaraan pada tampilan memakai `/api/live` 10 Hz |
 | Alias USB Pixhawk | Serial MAVLink | Hanya worker MAVLink HydroShips |
 | Backend ↔ proses ROS | Pipe stdin/stdout JSON per baris, stderr log | Komunikasi lokal antarproses, tidak membuka port web baru |
 | ROS 2 domain 0 | DDS, topic namespace `/auv2027` | Runtime utama dan modul pada domain yang sama |
@@ -185,7 +185,7 @@ Backend default membatasi host/origin dan mutasi API memakai header `X-Hydroship
 2. Worker membuka perangkat yang terdaftar dan memeriksa fingerprint USB. Identitas target ditentukan dari heartbeat autopilot.
 3. Pada target yang dipilih, worker meminta `AUTOPILOT_VERSION`, stream data dengan permintaan 10 Hz, dan seluruh parameter. Frekuensi permintaan stream tidak menjamin semua jenis pesan dikirim pada 10 Hz.
 4. Pesan diterima, disaring menurut system/component target, diolah menjadi field snapshot, dan direkam sebagai JSONL.
-5. Snapshot dikirim ke browser melalui WebSocket. Backend juga meneruskan snapshot ke console bridge, lalu `/auv2027/vehicle/state` sekitar 2 Hz.
+5. Snapshot dikirim ke browser melalui WebSocket. Backend juga meneruskan snapshot ke console bridge, lalu `/auv2027/vehicle/state` sekitar 10 Hz.
 6. Node autonomous dapat berlangganan topic kendaraan untuk memakai data tanpa membuka koneksi serial sendiri.
 
 | Pesan MAVLink | Data yang digunakan | Catatan |

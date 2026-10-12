@@ -33,6 +33,9 @@ export async function api<T = Record<string, unknown>>(path: string, method = 'G
 export function useVehicle() {
   const state = ref<Snapshot | null>(null)
   const lastUpdate = ref(0)
+  const liveInterval = ref<number | null>(null)
+  let previousFrame = 0
+  let intervals: number[] = []
   const now = ref(Date.now())
   const online = computed(() => now.value - lastUpdate.value < 3000)
   const history = ref<{roll: number; pitch: number; ts: number}[]>([])
@@ -50,22 +53,33 @@ export function useVehicle() {
         history.value = []
         lastSession = next.vehicle.session
       }
+      const arrival = performance.now()
+      if (previousFrame) {
+        intervals = [...intervals.slice(-19), arrival - previousFrame]
+        liveInterval.value = intervals.reduce((sum, interval) => sum + interval, 0) / intervals.length
+      }
+      previousFrame = arrival
       state.value = next
       lastUpdate.value = Date.now()
       now.value = Date.now()
       const roll = next.vehicle.fields.roll
       const pitch = next.vehicle.fields.pitch
-      if (roll && pitch && !roll.stale && !pitch.stale) {
+      const lastPoint = history.value[history.value.length - 1]
+      // Keep the 60-second chart window while rendering live telemetry at 10 Hz.
+      if (roll && pitch && !roll.stale && !pitch.stale && (!lastPoint || now.value - lastPoint.ts >= 500)) {
         history.value = [...history.value.slice(-119), {roll: roll.value, pitch: pitch.value, ts: roll.ts}]
       }
     }
     ws.onclose = () => {
       lastUpdate.value = 0
+      previousFrame = 0
+      intervals = []
+      liveInterval.value = null
       if (!destroyed) reconnect = setTimeout(connect, 1500)
     }
     ws.onerror = () => ws?.close()
   }
   onMounted(() => {connect(); timer = setInterval(() => {now.value = Date.now()}, 500)})
   onUnmounted(() => {destroyed = true; ws?.close(); clearTimeout(reconnect); clearInterval(timer)})
-  return {state, online, history, now}
+  return {state, online, history, now, lastUpdate, liveInterval}
 }

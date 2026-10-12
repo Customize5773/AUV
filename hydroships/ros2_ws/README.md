@@ -78,7 +78,7 @@ Bridge juga membaca `/hydroships/mission/state` sebagai String dengan QoS best-e
 
 ## Telemetri Pixhawk ke ROS 2
 
-Mulai 12 Oktober 2026, bridge meneruskan snapshot dari worker MAVLink HydroShips ke `/auv2027/vehicle/state` sekitar 2 Hz. ROS tidak membuka USB/serial sendiri. Halaman Autonomous menampilkan sumber data, identitas/mode, jumlah parameter, orientasi, tekanan eksternal jika tersedia, serta status relay. Ini pemantauan data, bukan pemeriksaan lengkap kesiapan robot atau izin eksekusi fisik.
+Mulai 12 Oktober 2026, bridge meneruskan snapshot dari worker MAVLink HydroShips ke `/auv2027/vehicle/state` sekitar 10 Hz. ROS tidak membuka USB/serial sendiri. Halaman Autonomous menampilkan sumber data, identitas/mode, jumlah parameter, orientasi, tekanan eksternal jika tersedia, serta status relay. Ini pemantauan data, bukan pemeriksaan lengkap kesiapan robot atau izin eksekusi fisik.
 
 Payload memiliki `schema_version: 1`, `captured_at` (Unix detik), `session`, `status`, `connection`, `identity`, `heartbeat_age`, `fields`, `parameters` (ringkasan), `received` (penghitung pesan MAVLink), dan `relay_age` (detik sejak frame diterima bridge). Setiap field mempertahankan nilai, satuan, jenis pesan asal, timestamp, age, dan stale dari MAVLink. Sumber `connection.kind` membedakan `serial`, `demo`, dan `udp`; UID firmware bernilai nol bukan identitas unik perangkat.
 

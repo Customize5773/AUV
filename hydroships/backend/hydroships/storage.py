@@ -81,6 +81,15 @@ class Storage:
                 stream.write(line)
             self.log_size += len(line)
 
+    def clear_logs(self):
+        with self.lock:
+            files = list(self.logs.glob("telemetry-*.jsonl"))
+            for path in files:
+                path.unlink(missing_ok=True)
+            self.current_log = None
+            self.log_size = 0
+            return len(files)
+
     def log_list(self):
         with self.lock:
             return [dict(name=p.name, bytes=p.stat().st_size, modified=p.stat().st_mtime)
