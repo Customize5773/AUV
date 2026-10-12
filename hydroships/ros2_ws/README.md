@@ -47,6 +47,7 @@ Seluruh topic berikut bertipe `std_msgs/msg/String` berisi object JSON, QoS reli
 | `/auv2027/mission/state` | Executor → console | `executor_id`, `mission` (snapshot atau null) |
 | `/auv2027/mission/command` | Console → executor | `command_id`, `action` start/abort, payload |
 | `/auv2027/mission/ack` | Executor → console | `command_id`, `accepted`, `run_id` atau `error` |
+| `/auv2027/vehicle/state` | HydroShips → modul ROS | Telemetri kendaraan baca saja, JSON schema versi 1; reliable/volatile, depth 1 |
 
 Contoh request:
 
@@ -74,6 +75,31 @@ Untuk memasukkan modul sendiri:
 4. Tambahkan adapter persepsi/navigasi/Pixhawk beserta pengujian terpisah sebelum penggunaan fisik. Belum tersedia mode eksekusi kendaraan pada platform ini.
 
 Bridge juga membaca `/hydroships/mission/state` sebagai String dengan QoS best-effort untuk menampilkan state dari proyek ROV lama. Bridge tidak mengirim command ke sistem KKI, tidak menjalankan launch lamanya, dan tidak berlangganan gambar kamera atau mengeluarkan `cmd_vel`.
+
+## Telemetri Pixhawk ke ROS 2
+
+Mulai 12 Oktober 2026, bridge meneruskan snapshot dari worker MAVLink HydroShips ke `/auv2027/vehicle/state` sekitar 2 Hz. ROS tidak membuka USB/serial sendiri. Halaman Autonomous menampilkan sumber data, identitas/mode, jumlah parameter, orientasi, tekanan eksternal jika tersedia, serta status relay. Ini pemantauan data, bukan pemeriksaan lengkap kesiapan robot atau izin eksekusi fisik.
+
+Payload memiliki `schema_version: 1`, `captured_at` (Unix detik), `session`, `status`, `connection`, `identity`, `heartbeat_age`, `fields`, `parameters` (ringkasan), `received` (penghitung pesan MAVLink), dan `relay_age` (detik sejak frame diterima bridge). Setiap field mempertahankan nilai, satuan, jenis pesan asal, timestamp, age, dan stale dari MAVLink. Sumber `connection.kind` membedakan `serial`, `demo`, dan `udp`; UID firmware bernilai nol bukan identitas unik perangkat.
+
+Bridge menambahkan usia antrean ke heartbeat dan setiap field. Setelah input backend berhenti lebih dari 2 detik, status menjadi `stale`. Heartbeat berusia ≥3 detik juga tidak dianggap connected; field berusia >3 detik, yang sebelumnya stale, atau yang koneksinya tidak connected selalu ditandai stale. Disconnect normal meneruskan sesi baru dan field kosong. Tidak ada konversi altitude menjadi kedalaman, normalisasi baterai, atau penggantian data sensor yang belum tersedia dengan nol.
+
+Subscriber harus memeriksa sumber, sesi, status, dan stale sebelum memakai nilai. Selain itu, terapkan timeout lokal penerimaan: jika seluruh proses ROS berhenti, topic ikut berhenti dan tidak mungkin mengirim pesan stale terakhir. QoS volatile menghindari pemutaran ulang snapshot lama kepada subscriber baru.
+
+Validasi topic dengan subscriber ROS 2 terpisah (dari folder `hydroships/`, ROS_DOMAIN_ID sama dengan layanan):
+
+```bash
+source /opt/ros/humble/setup.bash
+/usr/bin/python3 scripts/check-ros-vehicle.py --source serial --output evidence/pixhawk/ros-vehicle.json
+```
+
+Pemeriksaan perangkat asli memakai koneksi serial yang sudah dibuka melalui HydroShips; hanya melakukan GET ke API:
+
+```bash
+env -u PYTHONPATH .venv/bin/python scripts/check-pixhawk.py --seconds 60
+```
+
+Laporan: [validasi Pixhawk fisik dan relay ROS 2](../../plan/10-validasi-pixhawk-ros2.md).
 
 ## Pengujian
 

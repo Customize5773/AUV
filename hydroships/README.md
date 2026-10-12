@@ -39,6 +39,8 @@ Kemudian buka alamat localhost yang sama pada laptop. Layanan default hanya mend
 6. **Log** menyimpan riwayat kejadian dan rekaman pesan MAVLink yang diterima dalam JSONL. Unduh rekaman yang ingin dipertahankan sebelum rotasi menggantikannya.
 7. **Autonomous** menyusun dan menguji alur misi menggunakan ROS 2 Humble di Jetson. Tersedia rencana bertahap, timeout, pembatalan, riwayat, ekspor JSON, dan diagnostik node/topic. Respons tugas bawaan sintetis; kendali kendaraan belum dihubungkan. [Panduan platform dan integrasi modul](ros2_ws/README.md).
 
+Telemetri kendaraan yang aktif juga tersedia di halaman Autonomous dan topic ROS 2 `/auv2027/vehicle/state`. Relay baca saja memakai koneksi MAVLink yang sama, membedakan data demo/serial/UDP, dan menandai data yang kedaluwarsa. [Hasil validasi Pixhawk fisik](../plan/10-validasi-pixhawk-ros2.md).
+
 Mode demo memakai kendaraan MAVLink sederhana dalam proses terpisah secara threading. Ini **bukan ArduSub SITL**, bukan simulasi fisika, dan bukan bukti hardware. Badge demo selalu tampil; data CPU/RAM/suhu tetap berasal dari Jetson nyata.
 
 ### Membandingkan cadangan parameter

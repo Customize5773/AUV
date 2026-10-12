@@ -16,6 +16,7 @@ with httpx.Client(base_url=args.url) as client:
     initial = client.get('/api/autonomy').json()
     assert initial['runtime']['task_driver'] == 'synthetic'
     assert initial['runtime']['domain'] == 77, 'Use the isolated test service/domain 77.'
+    client.post('/api/connection', headers={'X-Hydroships-Client':'dashboard'}, json={'kind':'demo'}).raise_for_status()
 errors, failures = [], []
 mission_name = f'Uji browser SAUVC {time.time_ns() % 1000000}'
 with sync_playwright() as p:
@@ -28,6 +29,9 @@ with sync_playwright() as p:
     page.goto(args.url + '/#autonomy')
     expect(page.get_by_role('heading', name='Autonomous', exact=True)).to_be_visible()
     expect(page.get_by_label('Runtime ROS 2')).to_contain_text('Siap', timeout=15000)
+    vehicle_panel = page.get_by_label('Telemetri kendaraan', exact=True)
+    expect(vehicle_panel).to_contain_text('Demo sintetis')
+    expect(vehicle_panel).to_contain_text('Telemetri diteruskan', timeout=15000)
     page.get_by_label('Nama misi', exact=True).fill(mission_name)
     page.get_by_label('Timeout tahap 1', exact=True).fill('3')
     page.get_by_role('button', name='Tambah tahap').click()
@@ -69,12 +73,17 @@ with sync_playwright() as p:
         page.screenshot(path=str(args.output / f'autonomous-{width}.png'), full_page=True, animations='disabled')
     page.reload()
     expect(status).to_have_text('Dibatalkan')
+    with httpx.Client(base_url=args.url) as client:
+        client.delete('/api/connection', headers={'X-Hydroships-Client':'dashboard'}).raise_for_status()
+    expect(vehicle_panel).to_contain_text('BELUM TERHUBUNG')
+    expect(vehicle_panel).to_contain_text('Menunggu data baru')
     assert not errors, errors
     assert not failures, failures
     browser.close()
 summary = {'result': 'passed', 'desktop_widths': [1280, 1440, 1920],
            'checks': ['plan edit/add/reorder/delete/save/reload', 'success/failure/timeout',
-                      'abort', 'runtime stop/start without resume', 'JSON reports', 'ROS graph'],
+                      'abort', 'runtime stop/start without resume', 'JSON reports', 'ROS graph',
+                      'vehicle relay and disconnect reflected in UI'],
            'console_errors': errors, 'http_failures': failures}
 (args.output / 'browser.json').write_text(json.dumps(summary, indent=2))
 print(json.dumps(summary, indent=2))

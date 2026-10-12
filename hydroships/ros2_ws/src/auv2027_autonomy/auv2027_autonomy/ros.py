@@ -18,6 +18,7 @@ from rclpy.qos import qos_profile_sensor_data
 from std_msgs.msg import String
 
 from .core import MissionEngine
+from .telemetry import vehicle_frame
 
 PREFIX = '/auv2027'
 
@@ -153,12 +154,16 @@ class ConsoleBridge(Node):
         self.legacy = None
         self.legacy_at = None
         self.graph = {'nodes': [], 'topics': []}
+        self.vehicle_latest = None
+        self.vehicle_bridge = None
+        self.vehicle_pub = self.create_publisher(String, PREFIX + '/vehicle/state', 1)
         self.publisher = self.create_publisher(String, PREFIX + '/mission/command', 10)
         self.create_subscription(String, PREFIX + '/mission/state', self.receive, 10)
         self.create_subscription(String, PREFIX + '/mission/ack', self.ack, 10)
         self.create_subscription(String, '/hydroships/mission/state', self.receive_legacy, qos_profile_sensor_data)
         self.create_timer(.05, self.send)
         self.create_timer(.5, self.snapshot)
+        self.create_timer(.5, self.publish_vehicle)
         self.create_timer(2, self.discover)
         if console:
             threading.Thread(target=self.read, daemon=True).start()
@@ -174,7 +179,12 @@ class ConsoleBridge(Node):
                     continue
                 try:
                     data = json.loads(line)
-                    if isinstance(data, dict): self.commands.put(data, timeout=1)
+                    if isinstance(data, dict):
+                        if data.get('kind') == 'vehicle':
+                            # One latest frame, independent of the bounded command queue.
+                            self.vehicle_latest = (time.monotonic(), data['data'])
+                        else:
+                            self.commands.put(data, timeout=1)
                 except (ValueError, queue.Full):
                     continue
         finally:
@@ -185,6 +195,15 @@ class ConsoleBridge(Node):
             publish(self.publisher, self.commands.get_nowait())
         except queue.Empty:
             pass
+
+    def publish_vehicle(self):
+        latest = self.vehicle_latest
+        if latest is None:
+            return
+        age = max(0, time.monotonic() - latest[0])
+        frame = vehicle_frame(latest[1], age)
+        publish(self.vehicle_pub, frame)
+        self.vehicle_bridge = {'session': frame['session'], 'relay_age': age, 'status': frame['status']}
 
     def receive(self, message):
         try:
@@ -212,6 +231,7 @@ class ConsoleBridge(Node):
     def snapshot(self):
         now = time.monotonic()
         self.emit({'kind': 'snapshot', 'graph': self.graph, 'executor': self.mission,
+                   'vehicle_bridge': self.vehicle_bridge,
                    'executor_age': None if self.mission_at is None else now - self.mission_at,
                    'command_subscribers': self.publisher.get_subscription_count(),
                    'legacy': {'state': self.legacy, 'age': None if self.legacy_at is None else now - self.legacy_at}})

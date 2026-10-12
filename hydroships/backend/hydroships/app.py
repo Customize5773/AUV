@@ -70,7 +70,7 @@ def create_app(data_dir=None):
             app.state.storage = storage = Storage(directory)
             app.state.vehicle = vehicle = Vehicle(storage)
             app.state.system = system_snapshot(directory)
-            app.state.autonomy = autonomy = Autonomy(storage)
+            app.state.autonomy = autonomy = Autonomy(storage, vehicle.snapshot)
             vehicle.start()
             if os.environ.get('HYDROSHIPS_ROS_ENABLED', '0') == '1':
                 with contextlib.suppress(AutonomyError):

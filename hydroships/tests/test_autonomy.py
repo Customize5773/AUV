@@ -2,12 +2,15 @@ import copy
 import json
 import os
 import signal
+import subprocess
 import time
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
 
 from auv2027_autonomy.core import DEFAULT_PLAN, MissionEngine, validate_plan
+from auv2027_autonomy.telemetry import vehicle_frame
 from hydroships.app import create_app
 
 HEADERS = {'X-Hydroships-Client': 'dashboard'}
@@ -78,6 +81,20 @@ def test_autonomy_api_validation_and_persistence(tmp_path, monkeypatch):
         assert client.get('/api/autonomy').json()['config']['revision'] == 2
 
 
+def test_vehicle_relay_expires_without_rejuvenating_old_data():
+    source = {'session': 'one', 'status': 'connected', 'heartbeat_age': .8,
+              'fields': {'roll': {'age': 2.8, 'stale': False}, 'pitch': {'age': .1, 'stale': False}}}
+    fresh = vehicle_frame(source, .5)
+    assert fresh['status'] == 'connected' and fresh['fields']['roll']['stale']
+    assert not fresh['fields']['pitch']['stale']
+    assert source['fields']['roll']['age'] == 2.8
+    expired = vehicle_frame(source, 2.1)
+    assert expired['status'] == 'stale' and all(f['stale'] for f in expired['fields'].values())
+    assert vehicle_frame({**source, 'heartbeat_age': 2.9}, .2)['status'] == 'stale'
+    disconnected = vehicle_frame({'session': 'two', 'status': 'disconnected', 'heartbeat_age': None, 'fields': {}}, .1)
+    assert disconnected['fields'] == {} and disconnected['session'] == 'two'
+
+
 @pytest.mark.skipif(os.environ.get('HYDROSHIPS_TEST_ROS') != '1', reason='Requires installed ROS 2 Humble on Jetson')
 def test_actual_ros_transport_and_failure_recovery(tmp_path, monkeypatch):
     monkeypatch.setenv('HYDROSHIPS_ROS_ENABLED', '1')
@@ -87,6 +104,21 @@ def test_actual_ros_transport_and_failure_recovery(tmp_path, monkeypatch):
         wait_for(lambda: state()['runtime']['status'] == 'ready')
         wait_for(lambda: '/auv2027/mission_executor' in state()['graph']['nodes'])
         assert all('/cmd_vel' not in topic['name'] for topic in state()['graph']['topics'])
+        assert client.post('/api/connection', json={'kind': 'demo'}, headers=HEADERS).status_code == 200
+        wait_for(lambda: (state()['vehicle_bridge'] or {}).get('status') == 'connected')
+        wait_for(lambda: state()['vehicle']['parameters']['state'] == 'complete')
+        # Independent rclpy subscriber verifies real DDS payloads, outside the web venv.
+        probe = Path(__file__).resolve().parents[1] / 'scripts/check-ros-vehicle.py'
+        env = dict(os.environ, ROS_DOMAIN_ID='78', PYTHONNOUSERSITE='1')
+        env.pop('PYTHONPATH', None)
+        result = subprocess.run(['/bin/bash', '--noprofile', '--norc', '-c',
+            'source /opt/ros/humble/setup.bash && exec /usr/bin/python3 "$1" --source demo --output "$2"',
+            'probe', str(probe), str(tmp_path / 'ros-vehicle.json')], env=env, capture_output=True, text=True, timeout=25)
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert client.delete('/api/connection', headers=HEADERS).status_code == 200
+        wait_for(lambda: (state()['vehicle_bridge'] or {}).get('status') == 'disconnected')
+        assert state()['vehicle']['fields'] == {}
+        assert state()['vehicle_bridge']['session'] == state()['vehicle']['session']
         plan = copy.deepcopy(DEFAULT_PLAN)
         for step in plan['steps']: step['timeout'] = 2.5
         assert client.put('/api/autonomy/plan', json={'revision': 1, 'plan': plan}, headers=HEADERS).status_code == 200

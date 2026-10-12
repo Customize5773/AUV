@@ -24,8 +24,10 @@ class CommandRejected(AutonomyError):
 
 
 class Autonomy:
-    def __init__(self, storage):
+    def __init__(self, storage, vehicle_snapshot=None):
         self.storage = storage
+        self.vehicle_snapshot = vehicle_snapshot
+        self.telemetry = None
         self.config = storage.setting('autonomy.plan', {'revision': 1, 'plan': copy.deepcopy(DEFAULT_PLAN)})
         self.process = None
         self.reader = None
@@ -91,6 +93,23 @@ class Autonomy:
                 limit=131072)
             self.stderr = asyncio.create_task(self._read_errors(self.process))
             self.reader = asyncio.create_task(self._read(self.process))
+            if self.vehicle_snapshot:
+                self.telemetry = asyncio.create_task(self._feed_vehicle(self.process))
+
+    async def _feed_vehicle(self, process):
+        """Reuse the existing MAVLink owner; ROS never opens the serial port."""
+        try:
+            while process.returncode is None:
+                snapshot = self.vehicle_snapshot()
+                data = {key: snapshot[key] for key in ('session', 'status', 'connection', 'identity',
+                        'heartbeat_age', 'fields', 'parameters', 'received')}
+                packet = {'kind': 'vehicle', 'data': {'schema_version': 1, 'captured_at': time.time(), **data}}
+                process.stdin.write((json.dumps(packet, allow_nan=False) + '\n').encode())
+                await asyncio.wait_for(process.stdin.drain(), 2)
+                await asyncio.sleep(.5)
+        except (BrokenPipeError, ConnectionResetError, asyncio.TimeoutError):
+            # Reader handles runtime loss; the ROS relay independently expires old data.
+            pass
 
     async def _read_errors(self, process):
         while line := await process.stderr.readline():
@@ -126,6 +145,9 @@ class Autonomy:
             if not self.stopping:
                 self.status = 'error'; self.error = str(exc) or 'Pembaruan ROS 2 timeout.'
         finally:
+            if self.telemetry:
+                self.telemetry.cancel()
+                with contextlib.suppress(asyncio.CancelledError): await self.telemetry
             await self._terminate(process)
             for future in self.pending.values():
                 if not future.done(): future.set_exception(AutonomyError('Runtime ROS 2 terputus.'))
@@ -232,6 +254,8 @@ class Autonomy:
         history = [{key: run.get(key) for key in ('run_id', 'status', 'started_at', 'finished_at', 'elapsed', 'scenario')}
                    | {'name': run['plan']['name']} for run in self.storage.runs(20)]
         return {'config': self.config, 'tasks': TASKS,
+                'vehicle': self.vehicle_snapshot() if self.vehicle_snapshot else None,
+                'vehicle_bridge': (self.ros or {}).get('vehicle_bridge'),
                 'runtime': {'status': status, 'error': self.error, 'domain': self.domain, 'age': age,
                             'pid': self.process.pid if self.process else None, 'logs': list(self.logs),
                             'task_driver': 'synthetic' if self.test_tasks else 'external'},
