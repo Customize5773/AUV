@@ -205,6 +205,10 @@ def test_api_workflow_boundaries_exports_and_restart():
             assert client.get("/api/logs/not-a-log").status_code == 404
             filename = client.get("/api/logs").json()["items"][0]["name"]
             assert client.get("/api/logs/"+filename).status_code == 200
+            assert client.delete("/api/logs").status_code == 403
+            assert client.delete("/api/logs", headers={**headers, "Origin": "https://evil.example"}).status_code == 403
+            assert client.delete("/api/logs", headers=headers).status_code == 200
+            assert client.get("/api/logs/"+filename).status_code == 404
             with client.websocket_connect("ws://127.0.0.1:8081/api/live", headers={"Origin": "http://127.0.0.1:8081"}) as ws:
                 assert ws.receive_json()["vehicle"]["status"] == "connected"
             assert client.put("/api/settings", json={"name": "Persistence check"}, headers=headers).status_code == 200
@@ -212,3 +216,22 @@ def test_api_workflow_boundaries_exports_and_restart():
             assert client.get("/api/settings").json()["name"] == "Persistence check"
             assert client.get("/api/state").json()["vehicle"]["status"] == "disconnected"
             assert client.get("/api/settings").json()["connection"]["kind"] == "demo"
+
+
+def test_clear_telemetry_logs_preserves_other_data_and_resumes(tmp_path):
+    storage = Storage(tmp_path)
+    try:
+        storage.save("name", "Keep settings")
+        storage.event("test", "Keep events")
+        storage.record({"value": 1}, "demo")
+        old = storage.current_log
+        assert storage.clear_logs() == 1
+        assert storage.log_list() == []
+        assert storage.setting("name") == "Keep settings"
+        assert storage.events()[0]["message"] == "Keep events"
+        assert storage.clear_logs() == 0
+        storage.record({"value": 2}, "demo")
+        assert storage.current_log != old and not old.exists()
+        assert json.loads(storage.current_log.read_text())["message"]["value"] == 2
+    finally:
+        storage.close()

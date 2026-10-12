@@ -4,6 +4,8 @@ Tanggal pemeriksaan: **1 Oktober 2026**. Bahasa: Indonesia.
 
 Folder ini mengumpulkan temuan dari penyelenggara, institusi peserta, pengembang perangkat lunak, publikasi riset, produsen, dan otoritas perjalanan. Ini adalah catatan riset yang dapat diperbarui, bukan rulebook pengganti.
 
+**Untuk memahami sistem tim saat ini, mulai dari [11 — Topologi keseluruhan AUV2027 / HydroShips](11-topologi-keseluruhan-sistem.md).** Dokumen bertanggal 12 Oktober 2026 ini memuat diagram perangkat/proses, jalur daya dan komunikasi, kontrak MAVLink/ROS 2, penyimpanan, operasi, dan pembagian pekerjaan. Kondisi yang sudah diuji dibedakan dari rancangan integrasi berikutnya.
+
 **Temuan utama:** SAUVC 2027 diumumkan berlangsung **24–27 Februari 2027 di Singapore Polytechnic**. Halaman aturan dan manual yang tersedia masih memuat edisi sebelumnya. [Situs resmi](https://sauvc.org/)
 
 | Dokumen | Kegunaan |
@@ -19,6 +21,7 @@ Folder ini mengumpulkan temuan dari penyelenggara, institusi peserta, pengembang
 | [08 — Rencana persiapan](08-rencana-persiapan.md) | Usulan tahapan kerja dan kriteria pengujian |
 | [09 — Ketidakpastian](09-ketidakpastian-dan-pemantauan.md) | Pertanyaan terbuka, konflik sumber, dan cara memperbarui riset |
 | [10 — Sumber tambahan pengguna](10-telaah-sumber-tambahan.md) | Telaah dua PDF, jejak halaman, dan konflik data |
+| [11 — Topologi keseluruhan sistem](11-topologi-keseluruhan-sistem.md) | Panduan teknis tim: perangkat, aplikasi, ROS 2, alur autonomous sensor–kendali, FSM gerbang, startup, dan titik integrasi |
 | [Arsip PDF lokal](sources/README.md) | Berkas asli, checksum, ekstraksi teks, dan tautan |
 | [Sumber](sumber.md) | Bibliografi beranotasi dengan status akses |
 | [Data sumber](sumber.json) | Bibliografi dalam format yang dapat diproses |

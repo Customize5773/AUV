@@ -36,7 +36,10 @@ Kemudian buka alamat localhost yang sama pada laptop. Layanan default hanya mend
 3. **Dashboard** dan **Telemetri** menampilkan data yang diterima. Nilai yang tidak tersedia ditampilkan sebagai `—`; data kedaluwarsa diberi label.
 4. **Parameter** membaca seluruh daftar otomatis, mengulang permintaan indeks yang hilang, dan menyediakan ekspor `.params`. Perubahan satu parameter memerlukan konfirmasi operator, ArduSub yang teridentifikasi, kondisi disarmed, serta daftar lengkap. Aplikasi memeriksa respons nilai dari autopilot.
 5. **Sistem** menampilkan data Linux host dan sensor suhu Jetson. Nama kendaraan dapat disimpan dari halaman ini.
-6. **Log** menyimpan riwayat kejadian dan rekaman pesan MAVLink yang diterima dalam JSONL. Unduh rekaman yang ingin dipertahankan sebelum rotasi menggantikannya.
+6. **Log** menyimpan riwayat kejadian dan rekaman pesan MAVLink yang diterima dalam JSONL. Rekaman JSONL dihapus permanen untuk semua pengguna ketika tombol **Muat ulang** ditekan atau browser di-refresh (F5), pada halaman mana pun. Perekaman dilanjutkan dari pesan berikutnya; riwayat kejadian tetap tersimpan. Unduh rekaman yang ingin dipertahankan sebelum refresh atau rotasi menggantikannya.
+7. **Autonomous** menyusun dan menguji alur misi menggunakan ROS 2 Humble di Jetson. Tersedia rencana bertahap, timeout, pembatalan, riwayat, ekspor JSON, dan diagnostik node/topic. Respons tugas bawaan sintetis; kendali kendaraan belum dihubungkan. [Panduan platform dan integrasi modul](ros2_ws/README.md).
+
+Telemetri kendaraan yang aktif juga tersedia di halaman Autonomous dan topic ROS 2 `/auv2027/vehicle/state`. Relay baca saja memakai koneksi MAVLink yang sama, membedakan data demo/serial/UDP, dan menandai data yang kedaluwarsa. [Hasil validasi Pixhawk fisik](../plan/10-validasi-pixhawk-ros2.md).
 
 Mode demo memakai kendaraan MAVLink sederhana dalam proses terpisah secara threading. Ini **bukan ArduSub SITL**, bukan simulasi fisika, dan bukan bukti hardware. Badge demo selalu tampil; data CPU/RAM/suhu tetap berasal dari Jetson nyata.
 
@@ -84,7 +87,7 @@ systemctl --user disable --now hydroships.service
 - Port serial hanya boleh dipilih dari hasil pemindaian. Sambung ulang otomatis memerlukan path `/dev/serial/by-id` dan nomor serial yang cocok. Port tanpa identitas stabil memerlukan koneksi ulang manual.
 - Satu worker menangani seluruh I/O MAVLink. Sesi browser tidak membuka port sendiri. Autopilot lain dengan system/component ID berbeda tidak boleh mengubah data kendaraan terpilih.
 - Perubahan parameter dibatasi pada tipe numerik ArduPilot yang didukung. Tipe integer diperiksa rentangnya dan ketepatan representasi float32. Batas semantik setiap parameter tetap mengikuti firmware; metadata rentang parameter belum diintegrasikan.
-- Tidak ada perintah arm/disarm, ganti mode, kendali aktuator, flashing firmware, kamera, atau pelaksana misi dalam versi ini.
+- Tidak ada perintah arm/disarm, ganti mode, kendali aktuator, flashing firmware, atau kamera. Pelaksana misi ROS 2 tersedia untuk uji software; algoritme autonomous dan adapter kendaraan belum diimplementasikan.
 - Sistem ditujukan untuk satu operator pada Jetson/SSH tunnel. Pengaturan host/origin dibatasi untuk mencegah permintaan browser lintas situs; ini bukan pengganti autentikasi jika kelak dipublikasikan di jaringan.
 
 ## Pengujian

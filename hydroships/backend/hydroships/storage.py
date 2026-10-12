@@ -33,6 +33,7 @@ class Storage:
           CREATE TABLE IF NOT EXISTS settings(key TEXT PRIMARY KEY, value TEXT NOT NULL);
           CREATE TABLE IF NOT EXISTS events(id INTEGER PRIMARY KEY, ts REAL NOT NULL,
             level TEXT NOT NULL, kind TEXT NOT NULL, message TEXT NOT NULL, detail TEXT NOT NULL);
+          CREATE TABLE IF NOT EXISTS mission_runs(id TEXT PRIMARY KEY, updated REAL NOT NULL, data TEXT NOT NULL);
         """)
         self.db.commit()
         self.max_log_bytes = max_log_bytes
@@ -80,6 +81,15 @@ class Storage:
                 stream.write(line)
             self.log_size += len(line)
 
+    def clear_logs(self):
+        with self.lock:
+            files = list(self.logs.glob("telemetry-*.jsonl"))
+            for path in files:
+                path.unlink(missing_ok=True)
+            self.current_log = None
+            self.log_size = 0
+            return len(files)
+
     def log_list(self):
         with self.lock:
             return [dict(name=p.name, bytes=p.stat().st_size, modified=p.stat().st_mtime)
@@ -88,3 +98,18 @@ class Storage:
     def close(self):
         with self.lock:
             self.db.close()
+
+    def save_run(self, run):
+        with self.lock, self.db:
+            self.db.execute('INSERT OR REPLACE INTO mission_runs VALUES (?,?,?)',
+                            (run['run_id'], time.time(), json.dumps(clean(run))))
+            self.db.execute('DELETE FROM mission_runs WHERE id NOT IN (SELECT id FROM mission_runs ORDER BY updated DESC LIMIT 100)')
+
+    def runs(self, limit=20):
+        with self.lock:
+            return [json.loads(row[0]) for row in self.db.execute('SELECT data FROM mission_runs ORDER BY updated DESC LIMIT ?', (limit,))]
+
+    def run(self, identifier):
+        with self.lock:
+            row = self.db.execute('SELECT data FROM mission_runs WHERE id=?', (identifier,)).fetchone()
+            return json.loads(row[0]) if row else None
