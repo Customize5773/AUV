@@ -22,6 +22,7 @@ Folder ini mengumpulkan temuan dari penyelenggara, institusi peserta, pengembang
 | [09 — Ketidakpastian](09-ketidakpastian-dan-pemantauan.md) | Pertanyaan terbuka, konflik sumber, dan cara memperbarui riset |
 | [10 — Sumber tambahan pengguna](10-telaah-sumber-tambahan.md) | Telaah dua PDF, jejak halaman, dan konflik data |
 | [11 — Topologi keseluruhan sistem](11-topologi-keseluruhan-sistem.md) | Panduan teknis tim: perangkat, aplikasi, ROS 2, alur autonomous sensor–kendali, FSM gerbang, startup, dan titik integrasi |
+| [12 — Wi-Fi Jetson dan reconnect SSH](12-riset-wifi-jetson-reconnect.md) | Perbandingan AW-CB375NF/AX200/AX210, antena enclosure, topologi akses, dan rencana pengukuran reconnect |
 | [Arsip PDF lokal](sources/README.md) | Berkas asli, checksum, ekstraksi teks, dan tautan |
 | [Sumber](sumber.md) | Bibliografi beranotasi dengan status akses |
 | [Data sumber](sumber.json) | Bibliografi dalam format yang dapat diproses |
