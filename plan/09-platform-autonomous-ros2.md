@@ -45,3 +45,7 @@ Panduan operasi, variabel lingkungan, kontrak topic, serta perintah uji berada d
 Belum ada algoritme navigasi/persepsi/akustik SAUVC, adapter Gazebo, mission controller kendaraan fisik, atau keluaran arm/mode/thruster/Pixhawk. Label **software test** membedakan validasi platform dari validasi kemampuan robot. Hasil sintetis hanya membuktikan alur perangkat lunak.
 
 Tahap berikutnya adalah memilih tugas AUV pertama dan membangun node tugas berbasis rekaman atau simulasi menggunakan kontrak yang sudah tersedia. Pengujian hardware menunggu Pixhawk/kamera tersedia di tempat pengujian.
+
+## Perkembangan simulasi — 22 Oktober 2026
+
+Atas permintaan pembuatan simulasi SAUVC dan pilihan pengguna, workspace baru dibuat di [`../ros2_ws`](../ros2_ws/README.md), terpisah dari platform ini maupun `/home/rasya/ros2_ws` milik KKI. Tersedia arena kualifikasi dan final, AUV latihan dengan kontrol kecepatan ideal, odometri, serta kamera depan/bawah. Build, lima tes geometri, validasi SDF, dan pemeriksaan runtime kedua arena lulus. Algoritme misi dan adapter executor HydroShips belum dihubungkan. Rincian implementasi, bukti dan batas validasi ada di [laporan simulasi SAUVC](12-simulasi-sauvc-ros2.md).

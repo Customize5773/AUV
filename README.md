@@ -5,6 +5,7 @@ Repositori persiapan dan pengembangan program AUV tim HydroShips.
 | Folder | Isi |
 | --- | --- |
 | [hydroships/](hydroships/README.md) | Aplikasi onboard Jetson–Pixhawk: dashboard, telemetri, parameter, monitor sistem, dan log |
+| [ros2_ws/](ros2_ws/README.md) | Simulasi Gazebo SAUVC: arena kualifikasi/final, AUV latihan, kamera dan kontrol ROS 2 |
 | [plan/](plan/README.md) | Keputusan, tahapan kerja, dan bukti pengujian |
 | [doc/](doc/README.md) | Riset SAUVC, referensi aturan, dan sumber |
 | [deploy/blueos/](deploy/blueos/README.md) | Eksperimen sebelumnya: adaptasi BlueOS resmi untuk Jetson |
