@@ -43,6 +43,8 @@ class JudgeTest(unittest.TestCase):
             j.update((9.6, 4, -.05, -math.pi), float(t))
         self.assertTrue(j.result()['passed'])
         self.assertEqual(j.finished, finished)
+        self.assertEqual(j.result()['start_to_surface_elapsed'], 53-j.run_started)
+        self.assertGreater(j.result()['start_to_stop_elapsed'], j.result()['start_to_surface_elapsed'])
 
     def test_reverse_without_turn_does_not_qualify(self):
         j = self.start()
@@ -106,6 +108,25 @@ class JudgeTest(unittest.TestCase):
 
 
 class VisionTest(unittest.TestCase):
+    def test_speed_scale_changes_motion_and_rejects_invalid_limits(self):
+        judge = {'phase': 'OUTBOUND', 'events': []}
+        slow = QualificationController(speed_scale=1)
+        fast = QualificationController(speed_scale=8)
+        pose = (.3, 4, -.05, 0)
+        self.assertAlmostEqual(fast.command(pose, 0, None, 0, judge)[2],
+                               8*slow.command(pose, 0, None, 0, judge)[2])
+        for invalid in (0, -1, 9, math.nan, math.inf):
+            with self.assertRaises(ValueError):
+                QualificationController(speed_scale=invalid)
+
+    def test_fast_approach_waits_for_alignment_and_limits_camera_gain(self):
+        c = QualificationController(speed_scale=8)
+        j = {'phase': 'OUTBOUND', 'events': []}
+        c.command((1, 4, -.6, 0), 0, None, 100, j)
+        cmd = c.command((1, 4, -.6, 0), 1, {'bearing': .1, 'distance': 2.0}, 0, j)
+        self.assertEqual(cmd[0], 0)
+        self.assertAlmostEqual(cmd[3], .32)
+
     def frame(self):
         rgb = np.zeros((480, 640, 3), dtype=np.uint8)
         for x in (270, 370):

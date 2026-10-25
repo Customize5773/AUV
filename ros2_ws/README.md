@@ -105,6 +105,23 @@ Lima tes geometri memeriksa kedalaman permukaan collision, lebar bersih gerbang,
 
 ## Kualifikasi autonomous
 
+Default autonomous kini memakai **`speed_scale:=8.0`** untuk meminimalkan waktu dari gerak pertama sampai surface. Parameter yang sama diterapkan pada controller dan pengawas; `speed_scale:=1.0` mengembalikan profil awal. Rentang yang diterima `(0, 8]`; ini batas rekayasa simulator, bukan batas thruster hardware.
+
+| Gerak | Profil awal (1×) | Default cepat (8×) |
+| --- | --- | --- |
+| Maju / menjauh dari gate | 0,3 m/s | 2,4 m/s |
+| Melintas gate setelah alignment | 0,25 m/s | 2,0 m/s |
+| Menyelam / surface | 0,2 m/s | 1,6 m/s |
+| Putar U-turn | 0,5 rad/s | 4,0 rad/s |
+
+Koreksi heading dari kamera dibatasi tersendiri karena kamera tetap 10 Hz. Di dekat gate, kendaraan menyelesaikan alignment sebelum maju cepat agar tidak berosilasi. Keberhasilan tetap memerlukan dua pelintasan penuh, U-turn, tanpa benturan, surface sesudah finish dan stop aktual.
+
+Result menambahkan `start_to_surface_elapsed` dan `start_to_stop_elapsed`, dihitung dari gerak pertama terukur; preflight tidak masuk durasi gerak. `elapsed` tetap menyimpan waktu lintasan gate. `--speed-scale 1` pada runner dapat dipakai untuk pembanding; contoh default cepat:
+
+```bash
+bash tools/ros.sh python tools/check_qualification.py --output evidence/qualification-speed/fast.json
+```
+
 ```bash
 cd /home/rasya/AUV/ros2_ws
 bash tools/ros.sh build --symlink-install
@@ -116,7 +133,7 @@ bash tools/ros.sh launch sauvc_sim arena.launch.py autonomous:=true lane:=2 late
 bash tools/ros.sh launch sauvc_sim arena.launch.py autonomous:=true mode:=odom
 ```
 
-Misi berjalan otomatis setelah clock, odometri, heartbeat kontak, pemeriksa dan kamera siap. AUV menyelam, mencari/mengarah ke gate, lewat seluruh badan, menjauh agar kedua tiang kembali masuk kamera setelah U-turn, lalu lewat kembali. Sesudah pemeriksa menyatakan pelintasan balik lengkap, AUV langsung naik vertikal dan berhenti. Waktu resmi kualifikasi dan surface penutup dicatat terpisah. `DONE` memerlukan surface serta perintah nol dan posisi stabil; `ABORT` terminal tanpa resume otomatis. Ctrl+C menutup semua proses milik launch.
+Misi berjalan otomatis setelah clock, odometri, heartbeat kontak, pemeriksa dan kamera mengalir stabil selama preflight. AUV menyelam, mencari/mengarah ke gate, lewat seluruh badan, menjauh agar kedua tiang kembali masuk kamera setelah U-turn, lalu lewat kembali. Sesudah pemeriksa menyatakan pelintasan balik lengkap, AUV langsung naik vertikal dan berhenti. Waktu resmi kualifikasi dan surface penutup dicatat terpisah. `DONE` memerlukan surface serta perintah nol dan posisi stabil; `ABORT` terminal tanpa resume otomatis. Ctrl+C menutup semua proses milik launch.
 
 Mode `vision` memakai segmentasi oranye/struktur dua tiang dari frame nyata; tidak memerlukan YOLO atau OpenCV. Odometri tetap dipakai untuk kedalaman, putaran dan perjalanan pendek ketika gate sudah terlalu dekat untuk terlihat lengkap. Estimasi bidang gate pada fase tersebut berasal dari jarak/bearing citra terakhir. Mode `odom` menggunakan koordinat gate yang diketahui dan diberi label terpisah.
 
@@ -151,4 +168,6 @@ bash tools/ros.sh python tools/check_qualification.py --fault command_loss --out
 bash tools/ros.sh python tools/check_contacts.py
 ```
 
-`--gui` membuka GUI pada pemeriksaan misi. `--fault camera_loss|odom_loss|contact_loss|clock_loss|command_loss` memutus penerimaan/penerbitan terkait setelah 8 s simulasi untuk menguji penghentian; tidak digunakan pada peluncuran normal. Pada skenario gangguan, `passed` pada laporan runner berarti **uji penghentian lulus**, sementara `mission_passed` harus false. Laporan menyimpan state, putusan, trajectory, perintah aktual, dan status shutdown; file pendamping `-controller.json` dan `-referee.json` memisahkan bukti keduanya.
+`--gui` membuka GUI pada pemeriksaan misi. `--fault controller_freeze` pada runner benar-benar mengirim SIGSTOP ke proses controller; pengawas terpisah harus mendeteksi hilangnya perintah dan menghentikan AUV. Proses dilanjutkan kembali hanya untuk cleanup setelah pengujian. `--fault camera_loss|odom_loss|contact_loss|clock_loss|command_loss` memutus penerimaan/penerbitan terkait setelah 8 s simulasi untuk menguji penghentian; tidak digunakan pada peluncuran normal. Pada skenario gangguan, `passed` pada laporan runner berarti **uji penghentian lulus**, sementara `mission_passed` harus false. Laporan menyimpan state, putusan, trajectory, perintah aktual, verifikasi penyebab gangguan, dan status shutdown; file pendamping `-controller.json` dan `-referee.json` memisahkan bukti keduanya.
+
+Hasil implementasi dan batas pembuktiannya tercatat pada [laporan kualifikasi](../plan/15-hasil-kualifikasi-autonomous.md). Ringkasan lokal [verification.json](evidence/qualification-autonomous/verification.json) memuat 19 pemeriksaan runtime, termasuk enam misi visual nominal serta enam uji gangguan/pembekuan controller.

@@ -2,15 +2,20 @@
 import math
 from sauvc_sim.referee import wrap
 
+MAX_SPEED_SCALE = 8.0
+
 
 def clamp(value, limit):
     return max(-limit, min(limit, value))
 
 
 class QualificationController:
-    def __init__(self, mode='vision', lane=1):
+    def __init__(self, mode='vision', lane=1, speed_scale=MAX_SPEED_SCALE):
         if mode not in ('vision', 'odom'):
             raise ValueError('unknown navigation mode')
+        if not math.isfinite(speed_scale) or not 0 < speed_scale <= MAX_SPEED_SCALE:
+            raise ValueError('speed_scale must be finite and in (0, 8]')
+        self.speed_scale = speed_scale
         self.mode = mode
         self.state = 'WAIT_READY'
         self.reason = ''
@@ -72,7 +77,7 @@ class QualificationController:
             returning = self.state in ('FIND_RETURN_GATE', 'ALIGN_RETURN', 'PASS_BACK')
             if judge.get('qualification_passed'):
                 self.change('SURFACE', t)
-                return (0., 0., 0., clamp((-.05-z)*1.5, .2))
+                return (0., 0., 0., self.speed_scale*clamp((-.05-z)*1.5, .2))
             if not returning and any(e['event'] == 'FULL_OUTBOUND' for e in judge.get('events', [])):
                 self.turn_start = (x, y)
                 self.change('CLEAR_GATE', t)
@@ -91,17 +96,20 @@ class QualificationController:
                 # Hold the last visual heading through the near-field blind zone.
                 dx, dy = self.target[0]-x, self.target[1]-y
                 along = dx*math.cos(self.target[2]) + dy*math.sin(self.target[2])
-                yaw_rate = clamp(wrap(self.target[2]-yaw)*2, .4)
+                yaw_rate = clamp(wrap(self.target[2]-yaw)*2, .4)*min(self.speed_scale, 2)/self.speed_scale
                 vx = .25
                 if along < -.65:
                     self.change('ABORT', t, 'crossing_not_confirmed')
                     vx = yaw_rate = 0.
             elif seen:
                 self.lost_since = None
-                yaw_rate = clamp(1.6*bearing, .4)
+                # Camera updates at 10 Hz: increasing this gain with thrust causes oscillation.
+                yaw_rate = clamp(1.6*bearing, .4)*min(self.speed_scale, 2)/self.speed_scale
                 if self.state.startswith('FIND'):
                     self.change('ALIGN_RETURN' if returning else 'ALIGN', t)
                 vx = .3 if abs(bearing) < .12 else .08
+                if distance < 2.5 and abs(bearing) >= .035:
+                    vx = 0.
                 if abs(bearing) < .035 and distance < 1.8:
                     angle = yaw+bearing
                     # Camera is 0.32 m in front of the odometry origin.
@@ -118,4 +126,4 @@ class QualificationController:
                     yaw_rate = .18*math.cos((t-self.lost_since)*.7)
         if self.state == 'ABORT':
             return (0., 0., 0., 0.)
-        return vx, vy, vz, yaw_rate
+        return tuple(self.speed_scale*v for v in (vx, vy, vz, yaw_rate))

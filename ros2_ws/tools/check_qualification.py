@@ -13,11 +13,13 @@ from rclpy.qos import qos_profile_sensor_data, QoSProfile, DurabilityPolicy
 from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
 from std_msgs.msg import String
+from sauvc_sim.qualification import MAX_SPEED_SCALE
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--mode', choices=['vision', 'odom'], default='vision')
+    parser.add_argument('--speed-scale', type=float, default=MAX_SPEED_SCALE)
     parser.add_argument('--lane', type=int, choices=[1, 2], default=1)
     parser.add_argument('--lateral-offset', type=float, default=0.)
     parser.add_argument('--yaw', type=float, default=0.)
@@ -48,12 +50,14 @@ def main():
                      node.create_subscription(Odometry, '/sauvc/odom', odom, qos_profile_sensor_data),
                      node.create_subscription(Twist, '/sauvc/cmd_vel', command, 10)]
     report = {'passed': False, 'mode': args.mode, 'lane': args.lane,
+              'speed_scale': args.speed_scale,
               'lateral_offset': args.lateral_offset, 'yaw': args.yaw, 'fault': args.fault,
               'rulebook': '2026 v6.1.0', 'checked_on': '2026-10-25'}
     frozen_pid = None
     with args.output.with_suffix('.log').open('w') as log:
         process = subprocess.Popen(['bash', 'tools/ros.sh', 'launch', 'sauvc_sim', 'arena.launch.py',
             'autonomous:=true', f'mode:={args.mode}', f'lane:={args.lane}',
+            f'speed_scale:={args.speed_scale}',
             f'lateral_offset:={args.lateral_offset}', f'yaw:={args.yaw}',
             f'headless:={str(not args.gui).lower()}', f'output:={args.output.with_suffix("")}',
             f'fault:={"none" if args.fault == "controller_freeze" else args.fault or "none"}'],
@@ -66,8 +70,8 @@ def main():
                 if args.fault == 'controller_freeze' and frozen_pid is None and observed['trajectory'] and observed['trajectory'][-1][0] > 8:
                     children = subprocess.check_output(['ps', '--ppid', str(process.pid), '-o', 'pid=,args='], text=True)
                     for line in children.splitlines():
-                        pid, executable, *_ = line.split()
-                        if Path(executable).name == 'qualification':
+                        pid, *command_words = line.split()
+                        if any(Path(word).name == 'qualification' for word in command_words):
                             frozen_pid = int(pid)
                             os.kill(frozen_pid, signal.SIGSTOP)
                             report['controller_frozen'] = True
@@ -106,6 +110,18 @@ def main():
                     os.kill(frozen_pid, signal.SIGCONT)
                 except ProcessLookupError:
                     pass
+            if args.gui and process.poll() is None:
+                # Stop the render server through its API before tearing down the GUI.
+                try:
+                    stop = subprocess.run(['ign', 'service', '-s', '/server_control',
+                        '--reqtype', 'ignition.msgs.ServerControl', '--reptype', 'ignition.msgs.Boolean',
+                        '--timeout', '3000', '--req', 'stop: true'], stdout=log,
+                        stderr=subprocess.STDOUT, timeout=5)
+                    report['shutdown_via_service'] = stop.returncode == 0
+                    if stop.returncode == 0:
+                        process.wait(timeout=8)
+                except (subprocess.TimeoutExpired, OSError):
+                    report['shutdown_via_service'] = False
             if process.poll() is None:
                 process.send_signal(signal.SIGINT)
             try:

@@ -10,6 +10,7 @@ from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 from sauvc_sim.arena import build_world
+from sauvc_sim.qualification import MAX_SPEED_SCALE
 
 
 def start(context):
@@ -43,6 +44,7 @@ def start(context):
                                       output='screen', on_exit=Shutdown()))
     if autonomous:
         params = {'lane': lane, 'mode': mode,
+                  'speed_scale': float(LaunchConfiguration('speed_scale').perform(context)),
                   'output': LaunchConfiguration('output').perform(context),
                   'fault': LaunchConfiguration('fault').perform(context)}
         for executable in ('qualification_referee', 'command_guard', 'qualification'):
@@ -59,6 +61,7 @@ def generate_launch_description():
         DeclareLaunchArgument('autonomous', default_value='false', choices=['true', 'false']),
         DeclareLaunchArgument('lane', default_value='1', choices=['1', '2']),
         DeclareLaunchArgument('mode', default_value='vision', choices=['vision', 'odom']),
+        DeclareLaunchArgument('speed_scale', default_value=str(MAX_SPEED_SCALE)),
         DeclareLaunchArgument('lateral_offset', default_value='0.0'),
         DeclareLaunchArgument('yaw', default_value='0.0'),
         DeclareLaunchArgument('output', default_value=''),

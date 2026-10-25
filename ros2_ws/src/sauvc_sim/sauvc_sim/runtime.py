@@ -17,7 +17,7 @@ from sensor_msgs.msg import Image
 from std_msgs.msg import String
 
 from sauvc_sim.gate_detection import detect_gate
-from sauvc_sim.qualification import QualificationController
+from sauvc_sim.qualification import MAX_SPEED_SCALE, QualificationController
 from sauvc_sim.referee import QualificationJudge
 
 
@@ -36,6 +36,8 @@ class Runtime(Node):
         self.declare_parameter('mode', 'vision')
         self.declare_parameter('output', '')
         self.declare_parameter('fault', '')
+        self.declare_parameter('speed_scale', MAX_SPEED_SCALE)
+        self.speed_scale = float(self.get_parameter('speed_scale').value)
         lane = self.get_parameter('lane').value
         self.mode = self.get_parameter('mode').value
         self.output = self.get_parameter('output').value
@@ -55,7 +57,7 @@ class Runtime(Node):
         self.terminal = False
         self.logged_state = None
         self.command = Twist()
-        self.controller = QualificationController(self.mode, lane)
+        self.controller = QualificationController(self.mode, lane, self.speed_scale)
         self.judge = QualificationJudge(lane)
         self.started_wall = time.monotonic()
         self.ready_since = None
@@ -188,10 +190,11 @@ class Runtime(Node):
                 if stale:
                     self.trip('stale_' + stale)
                 if not self.terminal and self.judgement.get('phase') != 'FAILED':
-                    cmd.linear.x = max(-.3, min(.3, self.command.linear.x))
-                    cmd.linear.y = max(-.3, min(.3, self.command.linear.y))
-                    cmd.linear.z = max(-.2, min(.2, self.command.linear.z))
-                    cmd.angular.z = max(-.5, min(.5, self.command.angular.z))
+                    scale = self.speed_scale
+                    cmd.linear.x = max(-.3*scale, min(.3*scale, self.command.linear.x))
+                    cmd.linear.y = max(-.3*scale, min(.3*scale, self.command.linear.y))
+                    cmd.linear.z = max(-.2*scale, min(.2*scale, self.command.linear.z))
+                    cmd.angular.z = max(-.5*scale, min(.5*scale, self.command.angular.z))
             self.velocity_pub.publish(cmd)
         elif self.role == 'referee':
             if self.judge.started is not None and self.judge.phase != 'START' and stale:
@@ -230,6 +233,7 @@ class Runtime(Node):
                 self.velocity_pub.publish(Twist())
                 self.save('-controller', {'state': ctrl.state, 'reason': ctrl.reason,
                                          'mode': self.mode, 'history': ctrl.history,
+                                         'speed_scale': self.speed_scale,
                                          'frames': self.frames, 'detections': self.detections})
             if self.logged_state != ctrl.state:
                 self.get_logger().info(ctrl.state + (': ' + ctrl.reason if ctrl.reason else ''))
@@ -239,17 +243,23 @@ class Runtime(Node):
 def run(role):
     # Keep the context alive until our final zero command and cleanup have finished.
     rclpy.init(signal_handler_options=SignalHandlerOptions.NO)
-    signal.signal(signal.SIGINT, signal.default_int_handler)
-    signal.signal(signal.SIGTERM, signal.default_int_handler)
+    stopping = False
+    def stop(signum, frame):
+        nonlocal stopping
+        stopping = True
+    signal.signal(signal.SIGINT, stop)
+    signal.signal(signal.SIGTERM, stop)
     node = Runtime(role)
+    executor = rclpy.executors.SingleThreadedExecutor()
+    executor.add_node(node)
     try:
-        rclpy.spin(node)
-    except KeyboardInterrupt:
-        pass
+        while not stopping:
+            executor.spin_once(timeout_sec=.1)
     finally:
         signal.signal(signal.SIGINT, signal.SIG_IGN)
         if rclpy.ok() and node.velocity_pub is not None:
             node.velocity_pub.publish(Twist())
+        executor.shutdown()
         node.destroy_node()
         rclpy.try_shutdown()
 

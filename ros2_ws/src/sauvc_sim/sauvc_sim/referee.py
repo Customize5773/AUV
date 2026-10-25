@@ -36,6 +36,8 @@ class QualificationJudge:
         self.departed_wall = False
         self.turned = False
         self.surface_completed = False
+        self.surface_time = None
+        self.stop_time = None
         self.stopped = False
         self.stop_since = None
         self.previous = None
@@ -125,6 +127,7 @@ class QualificationJudge:
                 return
             if not self.surface_completed:
                 self.surface_completed = True
+                self.surface_time = t
                 self.event('SURFACE', t, pose)
             moved = (self.previous is None or math.dist(pose[:3], self.previous[:3]) > .001
                      or abs(wrap(yaw-self.previous[-1])) > .001)
@@ -134,6 +137,7 @@ class QualificationJudge:
                 self.stop_since = t
             elif t-self.stop_since >= 1 and not self.stopped:
                 self.stopped = True
+                self.stop_time = t
                 self.event('STOPPED', t, pose)
         self.previous = pose
 
@@ -142,6 +146,8 @@ class QualificationJudge:
                 'qualification_passed': self.qualified,
                 'qualification_finish_time': self.finished,
                 'elapsed': None if self.finished is None else self.finished-self.run_started,
+                'start_to_surface_elapsed': None if self.surface_time is None else self.surface_time-self.run_started,
+                'start_to_stop_elapsed': None if self.stop_time is None else self.stop_time-self.run_started,
                 'surface_completed': self.surface_completed, 'stopped': self.stopped,
                 'passed': self.qualified and self.surface_completed and self.stopped
                           and self.phase != 'FAILED', 'events': self.events}

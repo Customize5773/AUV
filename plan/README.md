@@ -17,7 +17,7 @@ Tujuan pekerjaan Program adalah mengintegrasikan Jetson, Pixhawk–ArduSub, dan 
 | [Platform autonomous ROS 2](09-platform-autonomous-ros2.md) | Editor misi, executor ROS 2, kontrak modul tugas, riwayat, dan pengujian software di Jetson |
 | [Validasi Pixhawk fisik dan ROS 2](10-validasi-pixhawk-ros2.md) | Pembacaan ArduSub melalui USB, cadangan parameter, dan penerusan telemetri ke ROS 2 |
 | [Simulasi arena SAUVC](12-simulasi-sauvc-ros2.md) | Workspace ROS 2/Gazebo terpisah, geometri kualifikasi/final dan bukti uji kamera/gerak |
-| [Rencana kualifikasi autonomous](13-rencana-kualifikasi-autonomous.md) | Gate pergi/balik, U-turn, surface sesudah finish dan stop; implementasi disetujui |
+| [Rencana kualifikasi autonomous](13-rencana-kualifikasi-autonomous.md) | Gate pergi/balik, U-turn, surface sesudah finish dan stop; selesai pada model latihan ideal |
 | [Tinjauan rulebook terbaru dan rencana ARENA](14-tinjauan-rulebook-dan-rencana-arena.md) | Perbedaan aturan terbit/draf 2027, koreksi urutan misi dan penerimaan flare/payload; menunggu konfirmasi |
 | [Hasil kualifikasi autonomous](15-hasil-kualifikasi-autonomous.md) | Implementasi controller visual/odometri, pemeriksa independen, pengawas dan bukti pengujian |
 
