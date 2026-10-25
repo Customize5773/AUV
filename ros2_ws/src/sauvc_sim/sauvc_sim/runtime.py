@@ -232,6 +232,9 @@ class Runtime(Node):
                     cmd.linear.y = max(-.3*scale, min(.3*scale, self.command.linear.y))
                     cmd.linear.z = max(-.2*scale, min(.2*scale, self.command.linear.z))
                     cmd.angular.z = max(-.5*scale, min(.5*scale, self.command.angular.z))
+                    if self.mission=='finals':
+                        cmd.angular.x=max(-.4,min(.4,self.command.angular.x))
+                        cmd.angular.y=max(-.4,min(.4,self.command.angular.y))
             self.velocity_pub.publish(cmd)
         elif self.role == 'referee':
             if self.judge.started is not None and self.judge.phase != 'START' and stale:

@@ -1,5 +1,7 @@
 # Konsep pelepas payload satu bola dengan servo
 
+**Konfirmasi pengguna — 25 Oktober 2026:** model servo, tegangan/catu daya, driver dan kanal flight controller belum dapat dikonfirmasi. Statusnya **belum dikonfirmasi**, bukan dipastikan belum tersedia. Rancangan tetap parametrik; wiring, pemilihan pin/kanal, endpoint PWM dan kalibrasi servo fisik menunggu spesifikasi perangkat. Tidak ada output hardware yang diaktifkan.
+
 Status: rancangan awal, belum difabrikasi atau diuji. Model parametrik: [dropper.scad](dropper.scad). Unit mm. Tidak ada PWM atau output hardware yang diaktifkan oleh pekerjaan simulator.
 
 Bola ditahan rak putar di bawah tabung vertikal. Servo memutar rak menjauh sehingga bola turun melalui gravitasi. Sumbu putar sejajar tabung, berjarak 40 mm dari pusat bola. Dudukan terpisah menanggung berat rak/bola melalui bearing; poros servo hanya memberikan torsi. Bola tidak didorong servo dan tidak boleh dijepit linkage.
@@ -24,3 +26,11 @@ Interlock yang diperlukan saat implementasi hardware: release hanya saat armed u
 Uji meja: periksa bola 35/40/45 mm; kalibrasi endpoint tanpa beban; lakukan minimal 30 siklus basah per ukuran; ukur arus, waktu release, retensi saat miring dan kecenderungan macet. Uji mati daya, reboot, perintah berulang dan alignment salah tanpa menghubungkan thruster. Lanjutkan uji kolam dengan kamera bawah dan drum setelah retensi/release konsisten. Sebelum dipasang ke AUV, ukur ulang titik pusat bola terhadap badan; simulator memakai offset (+0,20, 0, −0,18) m dan harus disesuaikan dengan pemasangan nyata.
 
 Mekanisme flare merupakan properti penyelenggara: AUV menabrak/mendekati flare sehingga bola terlepas. Servo ini untuk payload kendaraan, bukan untuk mengendalikan pelepasan bola flare penyelenggara.
+
+## Pickup dan retensi bola
+
+Konsep dua jari terdapat pada [pickup.scad](pickup.scad): bukaan 52 mm untuk bola 35–45 mm, pad lunak 2 mm, dan gap tertutup yang harus disetel sesuai diameter bola serta gaya jepit. Ini susunan konsep; linkage, bearing, spline horn dan housing servo masih mengikuti ukuran perangkat yang dipilih. Hindari menjadikan gaya stall sebagai pembatas jepit. Uji gaya jepit/retensi saat terendam, arus, pelepasan darurat, bola licin, serta mati daya. Tambahkan sensor closed/ball-present; jangan menyamakan endpoint servo dengan keberhasilan memegang bola.
+
+Dalam simulator mode `extended`, alat pickup dipasang di belakang pusat badan **(−0,20, 0, −0,45) m**, terpisah dari titik drop di depan (+0,20, 0, −0,18) m. Dua jari dan atap alat memiliki collision. Perintah close baru membuat sambungan fixed setelah kontak bola yang benar teramati. Sambungan ini adalah pendekatan latch ideal; bukan simulasi motor, linkage atau gaya gesek jepitan. Alat tidak diretract pada model ini; navigasi memakai kedalaman yang memperhitungkan envelope alat. Rancangan pemasangan fisik sebaiknya memeriksa kebutuhan retract/clearance terlebih dahulu.
+
+Servo pelepas simulator bergerak ideal 0→120° selama 0,4 s sebelum bola dilepas. Nilai waktu/sudut merupakan asumsi latihan dan tidak dapat dipakai sebagai PWM kendaraan nyata. Simulasi tidak membuktikan ketahanan waterproof, torsi stall atau retensi mekanik gripper fisik.

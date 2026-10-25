@@ -2,6 +2,11 @@
 import math
 from sauvc_sim.camera_geometry import CameraModel, to_world
 from sauvc_sim.referee import wrap
+from sauvc_sim.arena import floor_z
+
+
+def level_rates(roll,pitch):
+    return tuple(max(-.4,min(.4,-2*v)) for v in (roll,pitch))
 
 
 def valid_order(value):
@@ -12,7 +17,7 @@ def valid_order(value):
 
 
 class ArenaController:
-    def __init__(self):
+    def __init__(self, extended=False):
         self.state = 'WAIT'
         self.since = 0.
         self.started = None
@@ -29,6 +34,11 @@ class ArenaController:
         self.aligned_since = None
         self.release = False
         self.scan = []
+        self.extended=extended
+        self.grip=False
+        self.acoustic_target=None
+        self.acoustic_time=-math.inf
+        self.acquisition_goal=None
 
     def change(self, state, t, reason=''):
         if self.state != state:
@@ -96,10 +106,11 @@ class ArenaController:
             self.change('ABORT',t,'mission_or_state_timeout')
             return zero
         x,y,z,yaw = pose
+        nav_depth=(-.65 if x<3 or x>22 else -.8) if self.extended else -1.
         if self.state == 'DIVE':
-            if z < -.94:
+            if z < nav_depth+.06:
                 self.change('NAVIGATE',t)
-            return 0.,0.,max(-.3,min(.3,(-1.-z)*1.8)),0.
+            return 0.,0.,max(-.3,min(.3,(nav_depth-z)*1.8)),0.
         if self.state == 'NAVIGATE':
             if judgement.get('navigation_passed'):
                 gate=self.targets.get('navigation_gate')
@@ -114,26 +125,26 @@ class ArenaController:
                     self.avoid.pop(0)
                     if not self.avoid: self.avoided=True
                 else:
-                    return self.go(pose,self.avoid[0])
+                    return self.go(pose,self.avoid[0],depth=nav_depth)
             gate=self.targets.get('navigation_gate')
             if gate:
-                depth=max(-1.15,min(-.85,gate[2]))
+                depth=nav_depth if self.extended else max(-1.15,min(-.85,gate[2]))
                 return self.go(pose,[gate[0]+1.2,gate[1]],.45,depth)
             if x > 21:
                 self.change('ABORT',t,'gate_not_found')
                 return zero
-            return self.go(pose,[x+2,8.],.45)
+            return self.go(pose,[x+2,8.],.45,depth=nav_depth)
         if self.state == 'CLEAR_GATE':
             if math.dist(pose[:2],self.goal) < .15:
                 gate=self.targets['navigation_gate']
                 self.goal=[gate[0]-1.4,gate[1]]
                 self.change('RETURN_GATE',t)
-            return self.go(pose,self.goal,.4)
+            return self.go(pose,self.goal,.4,depth=nav_depth)
         if self.state == 'RETURN_GATE':
             if math.dist(pose[:2],self.goal) < .15:
                 self.change('WAIT_ORDER',t)
                 return zero
-            return self.go(pose,self.goal,.4)
+            return self.go(pose,self.goal,.4,depth=nav_depth)
         if self.state == 'WAIT_ORDER':
             if self.order is not None:
                 self.change('FIND_FLARE',t)
@@ -182,7 +193,11 @@ class ArenaController:
                 self.change('SCAN_DRUMS',t)
             return self.go(pose,self.goal,.7,depth=-.12)
         if self.state == 'SCAN_DRUMS':
-            if 'blue_drum' in self.targets:
+            if self.extended and self.acoustic_target is not None:
+                self.goal=[*self.acoustic_target, -.12]
+                self.change('ALIGN_DRUM',t)
+                return zero
+            if not self.extended and 'blue_drum' in self.targets:
                 self.goal=list(self.targets['blue_drum'])
                 self.change('ALIGN_DRUM',t)
                 return zero
@@ -193,12 +208,17 @@ class ArenaController:
                 self.goal=self.scan.pop(0)
             return self.go(pose,self.goal,.15,depth=-.12)
         if self.state == 'ALIGN_DRUM':
-            self.goal=list(self.targets.get('blue_drum',self.goal))
+            if self.extended:
+                if t-self.acoustic_time>.5:
+                    self.change('ABORT',t,'stale_acoustics');return zero
+                self.goal=[*self.acoustic_target,-.12]
+            else:self.goal=list(self.targets.get('blue_drum',self.goal))
             # Payload is 20 cm forward of the body origin, clear of the bottom lens.
             dx,dy=self.goal[0]-(x+.2*math.cos(yaw)),self.goal[1]-(y+.2*math.sin(yaw))
             if math.hypot(dx,dy) < .025:
                 if self.aligned_since is None: self.aligned_since=t
                 if t-self.aligned_since > 1:
+                    self.acquisition_goal=list(self.goal)
                     self.release=True
                     self.change('WAIT_PAYLOAD',t)
                 return zero
@@ -208,11 +228,47 @@ class ArenaController:
                     max(-.2,min(.2,-vx*math.sin(yaw)+vy*math.cos(yaw))),
                     max(-.2,min(.2,(-.12-z)*1.5)),0.)
         if self.state == 'WAIT_PAYLOAD':
-            if judgement.get('payload_in_blue'):
-                self.change('SURFACE',t)
+            if judgement.get('payload_acquired' if self.extended else 'payload_in_blue'):
+                if self.extended:
+                    gate=self.targets['navigation_gate']
+                    self.goal=[gate[0]+1.6,gate[1]]
+                    self.change('TO_REACQUISITION_GATE',t)
+                else:self.change('SURFACE',t)
             elif t-self.since > 8:
                 self.change('ABORT',t,'payload_not_inside_blue_drum')
             return zero
+        if self.state in ('TO_REACQUISITION_GATE','REACQUISITION_CROSS','REACQUISITION_EXIT'):
+            if math.dist(pose[:2],self.goal)<.1:
+                gate=self.targets['navigation_gate']
+                if self.state=='TO_REACQUISITION_GATE':
+                    self.goal=[gate[0]-1.6,gate[1]];self.change('REACQUISITION_CROSS',t)
+                elif self.state=='REACQUISITION_CROSS':
+                    if not judgement.get('reacquisition_crossed'):
+                        self.change('ABORT',t,'missing_reacquisition_crossing');return zero
+                    self.goal=[gate[0]+1.6,gate[1]];self.change('REACQUISITION_EXIT',t)
+                else:
+                    self.goal=list(self.acquisition_goal);self.change('TO_PICKUP',t)
+            return self.go(pose,self.goal,.65,depth=nav_depth)
+        if self.state=='TO_PICKUP':
+            if math.dist(pose[:2],self.goal[:2])<.4:
+                self.aligned_since=None;self.change('ALIGN_PICKUP',t)
+            return self.go(pose,self.goal,.65,depth=-.12)
+        if self.state in ('ALIGN_PICKUP','DESCEND_PICKUP','LIFT_PICKUP'):
+            dx,dy=self.goal[0]-(x-.2*math.cos(yaw)),self.goal[1]-(y-.2*math.sin(yaw))
+            if self.state=='ALIGN_PICKUP' and math.hypot(dx,dy)<.012:
+                self.change('DESCEND_PICKUP',t)
+            if self.state=='DESCEND_PICKUP':
+                self.grip=True
+                if judgement.get('payload_grasped'):
+                    self.change('LIFT_PICKUP',t)
+                elif t-self.since>15:
+                    self.change('ABORT',t,'pickup_not_proven');return zero
+            if self.state=='LIFT_PICKUP' and z>-.3:
+                self.change('SURFACE',t)
+            depth=-.12 if self.state in ('ALIGN_PICKUP','LIFT_PICKUP') else floor_z(self.goal[0])+.49
+            return (max(-.12,min(.12,(dx*math.cos(yaw)+dy*math.sin(yaw))*.8)),
+                    max(-.12,min(.12,(-dx*math.sin(yaw)+dy*math.cos(yaw))*.8)),
+                    max(-.12,min(.12,(depth-z)*1.5)),0.)
         if self.state == 'SURFACE':
             if z >= -.055:
                 self.change('STOP',t)

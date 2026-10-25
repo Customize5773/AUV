@@ -51,3 +51,5 @@ Penerimaan runtime baru:
 - [Putus perintah](../ros2_ws/evidence/arena-score-servo/abort.json): `ABORT`, perintah nol, posisi stasioner dan skor final nol tanpa bonus surface.
 
 Ketiganya menutup bersih tanpa kill paksa. [verification.json](../ros2_ws/evidence/arena-score-servo/verification.json) mencatat hasil, ruang lingkup dan hash sumber. Dua perbaikan edge case terakhir (surface parsial dan timestamp tidak valid) diverifikasi oleh suite final 76 tes; misi penuh berjalan sebelum dua perubahan cabang tersebut, dengan jalur nominal yang sama. Pengujian full ARENA masih menggunakan gerak ideal/odometri ground truth. Tidak ada klaim mekanisme servo telah diuji secara fisik.
+
+Tindak lanjut: [laporan 20](20-pinger-pickup-dan-servo-simulator.md) menambahkan mode simulator `extended` untuk sumber pinger, pickup berbasis kontak dan retensi. Keterangan tidak tersedianya bukti runtime pada laporan 19 adalah snapshot sebelum mode tersebut; status fabrikasi/servo fisik tetap belum diuji.

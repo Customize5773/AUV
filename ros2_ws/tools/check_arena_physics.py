@@ -12,11 +12,13 @@ from std_msgs.msg import String,Bool
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
+    p.add_argument('--extended',action='store_true')
     p.add_argument('--output',type=Path,required=True)
     args=p.parse_args();args.output.parent.mkdir(parents=True,exist_ok=True)
     rclpy.init();node=rclpy.create_node('arena_physics_check')
     samples=[]
     node.create_subscription(String,'/sauvc/arena/physics',lambda m:samples.append(json.loads(m.data)),10)
+    grip=node.create_publisher(Bool,'/sauvc/payload/grip',10)
     release=node.create_publisher(Bool,'/sauvc/payload/release',10)
     report={'passed':False}
     def until(condition,seconds):
@@ -33,7 +35,7 @@ def main():
         if 'data: true' not in r.stdout: raise RuntimeError(r.stdout+r.stderr)
     with args.output.with_suffix('.log').open('w') as log:
         process=subprocess.Popen(['bash','tools/ros.sh','launch','sauvc_sim','arena.launch.py',
-                                 'arena:=finals','headless:=true','cameras:=false'],
+                                 'arena:=finals','headless:=true','cameras:=false',f'extended:={str(args.extended).lower()}'],
                                  stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
         try:
             if not until(lambda: samples and samples[-1]['time']>3,30): raise RuntimeError('no physics stream')
@@ -58,7 +60,23 @@ def main():
             start=samples[-1]['time']
             until(lambda:samples[-1]['time']>start+1,4)
             report['repeated_release_does_not_rearm']=all(abs(a-b)<.01 for a,b in zip(before,samples[-1]['balls']['payload']['position']))
+            if args.extended:
+                grip.publish(Bool(data=True))
+                start=samples[-1]['time']
+                until(lambda:samples[-1]['time']>start+.2,3)
+                report['grip_miss_not_attached']=not samples[-1].get('payload_attached',False)
+                move(24.2,12.5,-.74)
+                report['contact_pickup_attached']=until(lambda:samples[-1].get('payload_attached',False),5)
+                move(24.2,12.5,-.4)
+                start=samples[-1]['time']
+                until(lambda:samples[-1]['time']>start+1,4)
+                pos=samples[-1]['balls']['payload']['position']
+                report['lift_retains_same_ball']=samples[-1].get('payload_attached',False) and abs(pos[2]+.85)<.08
+                grip.publish(Bool(data=False))
+                report['open_detaches']=until(lambda:not samples[-1].get('payload_attached',False),3)
+                report['open_releases_ball']=until(lambda:samples[-1]['balls']['payload']['position'][2]<pos[2]-.15,4)
             report['passed']=all(report[k] for k in ('held_balls_stable','flare_ball_physically_fell','payload_physically_settled','repeated_release_does_not_rearm'))
+            if args.extended:report['passed']=report['passed'] and all(report[k] for k in ('grip_miss_not_attached','contact_pickup_attached','lift_retains_same_ball','open_detaches','open_releases_ball'))
         except Exception as exc: report['error']=str(exc)
         finally:
             if process.poll() is None:

@@ -227,7 +227,7 @@ def auv(world, arena, cameras, lane=1, lateral_offset=0.0, yaw=0.0, physical=Fal
 
 
 def build_world(arena, cameras=True, lane=1, lateral_offset=0.0, yaw=0.0,
-                scene_variant=0, blue_drum=1, physical=False, fault='none'):
+                scene_variant=0, blue_drum=1, physical=False, fault='none', extended=False, pinger_drum=0):
     if arena not in ('qualification', 'finals'):
         raise ValueError('arena must be qualification or finals')
     if lane not in (1, 2) or not all(math.isfinite(v) for v in (lateral_offset, yaw)):
@@ -276,9 +276,20 @@ def build_world(arena, cameras=True, lane=1, lateral_offset=0.0, yaw=0.0,
         for key, value, kind in [('state', 'floating', 'string'), ('width', '5', 'double'),
                                  ('height', '5', 'double'), ('showTitleBar', 'false', 'bool')]:
             tag(appearance, 'property', value, key=key, type=kind)
+    if extended and arena!='finals': raise ValueError('extended tasks require finals')
+    if pinger_drum==0: pinger_drum=next(i for i in range(1,5) if i!=blue_drum)
+    if pinger_drum not in (1,2,3,4) or pinger_drum==blue_drum:
+        raise ValueError('pinger must be in a red drum')
     pool(world)
     props(world, arena,scene_variant,blue_drum)
     auv(world, arena, cameras, lane, lateral_offset, yaw,physical,fault)
+    if extended:
+        model(world,'pinger_source',(24,(12.5,9.5,6.5,3.5)[pinger_drum-1],floor_z(24)+.15,0,0,0))
+        body=world.find("model[@name='sauvc_auv']/link")
+        # Fixed capture fingers; close command latches only after payload contact.
+        for i,dy in enumerate((-.026,.026)):
+            part(body,f'pickup_finger_{i}',(-.2,dy,-.45,0,0,0),'sphere',(.009,),WHITE)
+        part(body,'pickup_roof',(-.2,0,-.42,0,0,0),'box',(.06,.06,.01),WHITE)
     ET.indent(sdf)
     return ET.tostring(sdf, encoding='unicode', xml_declaration=True)
 
