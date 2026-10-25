@@ -21,6 +21,10 @@ def start(context):
     lane = int(LaunchConfiguration('lane').perform(context))
     mode = LaunchConfiguration('mode').perform(context)
     perception = LaunchConfiguration('perception').perform(context) == 'true'
+    vehicle_model=LaunchConfiguration('vehicle_model').perform(context)
+    physical=vehicle_model=='dynamic' or (vehicle_model=='auto' and arena=='qualification' and autonomous and mode=='vision')
+    if physical and (arena!='qualification' or mode!='vision'):
+        raise ValueError('dynamic vehicle currently requires qualification vision mode')
     if autonomous and ((mode == 'vision' and not cameras) or
                        (arena == 'finals' and (not cameras or not perception or mode != 'vision'))):
         raise ValueError('visual autonomous requires cameras; finals also requires perception and vision mode')
@@ -30,7 +34,8 @@ def start(context):
                                 float(LaunchConfiguration('lateral_offset').perform(context)),
                                 float(LaunchConfiguration('yaw').perform(context)),
                                 int(LaunchConfiguration('scene_variant').perform(context)),
-                                int(LaunchConfiguration('blue_drum').perform(context))))
+                                int(LaunchConfiguration('blue_drum').perform(context)),physical,
+                                LaunchConfiguration('fault').perform(context)))
     actions = [
         RegisterEventHandler(OnShutdown(on_shutdown=[
             OpaqueFunction(function=lambda context: directory.cleanup()),
@@ -49,8 +54,14 @@ def start(context):
     if cameras and perception:
         actions.append(Node(package='sauvc_sim', executable='perception',
                             parameters=[{'arena': arena}], output='screen', on_exit=Shutdown()))
+    if physical:
+        for executable in ('state_estimator','propulsion'):
+            actions.append(Node(package='sauvc_sim',executable=executable,parameters=[dict(
+                lane=lane,lateral_offset=float(LaunchConfiguration('lateral_offset').perform(context)))],
+                output='screen',on_exit=Shutdown()))
     if autonomous:
         params = {'lane': lane, 'mode': mode,
+                  'physical':physical,
                   'speed_scale': float(LaunchConfiguration('speed_scale').perform(context)),
                   'output': LaunchConfiguration('output').perform(context),
                   'fault': LaunchConfiguration('fault').perform(context)}
@@ -77,6 +88,7 @@ def generate_launch_description():
         DeclareLaunchArgument('cameras', default_value='true', choices=['true', 'false']),
         DeclareLaunchArgument('perception', default_value='true', choices=['true', 'false']),
         DeclareLaunchArgument('autonomous', default_value='false', choices=['true', 'false']),
+        DeclareLaunchArgument('vehicle_model',default_value='auto',choices=['auto','ideal','dynamic']),
         DeclareLaunchArgument('lane', default_value='1', choices=['1', '2']),
         DeclareLaunchArgument('mode', default_value='vision', choices=['vision', 'odom']),
         DeclareLaunchArgument('speed_scale', default_value=str(MAX_SPEED_SCALE)),
@@ -88,6 +100,7 @@ def generate_launch_description():
         DeclareLaunchArgument('blue_drum', default_value='1',choices=['1','2','3','4']),
         DeclareLaunchArgument('fault', default_value='none',
                              choices=['none', 'camera_loss', 'command_loss',
-                                      'odom_loss', 'contact_loss', 'clock_loss']),
+                                      'odom_loss', 'contact_loss', 'clock_loss','imu_loss',
+                                      'pressure_loss','dvl_loss','actuator_loss']),
         OpaqueFunction(function=start),
     ])

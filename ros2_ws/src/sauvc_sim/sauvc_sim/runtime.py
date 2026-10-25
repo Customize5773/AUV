@@ -38,6 +38,8 @@ class Runtime(Node):
         self.declare_parameter('fault', '')
         self.declare_parameter('speed_scale', MAX_SPEED_SCALE)
         self.declare_parameter('mission', 'qualification')
+        self.declare_parameter('physical',False)
+        self.physical=self.get_parameter('physical').value
         self.mission = self.get_parameter('mission').value
         self.camera_stamps = {}
         self.speed_scale = float(self.get_parameter('speed_scale').value)
@@ -60,28 +62,33 @@ class Runtime(Node):
         self.terminal = False
         self.logged_state = None
         self.command = Twist()
-        self.controller = QualificationController(self.mode, lane, self.speed_scale)
-        self.judge = QualificationJudge(lane)
+        self.controller = QualificationController(self.mode, lane, self.speed_scale,self.physical)
+        self.judge = QualificationJudge(lane,self.physical)
         self.started_wall = time.monotonic()
         self.ready_since = None
         self.report = self.create_publisher(String, '/sauvc/qualification/result', STATUS_QOS)
+        self.feedback_pub=self.create_publisher(String,'/sauvc/qualification/status',STATUS_QOS) if self.physical and role=='referee' else None
         self.state_pub = self.create_publisher(String, '/sauvc/qualification/state', STATUS_QOS)
         self.fault_pub = self.create_publisher(String, '/sauvc/guard/fault', STATUS_QOS)
         topic = '/sauvc/cmd_vel' if role == 'command_guard' else '/sauvc/mission/cmd_vel'
         self.velocity_pub = None if role == 'referee' else self.create_publisher(Twist, topic, 10)
         self.create_subscription(Clock, '/clock', self.clock, qos_profile_sensor_data)
-        self.create_subscription(Odometry, '/sauvc/odom', self.odom, qos_profile_sensor_data)
+        pose_topic='/sauvc/state/odom' if self.physical and role!='referee' else '/sauvc/odom'
+        self.create_subscription(Odometry,pose_topic,self.odom,qos_profile_sensor_data)
+        if self.physical and role!='referee':
+            self.create_subscription(String,'/sauvc/state/health',self.estimate_health,10)
         self.create_subscription(Contacts, '/sauvc/contacts', self.contact, qos_profile_sensor_data)
         if role == 'qualification':
             self.create_subscription(Image, '/sauvc/camera_front/image_raw', self.image,
                                      qos_profile_sensor_data)
-            self.create_subscription(String, '/sauvc/qualification/result', self.result, STATUS_QOS)
+            feedback_topic='/sauvc/qualification/status' if self.physical else '/sauvc/qualification/result'
+            self.create_subscription(String,feedback_topic,self.result,STATUS_QOS)
             self.create_subscription(String, '/sauvc/guard/fault', self.guard_fault, STATUS_QOS)
         elif role == 'command_guard':
             self.create_subscription(Twist, '/sauvc/mission/cmd_vel', self.input_command, 10)
             prefix = '/sauvc/arena' if self.mission == 'finals' else '/sauvc/qualification'
             self.create_subscription(String, prefix+'/state', self.state, STATUS_QOS)
-            self.create_subscription(String, prefix+'/result', self.result, STATUS_QOS)
+            self.create_subscription(String,prefix+('/status' if self.physical else '/result'),self.result,STATUS_QOS)
             if self.mission == 'finals':
                 for camera in ('front','bottom'):
                     self.create_subscription(String,'/sauvc/perception/'+camera,
@@ -137,8 +144,17 @@ class Runtime(Node):
         self.detections += self.detection is not None
 
     def result(self, msg):
-        self.judgement = json.loads(msg.data)
+        packet=json.loads(msg.data)
+        self.judgement = {k:packet[k] for k in ('phase','reason','passed') if k in packet} if self.physical else packet
         self.received['referee'] = time.monotonic()
+
+    def estimate_health(self,msg):
+        packet=json.loads(msg.data)
+        if packet.get('valid'):self.received['estimate_health']=time.monotonic()
+        elif self.role=='command_guard' and 'command' in self.received:
+            self.trip(packet.get('reason','invalid_estimate'))
+        elif self.controller.started is not None and self.controller.state not in ('DONE','ABORT'):
+            self.controller.change('ABORT',self.t,packet.get('reason','invalid_estimate'))
 
     def perception_status(self, msg, camera):
         packet = json.loads(msg.data)
@@ -160,6 +176,7 @@ class Runtime(Node):
             self.controller.change('ABORT', self.t, 'guard:' + msg.data)
 
     def state(self, msg):
+        if self.role=='referee' and self.physical and msg.data=='DIVE':self.judge.arm(self.t)
         if msg.data in ('DONE', 'ABORT'):
             self.terminal = True
         if msg.data == 'ABORT' and self.role == 'referee':
@@ -194,6 +211,7 @@ class Runtime(Node):
     def tick(self):
         now = time.monotonic()
         required = ['clock', 'odom', 'contacts']
+        if self.physical and self.role!='referee':required.append('estimate_health')
         if self.role == 'qualification' and self.mode == 'vision':
             required.append('camera')
         if self.role in ('qualification', 'command_guard'):
@@ -220,6 +238,8 @@ class Runtime(Node):
                 self.judge.fail('stale_' + stale, self.t)
             result = self.judge.result()
             self.report.publish(String(data=json.dumps(result)))
+            if self.feedback_pub is not None:
+                self.feedback_pub.publish(String(data=json.dumps({k:result[k] for k in ('phase','reason','passed')})))
             if result['passed'] or result['phase'] == 'FAILED':
                 self.save('-referee', dict(result, contacts=self.contact_events,
                                           rulebook='2026 v6.1.0', checked_on='2026-10-25'))
@@ -253,6 +273,9 @@ class Runtime(Node):
                 self.save('-controller', {'state': ctrl.state, 'reason': ctrl.reason,
                                          'mode': self.mode, 'history': ctrl.history,
                                          'speed_scale': self.speed_scale,
+                                         'turn_clearance_m':ctrl.turn_clearance,
+                                         'state_source':'pressure_gyro_magnetometer_dvl' if self.physical else 'ground_truth_odom',
+                                         'progress_source':'estimated_gate_crossing' if self.physical else 'referee',
                                          'frames': self.frames, 'detections': self.detections})
             if self.logged_state != ctrl.state:
                 self.get_logger().info(ctrl.state + (': ' + ctrl.reason if ctrl.reason else ''))

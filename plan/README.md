@@ -22,6 +22,7 @@ Tujuan pekerjaan Program adalah mengintegrasikan Jetson, Pixhawk–ArduSub, dan 
 | [Hasil kualifikasi autonomous](15-hasil-kualifikasi-autonomous.md) | Implementasi controller visual/odometri, pemeriksa independen, pengawas dan bukti pengujian |
 | [Hasil deteksi kamera](16-hasil-deteksi-kamera.md) | Gate, flare berwarna dan blue/red drum dari citra, topic persepsi, uji frame simulator dan batas hasil |
 | [Hasil ARENA autonomous](17-hasil-arena-autonomous.md) | Ketahanan persepsi, tracking, proyeksi kamera, misi visual, bola flare dinamis, payload masuk blue drum dan pemeriksa independen |
+| [Dinamika dan estimasi sensor](18-dinamika-dan-estimasi-sensor.md) | Kualifikasi dengan gaya enam thruster, drag/buoyancy, AHRS/tekanan/DVL, pemisahan ground truth dan bukti uji fisika/sensor |
 
 **Perkembangan berikutnya:** pengguna menyetujui aplikasi mandiri dengan BlueOS sebagai acuan, lalu meminta seluruh source digabung dalam Git AUV2027. Aplikasi tersedia di [`hydroships/`](../hydroships/README.md), port lokal **8081**. Laporan 07 menjadi acuan implementasi baru; catatan BlueOS di bawah merekam tahap sebelumnya.
 

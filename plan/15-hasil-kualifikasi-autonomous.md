@@ -1,6 +1,8 @@
 # Implementasi kualifikasi autonomous SAUVC
 
-Tanggal: **25 Oktober 2026, Asia/Jakarta**. Pengguna menyetujui implementasi kualifikasi terlebih dahulu. **Status: kualifikasi autonomous selesai diimplementasikan dan diverifikasi pada model latihan ideal.**
+Tanggal: **25 Oktober 2026, Asia/Jakarta**. **Status: alur kualifikasi autonomous telah diverifikasi pada model ideal dan model gaya dengan estimasi sensor.** Dokumen ini merekam baseline ideal; model dinamis dan hasil penerimaan terbarunya dijelaskan pada laporan 18.
+
+**Lanjutan model gaya dan sensor:** default autonomous qualification `vision` kini memakai thruster/drag/buoyancy dan estimasi tekanan–gyro/magnetometer–DVL melalui `vehicle_model:=auto`. Hasil, parameter dan batasnya dicatat pada [laporan 18](18-dinamika-dan-estimasi-sensor.md). Angka kecepatan ideal pada dokumen ini tetap snapshot pembanding; pilih `vehicle_model:=ideal` untuk mengulangnya. ARENA terintegrasi dibahas pada [laporan 17](17-hasil-arena-autonomous.md).
 
 ## Acuan dan cakupan
 
@@ -42,7 +44,7 @@ Bukti sesi ini disimpan di [`ros2_ws/evidence/qualification-autonomous/`](../ros
 
 ## Perbaikan dari pengujian
 
-U-turn pertama terlalu dekat sehingga kedua tiang tidak kembali masuk bidang pandang; kendaraan kini menjauh 1,8 m dari titik pelintasan keluar sebelum berputar. Ambang kecerahan awal tidak mengenali sisi balik gate yang berada dalam bayangan; perbandingan warna kini menerima sisi tersebut. Keduanya diberi pemeriksaan terarah, dan mode visual diuji ulang penuh.
+U-turn pertama terlalu dekat sehingga kedua tiang tidak kembali masuk bidang pandang; model ideal menjauh 1,8 m dari titik pelintasan keluar sebelum berputar. Model dinamis memakai jarak lebih pendek seperti pembaruan berikut. Ambang kecerahan awal tidak mengenali sisi balik gate yang berada dalam bayangan; perbandingan warna kini menerima sisi tersebut. Keduanya diberi pemeriksaan terarah, dan mode visual diuji ulang penuh.
 
 Saat beberapa renderer dijalankan bersamaan, startup dapat membuat clock macet sebelum kendaraan bergerak. Pengawas menghentikan percobaan tersebut; misi kini menunggu clock maju sebelum mengaktifkan gerak. Ini tidak melonggarkan timeout saat lintasan berlangsung.
 
@@ -54,7 +56,7 @@ Pada host Ubuntu 24.04 dengan Fortress berbasis 22.04, header Protobuf 3.12 disi
 
 ## Batas hasil
 
-Model masih kotak dengan kecepatan ideal; tidak ada thruster, hidrodinamika, ArduSub atau kendali hardware. Pengujian ini tidak membuktikan performa kendaraan fisik. Misi ARENA, bola flare, payload drum, pinger dan Target Reacquisition belum diimplementasikan.
+Bagian awal laporan ini merekam model kotak dengan kecepatan ideal. Model gaya/estimasi sensor ditambahkan pada laporan 18; ARENA, bola flare dan drop payload pada laporan 17. Belum ada kendali hardware/ArduSub, pinger atau Target Reacquisition. Pengujian simulator tidak membuktikan performa kendaraan fisik.
 
 
 ## Menjalankan
@@ -81,3 +83,26 @@ Koreksi heading dari citra dibatasi tersendiri sesuai kamera 10 Hz; di dekat gat
 Result menambahkan `start_to_surface_elapsed` dan `start_to_stop_elapsed`; `elapsed` tetap durasi lintasan gate. Bukti awal 20 tes/19 pemeriksaan runtime di atas merupakan snapshot sebelum optimasi kecepatan. Profil cepat belum dikalibrasi pada hardware atau model hidrodinamika dan tidak membuktikan batas kecepatan maksimum global/kemampuan robot fisik.
 
 Ulangan GUI profil cepat terakhir juga lulus: start sampai surface **8,908 s**, stop terverifikasi **10,030 s**, dan penutupan API server bersih. Satu percobaan GUI sebelumnya menyelesaikan misi tetapi macet saat teardown renderer; laporan kegagalan cleanup tetap disimpan dan tidak dihitung sebagai shutdown bersih.
+
+## Pembaruan jarak U-turn — 25 Oktober 2026
+
+Pada model dinamis/default autonomous, jarak tambahan `CLEAR_GATE` dipangkas dari **1,8 menjadi 1,0 m**. Penghitungan dimulai setelah controller memperkirakan badan telah melewati gate dengan margin 0,6 m. Saat ambang jarak tercapai, perintah maju langsung nol untuk mengerem sebelum berputar. Kamera tetap harus menemukan gate saat kembali; pemeriksaan pelintasan seluruh badan oleh referee tetap berlaku. Model ideal mempertahankan 1,8 m.
+
+Dua jalur normal mencapai `DONE`/`COMPLETE`, dua pelintasan penuh, surface dan stop dengan thrust nol. Start–surface jalur 1 **31,154 → 28,486 s**, jalur 2 **30,646 → 28,706 s**. Jarak pusat badan terjauh di belakang bidang gate menjadi **1,98–2,04 m**, termasuk margin pelintasan dan gerak sisa akibat inersia; angka 1,0 m adalah jarak tambahan perintah, bukan jarak total terhadap gate. Semua **68 tes unit** lulus. Bukti per run tersedia di [qualification-turn-short](../ros2_ws/evidence/qualification-turn-short/).
+
+Uji posisi awal bergeser ±0,2 m / heading ±10° juga lulus. Waktu start–surface offset positif **33,844 s** (baseline 32,270 s), offset negatif **29,476 s** (baseline 32,164 s). Pada offset positif, fase sebelum pelintasan keluar lebih lama, sehingga pengurangan jarak tidak menjamin waktu total setiap run. Perbandingan fase sesudah pelintasan tersedia pada [comparison.json](../ros2_ws/evidence/qualification-turn-short/comparison.json). Empat run ini adalah bukti simulasi, bukan penetapan jarak minimum universal atau hasil tuning hardware.
+
+## Pemangkasan lanjutan U-turn — 0,6 m
+
+Jarak tambahan `CLEAR_GATE` pada model dinamis/default kini **0,6 m**, turun lagi dari 1,0 m. Margin pelintasan 0,6 m sebelum fase tersebut, pengereman, validasi seluruh badan, dan pendeteksian gate balik tetap berlaku. Model ideal tetap 1,8 m. Angka 0,6 m adalah tambahan setelah pelintasan terestimasi; bukan jarak pusat AUV terhadap bidang gate.
+
+Build, **68 tes unit dan empat misi penuh lulus** pada dua jalur serta offset awal ±0,2 m / ±10°. Seluruhnya mencapai `DONE`/`COMPLETE`, tanpa benturan, surface, stasioner dan thrust nol; subscription ground truth tetap terisolasi dan shutdown bersih.
+
+| Skenario | Start–surface, sebelumnya 1,0 m | Start–surface, kini 0,6 m | Penghematan fase pelintasan keluar–surface |
+| --- | --- | --- | --- |
+| Jalur 1 | 28.486 s | 27.458 s | 0.918 s |
+| Jalur 2 | 28.706 s | 30.116 s | 0.918 s |
+| Offset positif | 33.844 s | 28.054 s | 0.820 s |
+| Offset negatif | 29.476 s | 28.208 s | 0.068 s |
+
+Jarak pusat badan terjauh setelah bidang gate **1.57–1.62 m**, termasuk inersia. Waktu total jalur 2 pada run ini lebih lama karena fase sebelum pelintasan keluar lebih lama; pemangkasan jarak mempercepat fase sesudah gate pada keempat skenario, tanpa menjamin waktu total setiap run. Bukti dan hash sumber: [comparison.json](../ros2_ws/evidence/qualification-turn-060/comparison.json). Ini hasil simulasi, belum kalibrasi AUV fisik atau bukti jarak minimum universal.

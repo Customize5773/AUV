@@ -25,8 +25,9 @@ def envelope(pose):
 
 
 class QualificationJudge:
-    def __init__(self, lane=1):
+    def __init__(self, lane=1, physical=False):
         self.gate_y = 4 if lane == 1 else 12
+        self.physical=physical
         self.phase = 'START'
         self.reason = ''
         self.events = []
@@ -42,11 +43,16 @@ class QualificationJudge:
         self.stop_since = None
         self.previous = None
 
+    def arm(self,t):
+        if self.physical and self.run_started is None:
+            self.run_started=t;self.events.append(dict(event='RUN_STARTED',time=t))
+
     @property
     def qualified(self):
         return self.finished is not None
 
     def fail(self, reason, t):
+        if self.physical and self.phase=='COMPLETE':return
         if self.phase != 'FAILED':
             self.phase, self.reason = 'FAILED', reason
             self.events.append({'event': 'FAILED', 'time': t, 'reason': reason})
@@ -55,7 +61,7 @@ class QualificationJudge:
         self.events.append({'event': name, 'time': t, 'pose': list(pose)})
 
     def update(self, pose, t, contacts=(), zero_command=True):
-        if self.phase == 'FAILED':
+        if self.phase in ('FAILED','COMPLETE'):
             return
         x, y, z, yaw = *pose[:3], pose[-1]
         if not all(math.isfinite(v) for v in (*pose, t)):
@@ -72,7 +78,7 @@ class QualificationJudge:
         if self.previous is not None and math.dist(pose[:3], self.previous[:3]) > .5:
             self.fail('pose_discontinuity', t)
             return
-        if self.run_started is None and self.previous is not None and math.dist(pose[:3], self.previous[:3]) > .0005:
+        if not self.physical and self.run_started is None and self.previous is not None and math.dist(pose[:3], self.previous[:3]) > .0005:
             self.run_started = t
             self.event('RUN_STARTED', t, pose)
         launching = (not self.departed_wall and x < .8 and
@@ -89,6 +95,9 @@ class QualificationJudge:
             return
         if bottom_z <= max(floor_z(max(0, lo)), floor_z(min(25, hi))):
             self.fail('floor_envelope', t)
+            return
+        if self.physical and self.run_started is None:
+            self.previous=pose
             return
         if self.phase == 'START':
             if top_z < -.02:
@@ -121,7 +130,8 @@ class QualificationJudge:
                 self.finished = t
                 self.phase = 'QUALIFIED'
                 self.event('FULL_RETURN_QUALIFIED', t, pose)
-        if self.qualified and z >= -.06:
+        at_surface=top_z>=0 if self.physical else z>=-.06
+        if self.qualified and at_surface:
             if z > .03:
                 self.fail('surface_overshoot', t)
                 return
@@ -137,8 +147,11 @@ class QualificationJudge:
                 self.stop_since = t
             elif t-self.stop_since >= 1 and not self.stopped:
                 self.stopped = True
+                if self.physical:self.phase='COMPLETE'
                 self.stop_time = t
                 self.event('STOPPED', t, pose)
+        elif self.qualified:
+            self.stop_since=None
         self.previous = pose
 
     def result(self):

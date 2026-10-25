@@ -20,6 +20,8 @@ setup(
         'perception = sauvc_sim.perception:main',
         'arena_mission = sauvc_sim.arena_runtime:mission_main',
         'arena_referee = sauvc_sim.arena_runtime:referee_main',
+        'state_estimator = sauvc_sim.physical_runtime:estimator_main',
+        'propulsion = sauvc_sim.physical_runtime:propulsion_main',
     ]},
     maintainer='HydroShips team',
     maintainer_email='hydroships@example.invalid',

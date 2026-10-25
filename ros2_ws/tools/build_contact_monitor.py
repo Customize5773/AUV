@@ -13,6 +13,7 @@ if local_headers.exists():
     flags = ['-I' + str(local_headers)] + [
         '-l:libprotobuf.so.23' if f == '-lprotobuf' else f for f in flags]
 package = root / 'src/sauvc_sim/sauvc_sim'
-subprocess.run(['c++', '-std=c++17', '-shared', '-fPIC', '-O2',
-                str(package / 'contact_monitor.cc'), '-o',
-                str(package / 'libsauvc_contact_monitor.so'), *flags], check=True)
+for source,library in [('contact_monitor.cc','libsauvc_contact_monitor.so'),
+                       ('vehicle_dynamics.cc','libsauvc_vehicle_dynamics.so')]:
+    subprocess.run(['c++', '-std=c++17', '-shared', '-fPIC', '-O2',
+                    str(package/source), '-o',str(package/library),*flags],check=True)

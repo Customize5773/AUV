@@ -162,7 +162,7 @@ def ball(world, name, position, radius):
     part(link,'sphere',(0,0,0,0,0,0),'sphere',(radius,),WHITE)
 
 
-def auv(world, arena, cameras, lane=1, lateral_offset=0.0, yaw=0.0):
+def auv(world, arena, cameras, lane=1, lateral_offset=0.0, yaw=0.0, physical=False, fault='none'):
     vehicle = tag(world, 'model', name='sauvc_auv')
     # Keep the collision hull touching the start wall even with a yaw offset.
     start_x = 0.3 * abs(math.cos(yaw)) + 0.2 * abs(math.sin(yaw))
@@ -170,13 +170,17 @@ def auv(world, arena, cameras, lane=1, lateral_offset=0.0, yaw=0.0):
                                 (4 if lane == 1 else 12) + lateral_offset
                                 if arena == 'qualification' else 8, -0.05, 0, 0, yaw)))
     link = tag(vehicle, 'link', name='base_link')
-    # shortcut: ideal velocity control bypasses thrust/drag; replace for controller tuning.
-    tag(link, 'gravity', 'false')
+    tag(link, 'gravity', 'true' if physical else 'false')
+    dynamic_cfg=None
+    if physical:
+        from sauvc_sim.dynamics import config
+        dynamic_cfg=config()
     inertial = tag(link, 'inertial')
-    tag(inertial, 'mass', 20)
+    mass=dynamic_cfg['mass'] if physical else 20
+    tag(inertial, 'mass',mass)
     inertia = tag(inertial, 'inertia')
     for key, value in [('ixx', 0.333333), ('iyy', 0.666667), ('izz', 0.866667)]:
-        tag(inertia, key, value)
+        tag(inertia, key, value*mass/20)
     part(link, 'hull', (0, 0, 0, 0, 0, 0), 'box', (0.6, 0.4, 0.2), YELLOW)
     part(link, 'nose', (0.305, 0, 0, 0, 0, 0), 'box', (0.01, 0.22, 0.12),
          '0.03 0.04 0.05 1', False)
@@ -187,8 +191,16 @@ def auv(world, arena, cameras, lane=1, lateral_offset=0.0, yaw=0.0):
     contact_config = tag(contact, 'contact')
     tag(contact_config, 'collision', 'hull')
     tag(contact_config, 'topic', '/sauvc/contacts')
-    control = plugin(vehicle, 'velocity-control', 'VelocityControl')
-    tag(control, 'topic', '/sauvc/cmd_vel')
+    if physical:
+        dynamic=tag(world,'plugin',filename=str(Path(__file__).parent/'libsauvc_vehicle_dynamics.so'),
+                    name='sauvc::VehicleDynamics')
+        for key,value in dynamic_cfg.items():
+            tag(dynamic,key,numbers(value) if isinstance(value,list) else value)
+        tag(dynamic,'fault',fault)
+    else:
+        # Retained ideal baseline for comparison, never used by the dynamic plant.
+        control = plugin(vehicle, 'velocity-control', 'VelocityControl')
+        tag(control, 'topic', '/sauvc/cmd_vel')
     odom = plugin(vehicle, 'odometry-publisher', 'OdometryPublisher')
     tag(odom, 'odom_topic', '/sauvc/odom')
     tag(odom, 'odom_frame', 'world')
@@ -215,7 +227,7 @@ def auv(world, arena, cameras, lane=1, lateral_offset=0.0, yaw=0.0):
 
 
 def build_world(arena, cameras=True, lane=1, lateral_offset=0.0, yaw=0.0,
-                scene_variant=0, blue_drum=1):
+                scene_variant=0, blue_drum=1, physical=False, fault='none'):
     if arena not in ('qualification', 'finals'):
         raise ValueError('arena must be qualification or finals')
     if lane not in (1, 2) or not all(math.isfinite(v) for v in (lateral_offset, yaw)):
@@ -224,6 +236,9 @@ def build_world(arena, cameras=True, lane=1, lateral_offset=0.0, yaw=0.0,
     if blue_drum not in (1,2,3,4): raise ValueError('invalid blue drum index')
     sdf = ET.Element('sdf', version='1.9')
     world = tag(sdf, 'world', name=f'sauvc_{arena}')
+    if physical:
+        from sauvc_sim.dynamics import config
+        tag(world,'gravity',numbers((0,0,-config()['gravity'])))
     physics = tag(world, 'physics', name='physics', type='ignored')
     tag(physics, 'max_step_size', 0.002)
     tag(physics, 'real_time_factor', 1)
@@ -263,7 +278,7 @@ def build_world(arena, cameras=True, lane=1, lateral_offset=0.0, yaw=0.0,
             tag(appearance, 'property', value, key=key, type=kind)
     pool(world)
     props(world, arena,scene_variant,blue_drum)
-    auv(world, arena, cameras, lane, lateral_offset, yaw)
+    auv(world, arena, cameras, lane, lateral_offset, yaw,physical,fault)
     ET.indent(sdf)
     return ET.tostring(sdf, encoding='unicode', xml_declaration=True)
 

@@ -81,7 +81,7 @@ bash tools/ros.sh topic pub --once /sauvc/cmd_vel geometry_msgs/msg/Twist '{}'
 bash tools/ros.sh topic echo /sauvc/odom --once
 ```
 
-Plugin kecepatan mempertahankan perintah terakhir; **menghentikan publisher tidak otomatis menghentikan AUV**. Kirim Twist kosong untuk berhenti. Kendali ini ideal, gravitasi badan dimatikan, belum memodelkan thruster, drag, buoyancy, atau dinamika ArduSub. Cocok untuk latihan arena/persepsi/alur navigasi; parameter kendali kendaraan asli belum dapat divalidasi dengannya. Odometri adalah ground truth, bukan estimasi sensor.
+Pada model `ideal`, plugin kecepatan mempertahankan perintah terakhir; kirim Twist kosong untuk berhenti. Gravitasi badan dimatikan dan `/sauvc/odom` adalah ground truth. Model ini dipertahankan untuk pembanding dan ARENA. Kualifikasi autonomous visual sekarang memakai model `dynamic` secara default melalui `vehicle_model:=auto`; model tersebut memakai gaya thruster dan estimasi sensor seperti bagian berikut.
 
 ## Pemeriksaan
 
@@ -100,12 +100,12 @@ bash tools/ros.sh python tools/check_sim.py --arena finals --output evidence/fin
 
 Lima tes geometri memeriksa kedalaman permukaan collision, lebar bersih gerbang, zona/dimensi properti, drum terbuka, dan visual tanpa collision. Pemeriksaan runtime menunggu clock/odom/kamera, mengirim perintah menyelam/maju/berputar/berhenti, lalu menyimpan JSON, log dan frame PPM. Tanpa dukungan rendering dapat memakai `--no-cameras`, tetapi hasil tersebut tidak membuktikan kamera berfungsi.
 
-**Batas model:** belum ada dinamika thruster/drag/buoyancy, akustik pinger, pengambilan kembali bola, atau integrasi executor HydroShips. ARENA autonomous dan pelepasan payload tersedia pada model latihan, dengan dua fixture posisi properti dan pilihan lokasi drum biru. Hasil pada model ideal tidak membuktikan kesiapan kendaraan fisik atau kepatuhan edisi 2027.
+**Batas model:** dinamika thruster/drag/buoyancy tersedia untuk kualifikasi, dengan koefisien latihan yang belum diukur pada kendaraan fisik. ARENA masih memakai model ideal. Akustik pinger, pengambilan kembali bola dan integrasi executor HydroShips belum tersedia. Hasil simulator tidak membuktikan kesiapan kendaraan fisik atau kepatuhan edisi 2027.
 
 
 ## Kualifikasi autonomous
 
-Default autonomous kini memakai **`speed_scale:=8.0`** untuk meminimalkan waktu dari gerak pertama sampai surface. Parameter yang sama diterapkan pada controller dan pengawas; `speed_scale:=1.0` mengembalikan profil awal. Rentang yang diterima `(0, 8]`; ini batas rekayasa simulator, bukan batas thruster hardware.
+`vehicle_model:=auto` memilih model **dinamis** untuk kualifikasi autonomous `vision`; ARENA dan latihan manual tetap ideal. `vehicle_model:=ideal` memilih pembanding lama secara eksplisit. `speed_scale` tetap menerima `(0,8]`, tetapi model dinamis membatasi target kecepatan sesuai profil gaya yang diuji: surge 0,9 m/s, sway 0,6 m/s, heave 0,3 m/s dan yaw 0,7 rad/s. Akselerasi/pengereman berlangsung melalui gaya dan inersia. Tabel berikut khusus profil **ideal** lama, bukan kemampuan thruster fisik atau model dinamis:
 
 | Gerak | Profil awal (1×) | Default cepat (8×) |
 | --- | --- | --- |
@@ -119,23 +119,25 @@ Koreksi heading dari kamera dibatasi tersendiri karena kamera tetap 10 Hz. Di de
 Result menambahkan `start_to_surface_elapsed` dan `start_to_stop_elapsed`, dihitung dari gerak pertama terukur; preflight tidak masuk durasi gerak. `elapsed` tetap menyimpan waktu lintasan gate. `--speed-scale 1` pada runner dapat dipakai untuk pembanding; contoh default cepat:
 
 ```bash
-bash tools/ros.sh python tools/check_qualification.py --output evidence/qualification-speed/fast.json
+bash tools/ros.sh python tools/check_qualification.py --vehicle-model ideal --output evidence/qualification-speed/fast.json
 ```
 
 ```bash
 cd /home/rasya/AUV/ros2_ws
 bash tools/ros.sh build --symlink-install
-# GUI, kamera sebagai sumber alignment gate, jalur pertama
+# GUI, gaya thruster dan estimasi sensor, kamera untuk alignment gate
 bash tools/ros.sh launch sauvc_sim arena.launch.py autonomous:=true
 # Jalur kedua; yaw dalam radian, offset dalam meter
 bash tools/ros.sh launch sauvc_sim arena.launch.py autonomous:=true lane:=2 lateral_offset:=0.2 yaw:=0.174533
 # Pembanding berbasis koordinat ground truth, bukan navigasi visual
 bash tools/ros.sh launch sauvc_sim arena.launch.py autonomous:=true mode:=odom
+# Pembanding kecepatan ideal dengan kamera
+bash tools/ros.sh launch sauvc_sim arena.launch.py autonomous:=true vehicle_model:=ideal
 ```
 
-Misi berjalan otomatis setelah clock, odometri, heartbeat kontak, pemeriksa dan kamera mengalir stabil selama preflight. AUV menyelam, mencari/mengarah ke gate, lewat seluruh badan, menjauh agar kedua tiang kembali masuk kamera setelah U-turn, lalu lewat kembali. Sesudah pemeriksa menyatakan pelintasan balik lengkap, AUV langsung naik vertikal dan berhenti. Waktu resmi kualifikasi dan surface penutup dicatat terpisah. `DONE` memerlukan surface serta perintah nol dan posisi stabil; `ABORT` terminal tanpa resume otomatis. Ctrl+C menutup semua proses milik launch.
+Misi berjalan otomatis setelah input mengalir stabil selama preflight. AUV menyelam, mencari/mengarah ke gate, lewat seluruh badan, menjauh agar kedua tiang kembali masuk kamera setelah U-turn, lalu lewat kembali. Jarak tambahan sebelum U-turn adalah 0,6 m pada model dinamis (sebelumnya 1,8 lalu 1,0 m), dengan pengereman langsung saat ambang tercapai; model ideal tetap 1,8 m. Pada model dinamis, perpindahan fase memakai estimasi posisi dan bidang gate hasil kamera, dengan margin lewat 0,6 m; referee menilai pelintasan aktual secara terpisah. AUV lalu naik dan mematikan thrust saat surface, kemudian mengapung serta berhenti melalui fisika. `DONE` memerlukan pengesahan surface/stop aktual dari referee. Waktu lintasan dan surface penutup dicatat terpisah; `ABORT` terminal tanpa resume otomatis.
 
-Mode `vision` memakai segmentasi oranye/struktur dua tiang dari frame nyata; tidak memerlukan YOLO atau OpenCV. Odometri tetap dipakai untuk kedalaman, putaran dan perjalanan pendek ketika gate sudah terlalu dekat untuk terlihat lengkap. Estimasi bidang gate pada fase tersebut berasal dari jarak/bearing citra terakhir. Mode `odom` menggunakan koordinat gate yang diketahui dan diberi label terpisah.
+Mode `vision` memakai segmentasi oranye/struktur dua tiang dari frame kamera; tidak memerlukan YOLO atau OpenCV. Model dinamis memakai `/sauvc/state/odom` hasil estimasi tekanan, gyro/magnetometer dan DVL. Model ideal memakai ground truth. Bidang gate saat terlalu dekat berasal dari range/bearing citra terakhir. Mode `odom` memakai model ideal dan koordinat gate yang diketahui, sebagai pembanding terpisah.
 
 Pemeriksa independen membaca odometri simulator dan kontak; envelope mencakup badan, nose/kamera, yaw/roll/pitch. Pelintasan pusat badan saja tidak cukup. Gerbang salah, keluar bukaan, kontak, muncul sebelum finish, atau balik tanpa U-turn tidak lulus. Sentuhan dinding pada start diberi pengecualian terbatas; kontak berikutnya gagal. Pengawas menjadi penulis kecepatan Gazebo saat autonomous, membatasi kecepatan dan mengirim nol saat perintah kedaluwarsa 0,5 s atau data sensor/pemeriksa macet 2 s wall clock. Arena manual tetap memerlukan perintah stop eksplisit seperti sebelumnya.
 
@@ -171,6 +173,37 @@ bash tools/ros.sh python tools/check_contacts.py
 `--gui` membuka GUI pada pemeriksaan misi. `--fault controller_freeze` pada runner benar-benar mengirim SIGSTOP ke proses controller; pengawas terpisah harus mendeteksi hilangnya perintah dan menghentikan AUV. Proses dilanjutkan kembali hanya untuk cleanup setelah pengujian. `--fault camera_loss|odom_loss|contact_loss|clock_loss|command_loss` memutus penerimaan/penerbitan terkait setelah 8 s simulasi untuk menguji penghentian; tidak digunakan pada peluncuran normal. Pada skenario gangguan, `passed` pada laporan runner berarti **uji penghentian lulus**, sementara `mission_passed` harus false. Laporan menyimpan state, putusan, trajectory, perintah aktual, verifikasi penyebab gangguan, dan status shutdown; file pendamping `-controller.json` dan `-referee.json` memisahkan bukti keduanya.
 
 Hasil implementasi dan batas pembuktiannya tercatat pada [laporan kualifikasi](../plan/15-hasil-kualifikasi-autonomous.md). Ringkasan lokal [verification.json](evidence/qualification-autonomous/verification.json) memuat 19 pemeriksaan runtime, termasuk enam misi visual nominal serta enam uji gangguan/pembekuan controller.
+
+## Model gaya dan estimasi sensor kualifikasi
+
+`vehicle_model:=dynamic` mengaktifkan gravitasi dan plugin gaya `VehicleDynamics`, serta menghapus `VelocityControl`. Enam thruster abstrak (empat horizontal, dua vertikal) menghasilkan wrench melalui posisi/arah masing-masing. Gaya mengikuti `F=Fmax*u*abs(u)` dengan batas ±20 N horizontal/±40 N vertikal dan respons orde satu τ=0,15 s. Pengendali kecepatan mengalokasikan wrench menjadi enam input `u` dan mengerem melalui thrust balik. Pose atau kecepatan aktual tidak di-set langsung.
+
+Drag translasi/rotasi mengikuti `-D*v-Q*v*abs(v)`. Buoyancy memakai `rho*g*V_submerged`, pusat apung di atas pusat massa, dan volume terendam yang berkurang ketika mendekati permukaan. Parameter awal di [dynamics.yaml](src/sauvc_sim/config/dynamics.yaml): massa 20 kg, displaced volume 20,5 L, air tawar 1000 kg/m³. Preset sedikit positif buoyancy sehingga setelah thrust dimatikan kendaraan mengapung pada waterline. Collision box tetap 60×40×20 cm; volume efektif mewakili frame yang sebagian tergenang. Ini model drag diagonal dan buoyancy pendekatan untuk badan hampir datar, belum CFD/added-mass/Coriolis penuh atau model thruster terkalibrasi. Arus konfigurasi default nol.
+
+| Topic | Isi / pengguna |
+| --- | --- |
+| `/sauvc/sensors` | JSON instrumen: waktu simulasi, gyro rad/s, accelerometer m/s², magnetometer µT (nominal 100 Hz), tekanan Pa dan DVL body-FLU m/s (nominal 20 Hz), status timeout aktuator; semua dengan noise/bias contoh |
+| `/sauvc/state/odom` | `nav_msgs/Odometry` hasil AHRS komplementer + tekanan/DVL; dibaca controller dan propulsion |
+| `/sauvc/state/health` | Validitas, sumber dan alasan invalid; sensor wajib kedaluwarsa 0,25 s sim atau aliran paket macet 0,3 s wall clock membuat state invalid |
+| `/sauvc/thrusters` | `std_msgs/String`, enam nilai ternormalisasi −1…1 dipisah spasi; hanya `propulsion` yang menulis pada autonomous |
+| `/sauvc/dynamics/telemetry` | Gaya thruster aktual (N), buoyancy dan timeout; untuk pencatatan pengujian |
+| `/sauvc/qualification/status` | Hanya phase/reason/passed dari referee; tanpa koordinat atau event pose untuk controller dinamis |
+| `/sauvc/odom` dan `/sauvc/qualification/result` | Ground truth dan laporan rinci hanya untuk referee/logger pada model dinamis |
+
+Estimator mengintegrasikan gyro dan mengoreksi heading dari magnetometer, memakai accelerometer saat hampir diam, memprediksi kedalaman dari DVL lalu mengoreksinya dengan tekanan. XY merupakan dead reckoning DVL dengan orientasi terestimasi dan prior deployment pada garis start; tidak ada GPS/pose world yang disuntikkan ke estimator. Covariance adalah perkiraan diagnostik, bukan EKF terkalibrasi; drift tidak dikoreksi secara global. Sensor virtual ini tidak membuktikan bahwa DVL/IMU/depth sensor fisik sudah tersedia atau terpasang.
+
+Tidak ada fallback ground truth ketika instrumen hilang. Pada `STOP`/`DONE`/`ABORT`, propulsion mengunci status disarm dan mengirim enam nol; lag thrust, drag dan buoyancy tetap berlaku sehingga gerak tidak berhenti seketika. Watchdog plant memutus target thrust jika perintah aktuator macet >0,5 s wall clock. Saat controller dibekukan tetapi estimator/propulsion masih sehat, pengawas mengirim target kecepatan nol untuk pengereman/hover. Referee mengesahkan stop dari pose fisika yang stabil; sukses surface juga memerlukan seluruh gaya thruster kembali mendekati nol pada alat uji.
+
+```bash
+# Mode baru: default auto untuk autonomous qualification vision
+bash tools/ros.sh python tools/check_qualification.py --output evidence/qualification-dynamics/mission.json
+# Pulse gaya, pengereman aktif, drag pasif dan apung tanpa motor
+bash tools/ros.sh python tools/check_dynamics.py --output evidence/qualification-dynamics/characterization.json
+# Putus instrumen; pilihan lain: imu_loss, dvl_loss, actuator_loss, controller_freeze
+bash tools/ros.sh python tools/check_qualification.py --vehicle-model dynamic --fault pressure_loss --output evidence/qualification-dynamics/pressure-loss.json
+```
+
+Koefisien gaya dan noise harus diukur/dikalibrasi sebelum dipakai untuk kendaraan fisik. Kecepatan ideal lama 8,8 s start–surface tidak menjadi tolok ukur performa model gaya. Laporan lanjutan: [dinamika dan estimasi sensor](../plan/18-dinamika-dan-estimasi-sensor.md).
 
 ## Deteksi gate, flare dan drum dari kamera
 
