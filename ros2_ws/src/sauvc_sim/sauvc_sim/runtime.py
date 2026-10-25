@@ -37,6 +37,9 @@ class Runtime(Node):
         self.declare_parameter('output', '')
         self.declare_parameter('fault', '')
         self.declare_parameter('speed_scale', MAX_SPEED_SCALE)
+        self.declare_parameter('mission', 'qualification')
+        self.mission = self.get_parameter('mission').value
+        self.camera_stamps = {}
         self.speed_scale = float(self.get_parameter('speed_scale').value)
         lane = self.get_parameter('lane').value
         self.mode = self.get_parameter('mode').value
@@ -76,8 +79,13 @@ class Runtime(Node):
             self.create_subscription(String, '/sauvc/guard/fault', self.guard_fault, STATUS_QOS)
         elif role == 'command_guard':
             self.create_subscription(Twist, '/sauvc/mission/cmd_vel', self.input_command, 10)
-            self.create_subscription(String, '/sauvc/qualification/state', self.state, STATUS_QOS)
-            self.create_subscription(String, '/sauvc/qualification/result', self.result, STATUS_QOS)
+            prefix = '/sauvc/arena' if self.mission == 'finals' else '/sauvc/qualification'
+            self.create_subscription(String, prefix+'/state', self.state, STATUS_QOS)
+            self.create_subscription(String, prefix+'/result', self.result, STATUS_QOS)
+            if self.mission == 'finals':
+                for camera in ('front','bottom'):
+                    self.create_subscription(String,'/sauvc/perception/'+camera,
+                        lambda m,c=camera: self.perception_status(m,c),10)
         else:
             self.create_subscription(Twist, '/sauvc/cmd_vel', self.actual_command, 10)
             self.create_subscription(String, '/sauvc/guard/fault', self.guard_fault, STATUS_QOS)
@@ -132,6 +140,15 @@ class Runtime(Node):
         self.judgement = json.loads(msg.data)
         self.received['referee'] = time.monotonic()
 
+    def perception_status(self, msg, camera):
+        packet = json.loads(msg.data)
+        if packet.get('fresh') and packet.get('valid_image'):
+            stamp=packet.get('stamp',{})
+            stamp=stamp.get('sec',0)+stamp.get('nanosec',0)*1e-9
+            if stamp<=self.camera_stamps.get(camera,-1): return
+            self.camera_stamps[camera]=stamp
+            self.received[camera] = time.monotonic()
+
     def drop(self, key):
         return (self.fault == key + '_loss' and self.first_clock is not None
                 and self.t-self.first_clock > 8)
@@ -181,6 +198,8 @@ class Runtime(Node):
             required.append('camera')
         if self.role in ('qualification', 'command_guard'):
             required.append('referee')
+        if self.role == 'command_guard' and self.mission == 'finals':
+            required += ['front','bottom']
         ready = all(k in self.received for k in required)
         stale = self.stale(required, now)
         if self.role == 'command_guard':
@@ -190,7 +209,7 @@ class Runtime(Node):
                 if stale:
                     self.trip('stale_' + stale)
                 if not self.terminal and self.judgement.get('phase') != 'FAILED':
-                    scale = self.speed_scale
+                    scale = self.speed_scale if self.mission != 'finals' else 3.
                     cmd.linear.x = max(-.3*scale, min(.3*scale, self.command.linear.x))
                     cmd.linear.y = max(-.3*scale, min(.3*scale, self.command.linear.y))
                     cmd.linear.z = max(-.2*scale, min(.2*scale, self.command.linear.z))

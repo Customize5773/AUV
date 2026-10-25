@@ -8,6 +8,7 @@ import argparse
 import math
 from pathlib import Path
 import xml.etree.ElementTree as ET
+from sauvc_sim.arena_layout import layout
 
 
 WHITE = '0.92 0.94 0.96 1'
@@ -115,7 +116,7 @@ def drum(world, name, x, y, color):
                               0.17, 0, 0, angle), 'box', (0.02, 0.059, 0.3), color)
 
 
-def props(world, arena):
+def props(world, arena, scene_variant=0, blue_drum=1):
     if arena == 'qualification':
         for lane, y in [(1, 4), (2, 12)]:
             gate(world, f'qualification_gate_{lane}', 10, y, qualification=True)
@@ -128,20 +129,37 @@ def props(world, arena):
         (0, -0.69, 1.4, 0.02), (0, 0.69, 1.4, 0.02),
     ]):
         part(start, f'edge_{i}', (x, y, 0, 0, 0, 0), 'box', (sx, sy, 0.02), WHITE, False)
-    gate(world, 'navigation_gate', 16, 8)
-    orange = model(world, 'orange_flare', (6, 8, floor_z(6), 0, 0, 0))
-    part(orange, 'pole', (0, 0, -floor_z(6) / 2, 0, 0, 0), 'cylinder',
-         (0.075, -floor_z(6)), ORANGE)
+    scene=layout(scene_variant)
+    gate(world, 'navigation_gate', 16, scene['gate_y'])
+    ox,oy=scene['orange']
+    orange = model(world, 'orange_flare', (ox,oy,floor_z(ox), 0, 0, 0))
+    part(orange, 'pole', (0, 0, -floor_z(ox) / 2, 0, 0, 0), 'cylinder',
+         (0.075, -floor_z(ox)), ORANGE)
     for name, x, y, color in [
-        ('blue_flare', 11, 11, BLUE), ('red_flare', 14, 12, RED),
-        ('yellow_flare', 12, 4, YELLOW),
+        ('blue_flare', *scene['blue'], BLUE), ('red_flare', *scene['red'], RED),
+        ('yellow_flare', *scene['yellow'], YELLOW),
     ]:
         link = model(world, name, (x, y, floor_z(x), 0, 0, 0))
         part(link, 'pole', (0, 0, 0.4, 0, 0, 0), 'cylinder', (0.008, 0.8), color)
-        part(link, 'golf_ball_visual', (0, 0, 0.82135, 0, 0, 0), 'sphere',
-             (0.02135,), WHITE, False)
+        ball(world, name+'_ball', (x,y,floor_z(x)+.82135), .02135)
     for i, y in enumerate((12.5, 9.5, 6.5, 3.5)):
-        drum(world, f'drum_{i + 1}', 24, y, BLUE if i == 0 else RED)
+        drum(world, f'drum_{i + 1}', 24, y, BLUE if i+1 == blue_drum else RED)
+    ball(world, 'payload_ball', (.9,8,-.23), .02)
+    tag(world, 'plugin', filename=str(Path(__file__).parent/'libsauvc_contact_monitor.so'),
+        name='sauvc::ArenaPhysics')
+
+
+def ball(world, name, position, radius):
+    body = tag(world,'model',name=name)
+    tag(body,'pose',numbers((*position,0,0,0)))
+    link = tag(body,'link',name='body')
+    tag(link,'gravity','true')
+    inertial = tag(link,'inertial')
+    tag(inertial,'mass',.1)
+    inertia = tag(inertial,'inertia')
+    for key in ('ixx','iyy','izz'):
+        tag(inertia,key,.4*.1*radius**2)
+    part(link,'sphere',(0,0,0,0,0,0),'sphere',(radius,),WHITE)
 
 
 def auv(world, arena, cameras, lane=1, lateral_offset=0.0, yaw=0.0):
@@ -196,11 +214,14 @@ def auv(world, arena, cameras, lane=1, lateral_offset=0.0, yaw=0.0):
             tag(clip, 'far', 30)
 
 
-def build_world(arena, cameras=True, lane=1, lateral_offset=0.0, yaw=0.0):
+def build_world(arena, cameras=True, lane=1, lateral_offset=0.0, yaw=0.0,
+                scene_variant=0, blue_drum=1):
     if arena not in ('qualification', 'finals'):
         raise ValueError('arena must be qualification or finals')
     if lane not in (1, 2) or not all(math.isfinite(v) for v in (lateral_offset, yaw)):
         raise ValueError('invalid lane or spawn offset')
+    layout(scene_variant)
+    if blue_drum not in (1,2,3,4): raise ValueError('invalid blue drum index')
     sdf = ET.Element('sdf', version='1.9')
     world = tag(sdf, 'world', name=f'sauvc_{arena}')
     physics = tag(world, 'physics', name='physics', type='ignored')
@@ -241,7 +262,7 @@ def build_world(arena, cameras=True, lane=1, lateral_offset=0.0, yaw=0.0):
                                  ('height', '5', 'double'), ('showTitleBar', 'false', 'bool')]:
             tag(appearance, 'property', value, key=key, type=kind)
     pool(world)
-    props(world, arena)
+    props(world, arena,scene_variant,blue_drum)
     auv(world, arena, cameras, lane, lateral_offset, yaw)
     ET.indent(sdf)
     return ET.tostring(sdf, encoding='unicode', xml_declaration=True)

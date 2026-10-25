@@ -21,13 +21,16 @@ def start(context):
     lane = int(LaunchConfiguration('lane').perform(context))
     mode = LaunchConfiguration('mode').perform(context)
     perception = LaunchConfiguration('perception').perform(context) == 'true'
-    if autonomous and (arena != 'qualification' or (mode == 'vision' and not cameras)):
-        raise ValueError('autonomous requires qualification; vision requires cameras')
+    if autonomous and ((mode == 'vision' and not cameras) or
+                       (arena == 'finals' and (not cameras or not perception or mode != 'vision'))):
+        raise ValueError('visual autonomous requires cameras; finals also requires perception and vision mode')
     directory = tempfile.TemporaryDirectory(prefix='sauvc-')
     world = Path(directory.name) / f'{arena}.sdf'
     world.write_text(build_world(arena, cameras, lane,
                                 float(LaunchConfiguration('lateral_offset').perform(context)),
-                                float(LaunchConfiguration('yaw').perform(context))))
+                                float(LaunchConfiguration('yaw').perform(context)),
+                                int(LaunchConfiguration('scene_variant').perform(context)),
+                                int(LaunchConfiguration('blue_drum').perform(context))))
     actions = [
         RegisterEventHandler(OnShutdown(on_shutdown=[
             OpaqueFunction(function=lambda context: directory.cleanup()),
@@ -51,9 +54,19 @@ def start(context):
                   'speed_scale': float(LaunchConfiguration('speed_scale').perform(context)),
                   'output': LaunchConfiguration('output').perform(context),
                   'fault': LaunchConfiguration('fault').perform(context)}
-        for executable in ('qualification_referee', 'command_guard', 'qualification'):
+        executables=('qualification_referee','command_guard','qualification')
+        if arena == 'finals':
+            params={'mission':'finals','output':LaunchConfiguration('output').perform(context),
+                    'flare_order':LaunchConfiguration('flare_order').perform(context),
+                    'fault':LaunchConfiguration('fault').perform(context)}
+            executables=('arena_referee','command_guard','arena_mission')
+        for executable in executables:
+            node_params=dict(params)
+            if executable=='arena_referee':
+                node_params.update(scene_variant=int(LaunchConfiguration('scene_variant').perform(context)),
+                                   blue_drum=int(LaunchConfiguration('blue_drum').perform(context)))
             actions.append(Node(package='sauvc_sim', executable=executable,
-                                parameters=[params], output='screen', on_exit=Shutdown()))
+                                parameters=[node_params], output='screen', on_exit=Shutdown()))
     return actions
 
 
@@ -70,6 +83,9 @@ def generate_launch_description():
         DeclareLaunchArgument('lateral_offset', default_value='0.0'),
         DeclareLaunchArgument('yaw', default_value='0.0'),
         DeclareLaunchArgument('output', default_value=''),
+        DeclareLaunchArgument('flare_order', default_value='B-R-Y'),
+        DeclareLaunchArgument('scene_variant', default_value='0',choices=['0','1']),
+        DeclareLaunchArgument('blue_drum', default_value='1',choices=['1','2','3','4']),
         DeclareLaunchArgument('fault', default_value='none',
                              choices=['none', 'camera_loss', 'command_loss',
                                       'odom_loss', 'contact_loss', 'clock_loss']),

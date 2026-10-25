@@ -51,7 +51,7 @@ Satuan meter, `x=0…25` dari dinding start menuju target, `y=0…16` melintang 
 | Drum | Empat pada x=24, y=12,5/9,5/6,5/3,5; satu biru, tiga merah; diameter luar 60 cm, kedalaman 30 cm, atas terbuka |
 | AUV latihan | Kotak 60 × 40 × 20 cm, massa contoh 20 kg; kamera depan/bawah 640 × 480, 10 Hz |
 
-Ketebalan tiang gerbang 5 cm, ketebalan drum 2 cm, posisi properti, massa dan ukuran AUV adalah asumsi latihan. Dasar tiap properti mengikuti kedalaman lokal di posisi pusatnya. Drum berdinding 32 segmen; penanda permukaan tidak memiliki collision. Bola di atas flare hanya visual statis.
+Ketebalan tiang gerbang 5 cm, ketebalan drum 2 cm, posisi properti, massa dan ukuran AUV adalah asumsi latihan. Dasar tiap properti mengikuti kedalaman lokal di posisi pusatnya. Drum berdinding 32 segmen; penanda permukaan tidak memiliki collision. Bola flare dan payload kini benda dinamis dengan collision dan gravitasi. Plugin latihan menahan bola, melepas penyangga flare saat hull menyentuh tiang, lalu membiarkan fisika menggerakkannya. Ini pendekatan mekanisme latihan, tanpa dinamika tiang lentur atau drag bola di air.
 
 ## Kontrol dan sensor
 
@@ -100,7 +100,7 @@ bash tools/ros.sh python tools/check_sim.py --arena finals --output evidence/fin
 
 Lima tes geometri memeriksa kedalaman permukaan collision, lebar bersih gerbang, zona/dimensi properti, drum terbuka, dan visual tanpa collision. Pemeriksaan runtime menunggu clock/odom/kamera, mengirim perintah menyelam/maju/berputar/berhenti, lalu menyimpan JSON, log dan frame PPM. Tanpa dukungan rendering dapat memakai `--no-cameras`, tetapi hasil tersebut tidak membuktikan kamera berfungsi.
 
-**Batas model:** belum ada dinamika thruster/drag/buoyancy, randomisasi properti, akustik pinger, mekanisme pelepas/pengambil bola, misi ARENA autonomous, atau integrasi executor HydroShips. Hasil kualifikasi pada model ideal tidak membuktikan kesiapan kendaraan fisik atau kepatuhan edisi 2027.
+**Batas model:** belum ada dinamika thruster/drag/buoyancy, akustik pinger, pengambilan kembali bola, atau integrasi executor HydroShips. ARENA autonomous dan pelepasan payload tersedia pada model latihan, dengan dua fixture posisi properti dan pilihan lokasi drum biru. Hasil pada model ideal tidak membuktikan kesiapan kendaraan fisik atau kepatuhan edisi 2027.
 
 
 ## Kualifikasi autonomous
@@ -183,7 +183,13 @@ bash tools/ros.sh launch sauvc_sim arena.launch.py arena:=finals
 # Terminal lain pada domain/partition yang sama
 bash tools/ros.sh topic echo /sauvc/perception/front --once
 bash tools/ros.sh topic echo /sauvc/perception/bottom --once
+# Tampilan kamera: pilih salah satu topic image_annotated pada dropdown
+bash tools/ros.sh run rqt_image_view rqt_image_view
 ```
+
+Gambar berlabel tersedia pada `/sauvc/perception/front/image_annotated` dan `/sauvc/perception/bottom/image_annotated` (`sensor_msgs/msg/Image`, RGB8). Kotak magenta menunjukkan bbox, tanda silang putih menunjukkan pusat, dan teks menunjukkan kelas objek. Gambar mempertahankan timestamp/frame ID kamera sumber; label digambar dengan huruf kapital. Topic kamera asli tetap menjadi masukan detektor. Anotasi hanya dikerjakan ketika ada subscriber gambar, memakai NumPy tanpa dependensi imaging tambahan.
+
+Jika kamera macet >1 s atau citra invalid, gambar berlabel diganti panel hitam bertuliskan `CAMERA STALE - NO DETECTIONS` atau `INVALID CAMERA IMAGE`; panel status berukuran 640×480 dan memakai timestamp node, bukan frame kamera. Pemeriksaan `fresh`/`valid_image` pada JSON tetap wajib untuk konsumen navigasi.
 
 | Kamera | Label deteksi |
 | --- | --- |
@@ -205,3 +211,43 @@ bash tools/ros.sh python tools/check_perception.py --arena qualification --outpu
 ```
 
 Alat uji menempatkan AUV pada sudut pandang yang diketahui melalui service simulator, lalu memeriksa pesan deteksi dari frame kamera aktual. Koordinat tersebut hanya milik harness pengujian, tidak disalurkan ke detektor. Ini pengujian persepsi, bukan navigasi ARENA autonomous. JSON dan frame PPM disimpan lokal di `evidence/perception/`; [laporan deteksi kamera](../plan/16-hasil-deteksi-kamera.md) menjelaskan hasil dan gambar bukti. Runtime tetap hanya memerlukan NumPy yang sudah dipakai, tanpa OpenCV/YOLO atau model unduhan.
+
+## Tracking dan proyeksi kamera
+
+Deteksi menambahkan `track_id`, `track_hits`, dan `confirmed` setelah tiga pengamatan. Asosiasi memakai kelas, posisi serta prediksi gerak pusat citra; track bertahan maksimum 0,7 s timestamp gambar tanpa pengamatan. Objek yang hilang tidak diterbitkan sebagai deteksi prediksi. Citra invalid, kamera kedaluwarsa atau waktu mundur menghapus track; ID tidak digunakan ulang saat reset.
+
+`/sauvc/camera_front/camera_info` dan `/sauvc/camera_bottom/camera_info` memuat `sensor_msgs/CameraInfo` untuk kamera **simulator**: HFOV 1,22173 rad, piksel persegi, principal point di tengah citra dan distorsi nol. `camera_geometry.py` memuat transformasi optik ke badan FLU: depan di `(0.32,0,0)`, bawah di `(0,0,-0.12)` dan menghadap ke bawah. Perhitungan ini bukan hasil kalibrasi DWE fisik; kamera nyata membutuhkan K, distorsi dan ekstrinsik terukur.
+
+Kandidat yang cukup lengkap mendapat `position_body_m` dan `range_method`, dari ukuran antartiang gate 1,55 m, tinggi flare 0,8 m, diameter orange flare 0,15 m atau drum 0,6 m. Range gate mengasumsikan pandangan mendekati tegak lurus. Drum diproyeksikan ke pusat rim yang terlihat. Objek terpotong yang tidak mendukung estimasi tidak diberi posisi metrik. Tidak ada pose world properti yang dibaca detektor.
+
+Flare dengan tinggi citra <30 px tetap dapat diberi label, tetapi tidak dipakai untuk estimasi jarak. Controller memasangkan hasil kamera dengan interpolasi pose pada timestamp gambar (buffer sekitar 8 s, toleransi 50 ms di batas buffer), bukan pose saat callback diterima. Landmark statis baru memerlukan tiga estimasi posisi yang konsisten; pembaruan yang melompat >0,75 m ditolak. Jika satu warna terpecah menjadi beberapa komponen, kandidat yang paling sesuai dengan landmark dipilih, sehingga fragmen tidak menggeser target yang sudah diketahui.
+
+## ARENA autonomous dari kamera
+
+```bash
+cd /home/rasya/AUV/ros2_ws
+bash tools/ros.sh build --symlink-install
+bash tools/ros.sh launch sauvc_sim arena.launch.py arena:=finals autonomous:=true flare_order:=B-R-Y
+# Fixture berbeda, urutan dari penyelenggara berbeda, lokasi drum biru ditukar
+bash tools/ros.sh launch sauvc_sim arena.launch.py arena:=finals autonomous:=true scene_variant:=1 blue_drum:=3 flare_order:=Y-B-R
+```
+
+Jalankan satu launch saja pada domain/partition yang sama. Misi: menyelam dalam starting zone → menghindari orange flare → lewat gate seluruh badan → kembali ke area flare → menerima urutan warna → menyentuh flare sesuai urutan dan menunggu bukti bola jatuh → mencari blue drum dengan kamera bawah → alignment titik payload → drop → menunggu payload masuk → surface → stop otomatis. Navigation didahulukan sesuai [rulebook terbit](https://sauvc.org/rulebook/). Urutan warna bawaan adalah masukan penyelenggara simulasi; referee baru mengirimkannya pada `/sauvc/arena/flare_order` sesudah Navigation. Urutan harus permutasi B, R, Y.
+
+Controller menyimpan posisi target hasil proyeksi kamera + odometri AUV, memakai target terkonfirmasi, dan tidak berlangganan topic posisi bola/objek simulator. Search area memakai dimensi kolam/zona latihan. Saat objek sangat dekat dan keluar FOV, pendekatan terakhir dibatasi terhadap perkiraan target yang sudah diamati. Payload berada 0,20 m di depan dan 0,18 m di bawah pusat badan, sehingga tidak menutup kamera bawah; alignment memperhitungkan offset tersebut.
+
+Referee terpisah mengetahui layout simulator untuk memeriksa envelope pelintasan, kontak, urutan bola flare yang turun minimal 12 cm, dan payload pertama berada dalam radius dalam drum serta dekat dasar selama >0,5 s. Perintah `release` dan `DONE` controller tidak cukup untuk lulus. Kontak orange flare gagal; preset latihan ini juga menggagalkan kontak gate/lantai/dinding/drum, lebih ketat daripada sistem penalti resmi. Ini pembuktian tugas Navigation, flare dan blue drum; bukan implementasi pinger, reacquisition atau seluruh sistem skor lomba.
+
+Status: `/sauvc/arena/state`, hasil independen: `/sauvc/arena/result`. Pengawas tetap satu-satunya penulis kecepatan autonomous: timeout perintah 0,5 s, input sensor/referee 2 s wall clock, terminal gagal tidak resume otomatis. Timestamp gambar yang tidak maju tidak memperpanjang kesegaran input.
+
+```bash
+bash tools/ros.sh python tools/check_perception.py --robustness --output evidence/vision-robustness/finals.json
+bash tools/ros.sh python tools/check_vision_robustness.py --source evidence/vision-robustness/finals.json --output evidence/vision-robustness/perturbations.json
+bash tools/ros.sh python tools/check_arena_physics.py --output evidence/arena-autonomous/physics.json
+bash tools/ros.sh python tools/check_arena.py --output evidence/arena-autonomous/nominal.json
+bash tools/ros.sh python tools/check_arena.py --scene-variant 1 --blue-drum 3 --order Y-B-R --output evidence/arena-autonomous/alternate.json
+```
+
+Alat uji membuka/menutup simulator sendiri; gunakan domain/partition terpisah bila simulator lain berjalan. Hasil kamera terkendali dan perturbasi frame terpisah dari bukti misi penuh. Pengujian dengan DWE/kolam nyata belum dilakukan.
+
+Hasil dan batas pengujian terintegrasi dicatat dalam [laporan ARENA autonomous](../plan/17-hasil-arena-autonomous.md).

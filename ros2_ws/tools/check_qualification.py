@@ -110,8 +110,8 @@ def main():
                     os.kill(frozen_pid, signal.SIGCONT)
                 except ProcessLookupError:
                     pass
-            if args.gui and process.poll() is None:
-                # Stop the render server through its API before tearing down the GUI.
+            if process.poll() is None:
+                # Stop the render server through its API before tearing down ROS.
                 try:
                     stop = subprocess.run(['ign', 'service', '-s', '/server_control',
                         '--reqtype', 'ignition.msgs.ServerControl', '--reptype', 'ignition.msgs.Boolean',

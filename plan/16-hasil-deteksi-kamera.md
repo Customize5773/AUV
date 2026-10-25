@@ -2,6 +2,8 @@
 
 Tanggal: **25 Oktober 2026, Asia/Jakarta**. Lingkup permintaan: meneruskan deteksi objek dari kamera sesudah kualifikasi otomatis selesai. **Status: detektor, build, tes dan pengujian frame simulator selesai.**
 
+Lanjutan ketahanan deteksi, tracking, proyeksi kamera dan integrasi kontrol ARENA dicatat terpisah dalam [laporan 17](17-hasil-arena-autonomous.md). Batas controller pada dokumen ini menjelaskan lingkup tahap deteksi awal.
+
 ## Acuan dan batas pekerjaan
 
 Pemeriksaan daring masih menunjukkan [rulebook terbit 2026 v6.1.0](https://sauvc.org/rulebook/) dan [usulan 2027 PR #25](https://github.com/sauvc/rulebook/pull/25) yang masih terbuka. Detektor menargetkan properti berwarna pada arena simulator 2026 yang sudah ada; geometri world tidak diubah pada pekerjaan ini.
@@ -51,7 +53,25 @@ Bukti lokal: [ARENA](../ros2_ws/evidence/perception/finals.json), [qualification
 - [Orange flare dan flare lain yang terlihat](../ros2_ws/evidence/perception/orange-flare-front.png).
 - [Blue drum dari kamera bawah](../ros2_ws/evidence/perception/blue-drum-bottom.png).
 
-## Keterbatasan
+## Lanjutan: tampilan deteksi langsung
+
+Pengerjaan lanjutan pada 25 Oktober 2026 menambahkan topic RGB8 `/sauvc/perception/front/image_annotated` dan `/sauvc/perception/bottom/image_annotated`. Gambar memuat kotak magenta, label kelas dan titik pusat putih, dengan header/timestamp identik dengan frame kamera sumber. Kamera asli tetap menjadi masukan detektor. Anotasi hanya dibuat ketika ada subscriber, memakai NumPy tanpa dependensi baru. Gambar invalid diganti panel status; setelah kamera berhenti >1 s, panel `CAMERA STALE - NO DETECTIONS` menggantikan gambar lama, dengan timestamp node dan tanpa frame ID kamera sumber.
+
+Alat uji kini mencocokkan JSON, frame asli dan anotasi melalui timestamp yang sama, serta menyimpan kedua gambar. Untuk deteksi positif, piksel anotasi harus berbeda dari sumber; pada frame tanpa deteksi piksel harus identik. Setelah pause, kedua topic anotasi harus berubah menjadi panel status tanpa kotak lama.
+
+**36 tes lulus**, termasuk empat tes baru untuk kotak/pusat/teks, sumber yang tidak berubah, decoding BGR dengan padding, batas citra, frame invalid dan panel status. Uji Gazebo ulang lulus **10 skenario ARENA + 1 qualification**, termasuk kesesuaian header dan pembersihan gambar lama pada kedua kamera. Semua proses uji tersebut menutup bersih. Ini bukan pengulangan benchmark kecepatan atau pembuktian misi ARENA autonomous.
+
+Bukti terbaru: [ringkasan](../ros2_ws/evidence/perception-overlay/verification.json), [ARENA](../ros2_ws/evidence/perception-overlay/finals.json), [qualification](../ros2_ws/evidence/perception-overlay/qualification.json), [gambar gate](../ros2_ws/evidence/perception-overlay/navigation-gate-annotated-front.png), dan [gambar blue drum](../ros2_ws/evidence/perception-overlay/blue-drum-annotated-bottom.png). Bukti uji awal di atas tetap disimpan sebagai riwayat. Halaman rulebook resmi diperiksa kembali dan masih menampilkan 2026 v6.1.0; perubahan ini tidak mengubah geometri atau urutan tugas.
+
+Untuk melihat langsung, jalankan arena sesuai perintah di bawah, lalu di terminal lain:
+
+```bash
+bash tools/ros.sh run rqt_image_view rqt_image_view
+```
+
+Pilih topic `image_annotated` kamera depan atau bawah pada dropdown. Jendela rqt belum diperiksa secara visual pada sesi lanjutan ini; gambar yang diterbitkan telah diuji dan contoh tersimpannya telah diperiksa.
+
+## Keterbatasan saat ini
 
 Detektor berbasis warna/bentuk diuji pada citra simulator, belum video DWE, air keruh, caustics/refleksi kuat, occlusion berat atau pencahayaan kolam nyata. Kandidat bulat biru tidak membuktikan suatu benda adalah drum fisik; benda lain dengan warna/bentuk serupa dapat menghasilkan kandidat. Drum yang terpotong atau terlalu kecil sengaja tidak diterima. Salah satu tiang gate yang hilang juga tidak cukup untuk deteksi gate lengkap.
 

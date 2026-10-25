@@ -22,7 +22,7 @@ def detect_gate(data, width, height, step, encoding='rgb8'):
         return None
     r, g, b = (rgb[:, :, i].astype(np.int16) for i in range(3))
     # The reverse side is shaded; colour ratios survive the lower brightness.
-    mask = (r > 70) & (g > 25) & (g < r * .8) & (r > b * 2) & (g > b * 1.5)
+    mask = (r > 40) & (g > 15) & (g < r * .8) & (r > b * 2) & (g > b * 1.5)
     columns = np.flatnonzero(mask.sum(axis=0) >= 5)
     if not len(columns):
         return None

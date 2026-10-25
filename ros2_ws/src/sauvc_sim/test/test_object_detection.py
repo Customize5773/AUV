@@ -37,6 +37,12 @@ class ObjectsTest(unittest.TestCase):
         a = self.frame(); a[40:160,80:84]=(210,5,5);a[40:160,240:244]=(5,190,15)
         self.assertNotIn('navigation_gate', [x['label'] for x in self.detect(a)['detections']])
 
+    def test_background_red_drum_does_not_shift_gate_post(self):
+        a=self.gate()
+        a[85:101,82:112]=(210,5,5)
+        gate=next(o for o in self.detect(a)['detections'] if o['label']=='navigation_gate')
+        self.assertEqual(gate['span_px'],160.)
+
     def test_four_flare_colours_are_distinct_and_stripes_are_not_flares(self):
         a = self.frame()
         for x, colour in [(30,(220,90,5)),(100,(5,45,210)),(180,(210,5,5)),(250,(220,190,5))]:
@@ -82,6 +88,14 @@ class ObjectsTest(unittest.TestCase):
         self.assertFalse(detect_objects(b'',320,240,960,'mono8')['valid_image'])
         with self.assertRaises(ValueError):
             detect_objects(b'',320,240,960,camera='unknown')
+
+    def test_dim_yellow_and_blurred_red_do_not_become_orange(self):
+        a=self.frame()
+        a[50:180,30:34]=(71,66,8)
+        a[50:180,100:104]=(153,94,94)
+        a[50:180,180:184]=(220,90,5)
+        self.assertEqual({o['label'] for o in self.detect(a)['detections']},
+                         {'yellow_flare','red_flare','orange_flare'})
 
     def test_components_preserve_thin_connected_pixels_and_separate_objects(self):
         a=np.eye(12,dtype=bool)

@@ -66,6 +66,19 @@ class ArenaTest(unittest.TestCase):
                 if marker.get('name').startswith(('start_line', 'starting_zone')):
                     self.assertIsNone(marker.find('link/collision'))
 
+    def test_dynamic_balls_and_alternate_fixture(self):
+        world=ET.fromstring(build_world('finals',scene_variant=1,blue_drum=3)).find('world')
+        gate=world.find("model[@name='navigation_gate']")
+        self.assertEqual(float(gate.findtext('pose').split()[1]),8.6)
+        for name in ('blue_flare_ball','red_flare_ball','yellow_flare_ball','payload_ball'):
+            item=world.find(f"model[@name='{name}']")
+            self.assertIsNone(item.find('static'))
+            self.assertEqual(item.findtext('link/gravity'),'true')
+            self.assertIsNotNone(item.find('link/collision/geometry/sphere'))
+        self.assertEqual(world.findtext("model[@name='drum_3']/link/visual/material/diffuse"),'0.025 0.2 0.85 1')
+        with self.assertRaises(ValueError): build_world('finals',blue_drum=0)
+        with self.assertRaises(ValueError): build_world('finals',scene_variant=2)
+
     def test_invalid_arena_rejected_and_camera_disable_removes_renderer(self):
         with self.assertRaises(ValueError):
             build_world('../unknown')

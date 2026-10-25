@@ -18,6 +18,8 @@ setup(
         'qualification_referee = sauvc_sim.runtime:referee_main',
         'command_guard = sauvc_sim.runtime:guard_main',
         'perception = sauvc_sim.perception:main',
+        'arena_mission = sauvc_sim.arena_runtime:mission_main',
+        'arena_referee = sauvc_sim.arena_runtime:referee_main',
     ]},
     maintainer='HydroShips team',
     maintainer_email='hydroships@example.invalid',

@@ -5,7 +5,7 @@ import numpy as np
 from sauvc_sim.gate_detection import decode_rgb, detect_gate
 
 
-def components(mask):
+def components(mask, min_area=8):
     """8-connected components using row runs; preserves even one-pixel-wide flare poles."""
     parents, runs, previous = [], [], []
 
@@ -41,17 +41,17 @@ def components(mask):
             f = found[key]
             f[0], f[1], f[2], f[3] = min(f[0], left), min(f[1], y), max(f[2], right), max(f[3], y+1)
             f[4] += right-left
-    return [dict(bbox=f[:4], area_px=f[4]) for f in found.values() if f[4] >= 8]
+    return [dict(bbox=f[:4], area_px=f[4]) for f in found.values() if f[4] >= min_area]
 
 
 def colour_masks(rgb):
     r, g, b = (rgb[:, :, i].astype(np.int16) for i in range(3))
     return {
-        'orange': (r > 70) & (g > 25) & (g < r*.8) & (r > b*2) & (g > b*1.5),
-        'red': (r > 65) & (g < r*.25) & (r > b*1.8),
-        'green': (g > 65) & (g > r*1.6) & (g > b*1.2),
-        'blue': (b > 65) & (b > r*1.8) & (b > g*1.5),
-        'yellow': (r > 90) & (g > 70) & (g >= r*.8) & (r > b*2) & (g > b*2),
+        'orange': (r > 40) & (g > 15) & (g < r*.8) & (r > b*2) & (g > b*1.5),
+        'red': (r > 35) & (r > g*1.4) & (r > b*1.4) & (np.abs(g-b) < r*.25),
+        'green': (g > 30) & (g > r*1.6) & (g > b*1.2),
+        'blue': (b > 35) & (b > r*1.8) & (b > g*1.5),
+        'yellow': (r > 60) & (g > 35) & (g >= r*.8) & (r > b*2) & (g > b*2),
     }
 
 
@@ -70,11 +70,11 @@ def striped_posts(parts):
     stacks = []
     for part in parts:
         l, t, r, b = part['bbox']
-        if not .5 <= (b-t)/(r-l) <= 5:
+        if not 1 <= (b-t)/(r-l) <= 5:
             continue
         cx = (l+r)/2
         stack = next((s for s in stacks if abs((s['bbox'][0]+s['bbox'][2])/2-cx)
-                      <= max(4, r-l)), None)
+                      <= max(2, (r-l)/2)), None)
         if stack is None:
             stacks.append(dict(bbox=[l,t,r,b], stripes=1, area_px=part['area_px']))
         else:
@@ -99,7 +99,8 @@ def detect_objects(data, width, height, step, encoding='rgb8', camera='front', a
             detections.append(candidate('qualification_gate', gate['bbox'], width, height,
                                         distance_estimate_m=gate['distance'], span_px=gate['span']))
     elif camera == 'front':
-        parts = {colour: components(mask) for colour, mask in masks.items()}
+        parts = {colour: components(mask, 2 if colour in ('red','green') else 8)
+                 for colour, mask in masks.items()}
         pairs = []
         for red in striped_posts(parts['red']):
             for green in striped_posts(parts['green']):
