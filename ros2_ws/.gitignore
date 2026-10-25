@@ -1,0 +1,10 @@
+build/
+install/
+log/
+.venv*/
+__pycache__/
+.pytest_cache/
+evidence/
+*.egg-info/
+.native-deps/
+*.so

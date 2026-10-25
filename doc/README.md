@@ -1,6 +1,6 @@
 # Riset persiapan SAUVC 2027
 
-Tanggal pemeriksaan: **1 Oktober 2026**. Bahasa: Indonesia.
+Pemeriksaan awal: **1 Oktober 2026**. Pemeriksaan ulang khusus aturan: **25 Oktober 2026**, lihat [status 2027](01-status-2027.md). Bahasa: Indonesia.
 
 Folder ini mengumpulkan temuan dari penyelenggara, institusi peserta, pengembang perangkat lunak, publikasi riset, produsen, dan otoritas perjalanan. Ini adalah catatan riset yang dapat diperbarui, bukan rulebook pengganti.
 
@@ -8,11 +8,14 @@ Folder ini mengumpulkan temuan dari penyelenggara, institusi peserta, pengembang
 
 **Temuan utama:** SAUVC 2027 diumumkan berlangsung **24–27 Februari 2027 di Singapore Polytechnic**. Halaman aturan dan manual yang tersedia masih memuat edisi sebelumnya. [Situs resmi](https://sauvc.org/)
 
+**Pembaruan aturan 25 Oktober:** [usulan rulebook 2027.1.1 pada PR resmi #25](https://github.com/sauvc/rulebook/pull/25) sudah ditemukan, tetapi belum merged/dipublikasikan. Diagram dan dimensi berbeda dari 2026; status usulan dipisahkan dari aturan yang sudah terbit. Lihat [tinjauan dan koreksi rencana misi](../plan/14-tinjauan-rulebook-dan-rencana-arena.md).
+
 | Dokumen | Kegunaan |
 | --- | --- |
 | [01 — Status 2027](01-status-2027.md) | Fakta terkonfirmasi dan informasi yang belum ditemukan |
 | [02 — Aturan referensi](02-aturan-referensi-2026.md) | Ringkasan teknis edisi sebelumnya dan tautan ketentuan lengkap |
 | [Gambar rulebook](sources/rulebook-images/README.md) | 19 gambar asli, galeri lokal, dan metadata untuk analisis |
+| [Diagram usulan 2027](sources/rulebook-2027-proposal/README.md) | Tiga diagram dari PR resmi yang belum merged; dipisahkan dari arsip 2026 |
 | [03 — Keselamatan dan administrasi](03-keselamatan-administrasi.md) | Manual historis dan persiapan internal |
 | [04 — Tim dan pembelajaran](04-tim-dan-pembelajaran.md) | Hasil lomba, pengalaman peserta, konflik laporan |
 | [05 — Kode dan simulator](05-kode-dan-simulator.md) | Repositori yang relevan beserta keterbatasannya |
@@ -22,6 +25,7 @@ Folder ini mengumpulkan temuan dari penyelenggara, institusi peserta, pengembang
 | [09 — Ketidakpastian](09-ketidakpastian-dan-pemantauan.md) | Pertanyaan terbuka, konflik sumber, dan cara memperbarui riset |
 | [10 — Sumber tambahan pengguna](10-telaah-sumber-tambahan.md) | Telaah dua PDF, jejak halaman, dan konflik data |
 | [11 — Topologi keseluruhan sistem](11-topologi-keseluruhan-sistem.md) | Panduan teknis tim: perangkat, aplikasi, ROS 2, alur autonomous sensor–kendali, FSM gerbang, startup, dan titik integrasi |
+| [12 — Wi-Fi Jetson dan reconnect SSH](12-riset-wifi-jetson-reconnect.md) | Perbandingan AW-CB375NF/AX200/AX210, antena enclosure, topologi akses, dan rencana pengukuran reconnect |
 | [Arsip PDF lokal](sources/README.md) | Berkas asli, checksum, ekstraksi teks, dan tautan |
 | [Sumber](sumber.md) | Bibliografi beranotasi dengan status akses |
 | [Data sumber](sumber.json) | Bibliografi dalam format yang dapat diproses |

@@ -1,0 +1,42 @@
+{
+  "checked_on": "2026-10-25",
+  "timezone": "Asia/Jakarta",
+  "published_rulebook": {
+    "url": "https://sauvc.org/rulebook/",
+    "edition": 2026,
+    "version": "6.1.0"
+  },
+  "proposal": {
+    "url": "https://github.com/sauvc/rulebook/pull/25",
+    "state": "open",
+    "github_draft_flag": false,
+    "merged": false,
+    "edition": 2027,
+    "version": "2027.1.1",
+    "branch": "rulebook-2027",
+    "commit": "746357dcfe2e0fe89364aaad6ef8a2d60c5f5f8d",
+    "commit_date_utc": "2026-10-23T12:12:16Z",
+    "document_metadata_date": "10 October 2026"
+  },
+  "scope": "Three original diagrams for analysis; proposed rules, not published 2027 rules.",
+  "images": [
+    {
+      "file": "arena-2027.png",
+      "bytes": 135210,
+      "sha256": "65e46bc6d6d4de31bde94b8954d8114d263215c8e54da288d4bbd8f18b6cd362",
+      "url": "https://raw.githubusercontent.com/sauvc/rulebook/746357dcfe2e0fe89364aaad6ef8a2d60c5f5f8d/img/arena-2027.png"
+    },
+    {
+      "file": "qualification-gate.jpg",
+      "bytes": 26970,
+      "sha256": "5c99734862738457bbb98605af093b212e4c7ff9eb4630259587232c9ef508ce",
+      "url": "https://raw.githubusercontent.com/sauvc/rulebook/746357dcfe2e0fe89364aaad6ef8a2d60c5f5f8d/img/qualification-gate.jpg"
+    },
+    {
+      "file": "surfacing-square-2027.png",
+      "bytes": 18858,
+      "sha256": "d13cbcfb4c8191675e17660a585fb92e9bdf8488f343a9d8ffa2ad5c7013c28f",
+      "url": "https://raw.githubusercontent.com/sauvc/rulebook/746357dcfe2e0fe89364aaad6ef8a2d60c5f5f8d/img/surfacing-square-2027.png"
+    }
+  ]
+}

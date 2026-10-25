@@ -1,0 +1,20 @@
+# Training coefficients, not measured hardware performance. SI units, FLU body.
+mass: 20.0
+density: 1000.0
+gravity: 9.81
+volume: 0.0205
+buoyancy_height: 0.1366666667
+buoyancy_z: 0.03
+linear_drag: [8.0, 12.0, 80.0]
+quadratic_drag: [25.0, 35.0, 40.0]
+angular_linear_drag: [1.5, 1.5, 0.4]
+angular_quadratic_drag: [0.8, 0.8, 0.8]
+current: [0.0, 0.0, 0.0]
+thruster_tau: 0.15
+horizontal_thrust: 20.0
+vertical_thrust: 40.0
+pressure_noise_pa: 20.0
+dvl_noise: 0.003
+gyro_noise: 0.0008
+mag_noise_ut: 0.05
+seed: 42
