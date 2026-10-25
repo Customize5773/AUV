@@ -44,10 +44,34 @@ def main():
             move(23.8,12.5,-.3)
             until(lambda: abs(samples[-1]['balls']['payload']['position'][0]-24)<.01,3)
             release.publish(Bool(data=True))
-            report['payload_physically_settled']=until(lambda: samples[-1]['balls']['payload']['released'] and -1.2<samples[-1]['balls']['payload']['position'][2]<-1.15,5)
-            report['passed']=all(report[k] for k in ('held_balls_stable','flare_ball_physically_fell','payload_physically_settled'))
+            def settled():
+                recent=[s for s in samples if s['time']>=samples[-1]['time']-.6]
+                return (len(recent)>8 and recent[-1]['time']-recent[0]['time']>.5 and
+                        all(s['balls']['payload']['released'] and
+                            abs(s['balls']['payload']['position'][0]-24)<.05 and
+                            abs(s['balls']['payload']['position'][1]-12.5)<.05 and
+                            -1.2<s['balls']['payload']['position'][2]<-1.15 for s in recent))
+            report['payload_physically_settled']=until(settled,7)
+            before=samples[-1]['balls']['payload']['position']
+            move(22.,12.5,-.3)
+            release.publish(Bool(data=True))
+            start=samples[-1]['time']
+            until(lambda:samples[-1]['time']>start+1,4)
+            report['repeated_release_does_not_rearm']=all(abs(a-b)<.01 for a,b in zip(before,samples[-1]['balls']['payload']['position']))
+            report['passed']=all(report[k] for k in ('held_balls_stable','flare_ball_physically_fell','payload_physically_settled','repeated_release_does_not_rearm'))
         except Exception as exc: report['error']=str(exc)
         finally:
+            if process.poll() is None:
+                try:
+                    subprocess.run(['ign','service','-s','/world/sauvc_finals/control',
+                        '--reqtype','ignition.msgs.WorldControl','--reptype','ignition.msgs.Boolean',
+                        '--timeout','3000','--req','pause: true'],capture_output=True,text=True,timeout=5)
+                    stop=subprocess.run(['ign','service','-s','/server_control',
+                        '--reqtype','ignition.msgs.ServerControl','--reptype','ignition.msgs.Boolean',
+                        '--timeout','3000','--req','stop: true'],capture_output=True,text=True,timeout=5)
+                    report['shutdown_via_service']='data: true' in stop.stdout
+                    if report['shutdown_via_service']: process.wait(timeout=8)
+                except (subprocess.TimeoutExpired,OSError): report['shutdown_via_service']=False
             if process.poll() is None: process.send_signal(signal.SIGINT)
             try: process.wait(timeout=12);report['shutdown_forced']=False
             except subprocess.TimeoutExpired:

@@ -85,3 +85,6 @@ bash tools/ros.sh launch sauvc_sim arena.launch.py arena:=finals autonomous:=tru
 Status: `/sauvc/arena/state`. Hasil independen: `/sauvc/arena/result`. Gambar inspeksi: `/sauvc/perception/front/image_annotated` dan `/sauvc/perception/bottom/image_annotated`. Perintah pengulangan uji ada dalam [README workspace](../ros2_ws/README.md).
 
 Seluruh hasil merupakan simulasi dengan gerak ideal dan odometri ground truth. Kalibrasi DWE fisik, kolam nyata, air keruh/refleksi berat, dinamika thruster, pinger dan pengambilan kembali payload belum divalidasi. GUI/rqt untuk misi ARENA penuh belum diperiksa secara langsung; pengujian runtime dilakukan headless dengan kamera rendering aktif.
+
+
+Pembaruan 25 Oktober 2026: rincian skor attempt dan rancangan servo payload ditambahkan pada [laporan 19](19-penilaian-arena-dan-rancangan-servo.md). Misi penuh baru, uji mekanisme bola dan putus perintah lulus; poin pinger/reacquisition belum mempunyai bukti fisik runtime. Keterangan skor yang belum lengkap di laporan ini merupakan snapshot sebelum pembaruan tersebut.

@@ -286,3 +286,5 @@ bash tools/ros.sh python tools/check_arena.py --scene-variant 1 --blue-drum 3 --
 Alat uji membuka/menutup simulator sendiri; gunakan domain/partition terpisah bila simulator lain berjalan. Hasil kamera terkendali dan perturbasi frame terpisah dari bukti misi penuh. Pengujian dengan DWE/kolam nyata belum dilakukan.
 
 Hasil dan batas pengujian terintegrasi dicatat dalam [laporan ARENA autonomous](../plan/17-hasil-arena-autonomous.md).
+
+Penilaian ARENA kini tersedia sebagai `score` pada `/sauvc/arena/result`: poin tugas, bonus urutan/waktu/surface, penalti dan total attempt. Kebijakan abort latihan tetap lebih ketat daripada rulebook. Rincian, keterbatasan tugas pinger/pickup dan konsep servo payload ada pada [laporan 19](../plan/19-penilaian-arena-dan-rancangan-servo.md).

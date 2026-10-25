@@ -35,3 +35,5 @@ Arah awal platform adalah menjalankan/menyesuaikan **BlueOS pada Jetson**, kemud
 Sumber aturan dan gambar arena tersedia dalam [riset SAUVC](../doc/README.md) dan [indeks gambar rulebook](../doc/sources/rulebook-images/README.md). Acuan teknis lomba yang ditelaah masih edisi 2026; perubahan aturan 2027 perlu ditinjau sebelum desain dibekukan.
 
 Urutan kerja yang diusulkan: **identifikasi perangkat → BlueOS dan komunikasi → kamera → kendali dasar → navigasi → tugas tambahan → latihan terintegrasi**. Beberapa eksperimen persepsi dapat berjalan memakai rekaman saat hardware gerak belum siap.
+
+[19 — Penilaian ARENA dan rancangan servo payload](19-penilaian-arena-dan-rancangan-servo.md): ledger skor, bukti fisika bola dan rancangan mekanik awal; tanpa aktivasi hardware.
