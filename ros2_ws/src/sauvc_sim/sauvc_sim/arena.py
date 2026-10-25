@@ -144,10 +144,13 @@ def props(world, arena):
         drum(world, f'drum_{i + 1}', 24, y, BLUE if i == 0 else RED)
 
 
-def auv(world, arena, cameras):
+def auv(world, arena, cameras, lane=1, lateral_offset=0.0, yaw=0.0):
     vehicle = tag(world, 'model', name='sauvc_auv')
-    tag(vehicle, 'pose', numbers((0.3 if arena == 'qualification' else 0.7,
-                                4 if arena == 'qualification' else 8, -0.05, 0, 0, 0)))
+    # Keep the collision hull touching the start wall even with a yaw offset.
+    start_x = 0.3 * abs(math.cos(yaw)) + 0.2 * abs(math.sin(yaw))
+    tag(vehicle, 'pose', numbers((start_x if arena == 'qualification' else 0.7,
+                                (4 if lane == 1 else 12) + lateral_offset
+                                if arena == 'qualification' else 8, -0.05, 0, 0, yaw)))
     link = tag(vehicle, 'link', name='base_link')
     # shortcut: ideal velocity control bypasses thrust/drag; replace for controller tuning.
     tag(link, 'gravity', 'false')
@@ -159,6 +162,13 @@ def auv(world, arena, cameras):
     part(link, 'hull', (0, 0, 0, 0, 0, 0), 'box', (0.6, 0.4, 0.2), YELLOW)
     part(link, 'nose', (0.305, 0, 0, 0, 0, 0), 'box', (0.01, 0.22, 0.12),
          '0.03 0.04 0.05 1', False)
+    contact = tag(link, 'sensor', name='hull_contacts', type='contact')
+    tag(contact, 'always_on', 'true')
+    tag(contact, 'update_rate', 30)
+    tag(contact, 'topic', '/sauvc/contacts')
+    contact_config = tag(contact, 'contact')
+    tag(contact_config, 'collision', 'hull')
+    tag(contact_config, 'topic', '/sauvc/contacts')
     control = plugin(vehicle, 'velocity-control', 'VelocityControl')
     tag(control, 'topic', '/sauvc/cmd_vel')
     odom = plugin(vehicle, 'odometry-publisher', 'OdometryPublisher')
@@ -186,9 +196,11 @@ def auv(world, arena, cameras):
             tag(clip, 'far', 30)
 
 
-def build_world(arena, cameras=True):
+def build_world(arena, cameras=True, lane=1, lateral_offset=0.0, yaw=0.0):
     if arena not in ('qualification', 'finals'):
         raise ValueError('arena must be qualification or finals')
+    if lane not in (1, 2) or not all(math.isfinite(v) for v in (lateral_offset, yaw)):
+        raise ValueError('invalid lane or spawn offset')
     sdf = ET.Element('sdf', version='1.9')
     world = tag(sdf, 'world', name=f'sauvc_{arena}')
     physics = tag(world, 'physics', name='physics', type='ignored')
@@ -197,6 +209,8 @@ def build_world(arena, cameras=True):
     for filename, name in [('physics', 'Physics'), ('user-commands', 'UserCommands'),
                            ('scene-broadcaster', 'SceneBroadcaster')]:
         plugin(world, filename, name)
+    tag(world, 'plugin', filename=str(Path(__file__).parent / 'libsauvc_contact_monitor.so'),
+        name='sauvc::ContactMonitor')
     if cameras:
         tag(plugin(world, 'sensors', 'Sensors'), 'render_engine', 'ogre2')
     scene = tag(world, 'scene')
@@ -217,6 +231,7 @@ def build_world(arena, cameras=True):
     tag(view, 'ambient_light', '0.65 0.7 0.75')
     tag(view, 'background_color', '0.12 0.22 0.32')
     tag(view, 'camera_pose', '12.5 -12 18 0 0.732815 1.5707963')
+    tag(view, 'horizontal_fov', 60)
     appearance = tag(view, 'ignition-gui')
     tag(appearance, 'property', 'false', key='showTitleBar', type='bool')
     tag(appearance, 'property', 'docked', key='state', type='string')
@@ -227,7 +242,7 @@ def build_world(arena, cameras=True):
             tag(appearance, 'property', value, key=key, type=kind)
     pool(world)
     props(world, arena)
-    auv(world, arena, cameras)
+    auv(world, arena, cameras, lane, lateral_offset, yaw)
     ET.indent(sdf)
     return ET.tostring(sdf, encoding='unicode', xml_declaration=True)
 

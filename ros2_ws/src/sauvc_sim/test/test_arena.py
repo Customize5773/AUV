@@ -70,7 +70,8 @@ class ArenaTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             build_world('../unknown')
         world = ET.fromstring(build_world('qualification', cameras=False)).find('world')
-        self.assertEqual(world.findall('.//sensor'), [])
+        self.assertEqual(world.findall(".//sensor[@type='camera']"), [])
+        self.assertEqual(len(world.findall(".//sensor[@type='contact']")), 1)
         self.assertIsNone(world.find("plugin[@name='ignition::gazebo::systems::Sensors']"))
 
 

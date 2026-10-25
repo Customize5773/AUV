@@ -1,6 +1,6 @@
 # Rencana lanjutan simulasi SAUVC: kualifikasi autonomous
 
-**Status: rencana untuk ditinjau pengguna. Implementasi menunggu konfirmasi pengguna.**
+**Status 25 Oktober 2026: implementasi kualifikasi telah disetujui pengguna dan sedang divalidasi.** Rancangan di bawah dipertahankan sebagai kriteria penerimaan; hasil aktual dicatat dalam [laporan implementasi](15-hasil-kualifikasi-autonomous.md).
 
 **Revisi 25 Oktober 2026:** acuan utama adalah rulebook penyelenggara yang diverifikasi daring. Situs masih menerbitkan edisi 2026 v6.1.0, tetapi repositori resmi sudah memiliki usulan 2027.1.1 pada PR #25 yang belum digabung. Perbedaan versi, diagram terbaru dan koreksi urutan ARENA tercatat di [tinjauan rulebook dan rencana ARENA](14-tinjauan-rulebook-dan-rencana-arena.md). Sumber versi harus diperiksa lagi sebelum implementasi; diagram 2026 tidak dianggap sebagai arena 2027.
 
@@ -103,4 +103,4 @@ Artefak disimpan pada subfolder baru di `ros2_ws/evidence/` agar bukti awal tida
 
 Tahap kualifikasi belum mencakup dinamika thruster/buoyancy/drag, tuning ArduSub, kendali hardware, SLAM, akustik pinger, pengambilan kembali bola, integrasi UI/executor HydroShips, atau pengacakan arena secara umum. Rencana lanjutan [ARENA](14-tinjauan-rulebook-dan-rencana-arena.md) mencakup Navigation dahulu, tugas flare sesuai urutan panitia, dan payload ke blue drum. Geometri dan kriteria keberhasilan harus mengikuti sumber versi yang dicatat, bukan diagram lama atau urutan yang bertentangan dengan rulebook.
 
-**Batas eksekusi sekarang:** hanya dokumen rencana, catatan riset dan sumber diagram yang diperbarui. Perubahan source, pemasangan dependensi, build, launch dan pengujian implementasi baru dimulai setelah konfirmasi pengguna.
+**Persetujuan berikutnya:** pengguna meminta “Implementasi kualifikasi terlebih dahulu” pada 25 Oktober 2026. Batas menunggu konfirmasi untuk kualifikasi telah terpenuhi; implementasi dan pengujiannya dilanjutkan. Misi ARENA belum dikerjakan.

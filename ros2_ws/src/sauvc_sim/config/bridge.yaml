@@ -3,6 +3,11 @@
   ros_type_name: rosgraph_msgs/msg/Clock
   gz_type_name: ignition.msgs.Clock
   direction: GZ_TO_ROS
+- ros_topic_name: /sauvc/contacts
+  gz_topic_name: /sauvc/contacts
+  ros_type_name: ros_gz_interfaces/msg/Contacts
+  gz_type_name: ignition.msgs.Contacts
+  direction: GZ_TO_ROS
 - ros_topic_name: /sauvc/cmd_vel
   gz_topic_name: /sauvc/cmd_vel
   ros_type_name: geometry_msgs/msg/Twist

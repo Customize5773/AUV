@@ -1,6 +1,6 @@
 # Tinjauan rulebook terbaru dan rencana misi ARENA
 
-Pemeriksaan: **25 Oktober 2026, Asia/Jakarta**. **Implementasi menunggu konfirmasi pengguna.** Rulebook penyelenggara menjadi acuan utama; pemahaman atau usulan alur dalam percakapan dikoreksi apabila bertentangan dengan aturan.
+Pemeriksaan: **25 Oktober 2026, Asia/Jakarta**. **Pengguna telah menyetujui implementasi kualifikasi terlebih dahulu; implementasi ARENA belum dimulai.** Rulebook penyelenggara menjadi acuan utama; pemahaman atau usulan alur dalam percakapan dikoreksi apabila bertentangan dengan aturan.
 
 ## Sumber dan status versi
 
@@ -113,4 +113,4 @@ Perubahan teknis ARENA diperkirakan menyentuh generator world/model, bridge pose
 
 Sebelum implementasi, perubahan dimensi/scoring, dan demonstrasi akhir: buka lagi link rulebook dari beranda, periksa versi/tanggal isinya, status merge PR #25 dan head commit repositori. Jika sumber terbit berubah, bandingkan aturan/diagram dan revisi parameter serta tes sebelum menyatakan simulator sesuai versi baru. Simpan tahun, versi, commit, URL, tanggal pemeriksaan, serta status published/proposed pada bukti pengujian. Tidak ada monitoring latar belakang atau pembaruan otomatis yang dipasang pada tahap ini.
 
-**Status saat ini:** riset daring dan revisi dokumen selesai; source simulator, dependensi dan runtime tidak diubah. Implementasi tetap menunggu konfirmasi pengguna.
+**Perkembangan setelah perencanaan:** pengguna menyetujui implementasi kualifikasi terlebih dahulu. Hasilnya dicatat dalam [laporan kualifikasi](15-hasil-kualifikasi-autonomous.md). Rencana ARENA dan perubahan geometri usulan 2027 belum diimplementasikan.

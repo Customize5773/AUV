@@ -2,11 +2,11 @@
 
 Workspace SAUVC terpisah dalam repositori AUV. Package `sauvc_sim` menyediakan **Qualification Arena(s)** dan **The Arena / finals**, AUV latihan berbentuk kotak, dua kamera, odometri, dan perintah gerak ROS 2. Tidak memerlukan model dari internet atau workspace KKI.
 
-Acuan: [rulebook resmi](https://sauvc.org/rulebook/), **2026 v6.1.0**, diperiksa 22 Oktober 2026. Ini belum konfirmasi aturan 2027. [Diagram kualifikasi](../doc/sources/rulebook-images/arena-2026-qualifiers.png) dan [diagram final](../doc/sources/rulebook-images/arena-2026-finals.png) tersedia lokal. Diagram tidak berskala; koordinat properti dipilih untuk latihan, bukan hasil pengukuran piksel.
+Acuan: [rulebook resmi](https://sauvc.org/rulebook/), **2026 v6.1.0**, diperiksa ulang 25 Oktober 2026. [Usulan 2027](https://github.com/sauvc/rulebook/pull/25) masih terbuka; geometri simulator ini tetap edisi 2026. [Diagram kualifikasi](../doc/sources/rulebook-images/arena-2026-qualifiers.png) dan [diagram final](../doc/sources/rulebook-images/arena-2026-finals.png) tersedia lokal. Diagram tidak berskala; koordinat properti dipilih untuk latihan, bukan hasil pengukuran piksel.
 
 ## Menjalankan
 
-Prasyarat: ROS 2 Humble, Gazebo **Fortress / ignition-gazebo6**, `ros_gz_bridge`, `colcon`, dan Python 3.10. Pada Ubuntu 22.04 gunakan paket ROS yang sesuai dari instalasi setempat. Mesin ini memakai Ubuntu 24.04 dengan ROS Humble Python 3.10, sehingga semua perintah melalui wrapper berikut:
+Prasyarat: ROS 2 Humble, Gazebo **Fortress / ignition-gazebo6**, `ros_gz_bridge`, `colcon`, Python 3.10, compiler C++, `pkg-config`, dan header development Gazebo Fortress. Pada Ubuntu 22.04 gunakan paket ROS yang sesuai dari instalasi setempat. Mesin ini memakai Ubuntu 24.04 dengan ROS Humble Python 3.10, sehingga semua perintah melalui wrapper berikut:
 
 ```bash
 cd /home/rasya/AUV/ros2_ws
@@ -100,4 +100,55 @@ bash tools/ros.sh python tools/check_sim.py --arena finals --output evidence/fin
 
 Lima tes geometri memeriksa kedalaman permukaan collision, lebar bersih gerbang, zona/dimensi properti, drum terbuka, dan visual tanpa collision. Pemeriksaan runtime menunggu clock/odom/kamera, mengirim perintah menyelam/maju/berputar/berhenti, lalu menyimpan JSON, log dan frame PPM. Tanpa dukungan rendering dapat memakai `--no-cameras`, tetapi hasil tersebut tidak membuktikan kamera berfungsi.
 
-**Batas versi awal:** belum ada FSM autonomous SAUVC, deteksi objek, penilaian lomba/contact referee, randomisasi properti, akustik pinger, mekanisme pelepas/pengambil bola, atau integrasi executor HydroShips. Kualifikasi resmi memerlukan seluruh badan melewati gerbang, U-turn, lalu seluruh badan melewati gerbang kembali tanpa benturan/surfacing. Uji gerak singkat tidak membuktikan keberhasilan kualifikasi atau tugas final. Implementasi berikutnya dapat dimulai dari navigasi kualifikasi dengan kamera dan pengendali tugas terpisah.
+**Batas model:** belum ada dinamika thruster/drag/buoyancy, randomisasi properti, akustik pinger, mekanisme pelepas/pengambil bola, misi ARENA autonomous, atau integrasi executor HydroShips. Hasil kualifikasi pada model ideal tidak membuktikan kesiapan kendaraan fisik atau kepatuhan edisi 2027.
+
+
+## Kualifikasi autonomous
+
+```bash
+cd /home/rasya/AUV/ros2_ws
+bash tools/ros.sh build --symlink-install
+# GUI, kamera sebagai sumber alignment gate, jalur pertama
+bash tools/ros.sh launch sauvc_sim arena.launch.py autonomous:=true
+# Jalur kedua; yaw dalam radian, offset dalam meter
+bash tools/ros.sh launch sauvc_sim arena.launch.py autonomous:=true lane:=2 lateral_offset:=0.2 yaw:=0.174533
+# Pembanding berbasis koordinat ground truth, bukan navigasi visual
+bash tools/ros.sh launch sauvc_sim arena.launch.py autonomous:=true mode:=odom
+```
+
+Misi berjalan otomatis setelah clock, odometri, heartbeat kontak, pemeriksa dan kamera siap. AUV menyelam, mencari/mengarah ke gate, lewat seluruh badan, menjauh agar kedua tiang kembali masuk kamera setelah U-turn, lalu lewat kembali. Sesudah pemeriksa menyatakan pelintasan balik lengkap, AUV langsung naik vertikal dan berhenti. Waktu resmi kualifikasi dan surface penutup dicatat terpisah. `DONE` memerlukan surface serta perintah nol dan posisi stabil; `ABORT` terminal tanpa resume otomatis. Ctrl+C menutup semua proses milik launch.
+
+Mode `vision` memakai segmentasi oranye/struktur dua tiang dari frame nyata; tidak memerlukan YOLO atau OpenCV. Odometri tetap dipakai untuk kedalaman, putaran dan perjalanan pendek ketika gate sudah terlalu dekat untuk terlihat lengkap. Estimasi bidang gate pada fase tersebut berasal dari jarak/bearing citra terakhir. Mode `odom` menggunakan koordinat gate yang diketahui dan diberi label terpisah.
+
+Pemeriksa independen membaca odometri simulator dan kontak; envelope mencakup badan, nose/kamera, yaw/roll/pitch. Pelintasan pusat badan saja tidak cukup. Gerbang salah, keluar bukaan, kontak, muncul sebelum finish, atau balik tanpa U-turn tidak lulus. Sentuhan dinding pada start diberi pengecualian terbatas; kontak berikutnya gagal. Pengawas menjadi penulis kecepatan Gazebo saat autonomous, membatasi kecepatan dan mengirim nol saat perintah kedaluwarsa 0,5 s atau data sensor/pemeriksa macet 2 s wall clock. Arena manual tetap memerlukan perintah stop eksplisit seperti sebelumnya.
+
+| Topic tambahan | Tipe | Fungsi |
+| --- | --- | --- |
+| `/sauvc/mission/cmd_vel` | `geometry_msgs/msg/Twist` | Masukan controller ke pengawas |
+| `/sauvc/contacts` | `ros_gz_interfaces/msg/Contacts` | Kontak nyata dan heartbeat kosong sekitar 30 Hz |
+| `/sauvc/qualification/state` | `std_msgs/msg/String` | State controller |
+| `/sauvc/qualification/result` | `std_msgs/msg/String` | JSON putusan pemeriksa, waktu, surface, stop, alasan gagal |
+| `/sauvc/guard/fault` | `std_msgs/msg/String` | Alasan pengawas menghentikan perintah |
+
+Stock Contact system Fortress hanya menerbitkan ketika benturan. Plugin kecil `contact_monitor.cc` membaca komponen kontak fisika hull dan juga menerbitkan frame kosong agar kesiapan serta putusnya sensor dapat diuji. Wrapper membangunnya sebelum colcon; `.so` hasil build tidak disimpan di Git. Plugin wajib tersedia untuk kedua arena.
+
+Pada host campuran Ubuntu 24.04 / Fortress 22.04 ini, header Protobuf sistem 3.21 tidak cocok dengan binary Fortress ber-ABI 3.12. Header 3.12 diekstrak lokal ke `.native-deps/protobuf-3.12`; script memilih header tersebut dan `libprotobuf.so.23` yang sudah tersedia. Paket sistem tidak diganti. Pada Ubuntu 22.04 yang konsisten, header sistem dipakai langsung. Untuk menyiapkan ulang host campuran ini:
+
+```bash
+mkdir -p .native-deps/protobuf-3.12
+curl --fail --location https://archive.ubuntu.com/ubuntu/pool/main/p/protobuf/libprotobuf-dev_3.12.4-1ubuntu7.22.04.6_amd64.deb --output .native-deps/protobuf-3.12.deb
+dpkg-deb -x .native-deps/protobuf-3.12.deb .native-deps/protobuf-3.12
+```
+
+Uji lengkap membuka dan menutup simulator sendiri; hentikan launch lain pada domain yang sama dahulu:
+
+```bash
+bash tools/ros.sh python -m unittest discover -s src/sauvc_sim/test -v
+bash tools/ros.sh python tools/check_qualification.py --mode vision --output evidence/qualification-autonomous/vision.json
+bash tools/ros.sh python tools/check_qualification.py --mode odom --output evidence/qualification-autonomous/odom.json
+bash tools/ros.sh python tools/check_qualification.py --mode vision --lane 2 --lateral-offset=-0.2 --yaw=-0.174533 --output evidence/qualification-autonomous/offset.json
+bash tools/ros.sh python tools/check_qualification.py --fault command_loss --output evidence/qualification-autonomous/command-loss.json
+bash tools/ros.sh python tools/check_contacts.py
+```
+
+`--gui` membuka GUI pada pemeriksaan misi. `--fault camera_loss|odom_loss|contact_loss|clock_loss|command_loss` memutus penerimaan/penerbitan terkait setelah 8 s simulasi untuk menguji penghentian; tidak digunakan pada peluncuran normal. Pada skenario gangguan, `passed` pada laporan runner berarti **uji penghentian lulus**, sementara `mission_passed` harus false. Laporan menyimpan state, putusan, trajectory, perintah aktual, dan status shutdown; file pendamping `-controller.json` dan `-referee.json` memisahkan bukti keduanya.

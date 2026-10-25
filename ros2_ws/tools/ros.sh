@@ -20,6 +20,7 @@ export ROS_LOG_DIR="$task_ws/log/ros"
 mkdir -p "$ROS_LOG_DIR"
 if [[ "${1:-}" == build ]]; then
     shift
+    "$task_python" tools/build_contact_monitor.py
     exec "$task_python" /usr/bin/colcon --log-base log build \
         --base-paths src --build-base build --install-base install "$@"
 fi

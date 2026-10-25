@@ -112,7 +112,7 @@ def main():
             result['error'] = str(exc)
         finally:
             pub.publish(Twist())
-            os.killpg(process.pid, signal.SIGINT) if process.poll() is None else None
+            process.send_signal(signal.SIGINT) if process.poll() is None else None
             try:
                 process.wait(timeout=12)
             except subprocess.TimeoutExpired:
