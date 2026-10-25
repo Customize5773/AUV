@@ -20,6 +20,7 @@ def start(context):
     autonomous = LaunchConfiguration('autonomous').perform(context) == 'true'
     lane = int(LaunchConfiguration('lane').perform(context))
     mode = LaunchConfiguration('mode').perform(context)
+    perception = LaunchConfiguration('perception').perform(context) == 'true'
     if autonomous and (arena != 'qualification' or (mode == 'vision' and not cameras)):
         raise ValueError('autonomous requires qualification; vision requires cameras')
     directory = tempfile.TemporaryDirectory(prefix='sauvc-')
@@ -42,6 +43,9 @@ def start(context):
         # Let launch own both processes instead of the Ruby GUI/server fork wrapper.
         actions.append(ExecuteProcess(cmd=['ign', 'gazebo', '-g', '--force-version', '6', str(world)],
                                       output='screen', on_exit=Shutdown()))
+    if cameras and perception:
+        actions.append(Node(package='sauvc_sim', executable='perception',
+                            parameters=[{'arena': arena}], output='screen', on_exit=Shutdown()))
     if autonomous:
         params = {'lane': lane, 'mode': mode,
                   'speed_scale': float(LaunchConfiguration('speed_scale').perform(context)),
@@ -58,6 +62,7 @@ def generate_launch_description():
         DeclareLaunchArgument('arena', default_value='qualification', choices=['qualification', 'finals']),
         DeclareLaunchArgument('headless', default_value='false', choices=['true', 'false']),
         DeclareLaunchArgument('cameras', default_value='true', choices=['true', 'false']),
+        DeclareLaunchArgument('perception', default_value='true', choices=['true', 'false']),
         DeclareLaunchArgument('autonomous', default_value='false', choices=['true', 'false']),
         DeclareLaunchArgument('lane', default_value='1', choices=['1', '2']),
         DeclareLaunchArgument('mode', default_value='vision', choices=['vision', 'odom']),

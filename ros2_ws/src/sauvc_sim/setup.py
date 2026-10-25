@@ -17,6 +17,7 @@ setup(
         'qualification = sauvc_sim.runtime:mission_main',
         'qualification_referee = sauvc_sim.runtime:referee_main',
         'command_guard = sauvc_sim.runtime:guard_main',
+        'perception = sauvc_sim.perception:main',
     ]},
     maintainer='HydroShips team',
     maintainer_email='hydroships@example.invalid',

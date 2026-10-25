@@ -171,3 +171,37 @@ bash tools/ros.sh python tools/check_contacts.py
 `--gui` membuka GUI pada pemeriksaan misi. `--fault controller_freeze` pada runner benar-benar mengirim SIGSTOP ke proses controller; pengawas terpisah harus mendeteksi hilangnya perintah dan menghentikan AUV. Proses dilanjutkan kembali hanya untuk cleanup setelah pengujian. `--fault camera_loss|odom_loss|contact_loss|clock_loss|command_loss` memutus penerimaan/penerbitan terkait setelah 8 s simulasi untuk menguji penghentian; tidak digunakan pada peluncuran normal. Pada skenario gangguan, `passed` pada laporan runner berarti **uji penghentian lulus**, sementara `mission_passed` harus false. Laporan menyimpan state, putusan, trajectory, perintah aktual, verifikasi penyebab gangguan, dan status shutdown; file pendamping `-controller.json` dan `-referee.json` memisahkan bukti keduanya.
 
 Hasil implementasi dan batas pembuktiannya tercatat pada [laporan kualifikasi](../plan/15-hasil-kualifikasi-autonomous.md). Ringkasan lokal [verification.json](evidence/qualification-autonomous/verification.json) memuat 19 pemeriksaan runtime, termasuk enam misi visual nominal serta enam uji gangguan/pembekuan controller.
+
+## Deteksi gate, flare dan drum dari kamera
+
+Node `perception` aktif secara default ketika kamera aktif, pada arena qualification maupun finals. Node ini hanya membaca dua topic gambar; tidak membaca odometri, posisi properti atau ID objek world, dan tidak mengirim perintah gerak. `perception:=false` menonaktifkannya; `cameras:=false` juga tidak meluncurkan node persepsi.
+
+```bash
+cd /home/rasya/AUV/ros2_ws
+bash tools/ros.sh build --symlink-install
+bash tools/ros.sh launch sauvc_sim arena.launch.py arena:=finals
+# Terminal lain pada domain/partition yang sama
+bash tools/ros.sh topic echo /sauvc/perception/front --once
+bash tools/ros.sh topic echo /sauvc/perception/bottom --once
+```
+
+| Kamera | Label deteksi |
+| --- | --- |
+| Depan, qualification | `qualification_gate`: pasangan tiang oranye, memakai detektor gate kualifikasi yang sudah ada |
+| Depan, finals | `navigation_gate`: dua tiang berpenanda merah–hijau; `orange_flare`, `blue_flare`, `red_flare`, `yellow_flare`: warna dan bentuk tiang memanjang |
+| Bawah, finals | `blue_drum`, `red_drum`: kandidat daerah berwarna membulat; red drum dibedakan sebagai pembanding, tidak otomatis menjadi target payload |
+
+Topic `/sauvc/perception/front` dan `/sauvc/perception/bottom` bertipe `std_msgs/msg/String`, berisi JSON dengan `fresh`, `valid_image`, `stamp`, `frame_id`, dimensi gambar, `processing_ms` dan `detections`. Tiap objek memuat `label`, `bbox`, `center_px`, `error_normalized`, `bearing` dan `partial`. `bbox=[x_min,y_min,x_max,y_max]` memakai batas kanan/bawah eksklusif; error pusat citra dinormalisasi −1…+1, +x ke kanan dan +y ke bawah. `bearing` adalah sudut horizontal pada citra, bukan heading world. Pada kamera bawah arah perintah badan tetap membutuhkan transformasi kamera.
+
+Gate juga memuat `span_px` dan `distance_estimate_m`, estimasi proyeksi dari jarak antartiang model 1,55 m dan HFOV simulator 1,22173 rad. Ini bukan pengukuran kedalaman sensor. Pasangan marker harus memenuhi bentuk/overlap; satu tiang tidak dianggap gate. Untuk drum, citra yang terpotong batas frame, terlalu kecil, atau seluruh frame berwarna biru ditolak. Tidak ada confidence probabilistik yang dikarang: hasilnya kandidat warna/bentuk, bukan pengenal 3D yang sudah dikalibrasi.
+
+Jika gambar tidak diterima lebih dari 1 s wall clock, node menerbitkan `fresh=false`, `valid_image=false` dan `detections=[]`. Frame dengan format/buffer tidak valid juga mengosongkan deteksi. Konsumen harus memeriksa `fresh` dan `valid_image` sebelum memakai hasil.
+
+```bash
+# Alat uji membuka/menutup simulator sendiri; jangan jalankan arena lain pada domain sama
+bash tools/ros.sh python -m unittest discover -s src/sauvc_sim/test -v
+bash tools/ros.sh python tools/check_perception.py --arena finals --output evidence/perception/finals.json
+bash tools/ros.sh python tools/check_perception.py --arena qualification --output evidence/perception/qualification.json
+```
+
+Alat uji menempatkan AUV pada sudut pandang yang diketahui melalui service simulator, lalu memeriksa pesan deteksi dari frame kamera aktual. Koordinat tersebut hanya milik harness pengujian, tidak disalurkan ke detektor. Ini pengujian persepsi, bukan navigasi ARENA autonomous. JSON dan frame PPM disimpan lokal di `evidence/perception/`; [laporan deteksi kamera](../plan/16-hasil-deteksi-kamera.md) menjelaskan hasil dan gambar bukti. Runtime tetap hanya memerlukan NumPy yang sudah dipakai, tanpa OpenCV/YOLO atau model unduhan.
