@@ -70,6 +70,32 @@ class CameraModel:
         return dict(position_body_m=[origin[i]+depth*ray[i] for i in range(3)],
                     range_method=method)
 
+    def gate_position(self, obj, yaw):
+        """Body position from post rays and the pool gate plane's known X normal.
+
+        The plane's location is unknown. Its two post rays intersect it 1.55 m
+        apart along world Y; this resolves range even during an oblique approach.
+        """
+        span=obj.get('span_px',0.)
+        if obj.get('partial') or not math.isfinite(yaw) or not math.isfinite(span) or span<=0:
+            return None
+        u,v=obj['center_px']
+        rays=[self.ray((u+offset,v),'front')[0] for offset in (-span/2,span/2)]
+        c,s=math.cos(yaw),math.sin(yaw)
+        world=[(c*r[0]-s*r[1],s*r[0]+c*r[1]) for r in rays]
+        if world[0][0]*world[1][0]<=0 or min(abs(r[0]) for r in world)<.1:
+            return None
+        slope=abs(world[0][1]/world[0][0]-world[1][1]/world[1][0])
+        if slope<1e-6:
+            return None
+        dx=math.copysign(1.55/slope,world[0][0])
+        depths=[dx/r[0] for r in world]
+        if max(depths)>30:
+            return None
+        return [.32+sum(depths)/2,
+                sum(ray[1]*d for ray,d in zip(rays,depths))/2,
+                sum(ray[2]*d for ray,d in zip(rays,depths))/2]
+
 
 def to_world(point, pose):
     x,y,z,yaw = pose

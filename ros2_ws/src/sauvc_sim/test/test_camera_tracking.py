@@ -5,6 +5,29 @@ from sauvc_sim.tracking import Tracker
 
 
 class CameraTest(unittest.TestCase):
+    def gate_observation(self, pose):
+        model=CameraModel()
+        x,y,z,yaw=pose
+        pixels=[]
+        for post_y in (8.6-.775,8.6+.775):
+            dx,dy=16.-x,post_y-y
+            point=(dx*math.cos(yaw)+dy*math.sin(yaw),
+                   -dx*math.sin(yaw)+dy*math.cos(yaw),-.988-z)
+            pixels.append(model.pixel(point,'front'))
+        return dict(span_px=abs(pixels[0][0]-pixels[1][0]),partial=False,
+                    center_px=[sum(p[i] for p in pixels)/2 for i in (0,1)])
+
+    def test_gate_plane_projection_oblique_and_reverse(self):
+        model=CameraModel()
+        for pose in ((5.,6.9,-1.,-.25),(10.,7.3,-1.,.3),(19.,8.4,-1.,math.pi+.2)):
+            obj=self.gate_observation(pose)
+            corrected=to_world(model.gate_position(obj,pose[3]),pose)
+            self.assertAlmostEqual(corrected[0],16.,places=6)
+            self.assertAlmostEqual(corrected[1],8.6,places=6)
+        self.assertIsNone(model.gate_position(dict(obj,partial=True),0.))
+        self.assertIsNone(model.gate_position(dict(obj,span_px=0.),0.))
+        self.assertIsNone(model.gate_position(obj,math.pi/2))
+
     def test_image_pose_interpolates_turn_and_rejects_old_frames(self):
         poses=PoseHistory()
         poses.add(1.,(1.,0.,-1.,3.1))

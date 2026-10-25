@@ -1,9 +1,39 @@
+import math
 import unittest
 from sauvc_sim.arena_mission import ArenaController,valid_order
 from sauvc_sim.arena_referee import ArenaJudge
+from sauvc_sim.camera_geometry import CameraModel
 
 
 class ArenaMissionTest(unittest.TestCase):
+    def test_gate_mapping_corrects_short_oblique_range_before_crossing(self):
+        model=CameraModel()
+        pose=(10.,7.3,-1.,.3)
+        pixels=[]
+        for y in (8.6-.775,8.6+.775):
+            dx,dy=16.-pose[0],y-pose[1]
+            pixels.append(model.pixel((dx*math.cos(.3)+dy*math.sin(.3),
+                                     -dx*math.sin(.3)+dy*math.cos(.3),.012),'front'))
+        obj=dict(label='navigation_gate',confirmed=True,position_body_m=[5.,0.,0.],
+                 bbox=[200,180,340,300],partial=False,
+                 span_px=abs(pixels[0][0]-pixels[1][0]),
+                 center_px=[sum(p[i] for p in pixels)/2 for i in (0,1)])
+        packet=dict(fresh=True,valid_image=True,detections=[obj])
+        ctrl=ArenaController()
+        for _ in range(3): ctrl.observe(packet,pose)
+        self.assertAlmostEqual(ctrl.targets['navigation_gate'][0],16.,places=6)
+        self.assertAlmostEqual(ctrl.targets['navigation_gate'][1],8.6,places=6)
+        ctrl.started=1.;ctrl.state='NAVIGATE';ctrl.since=1.;ctrl.avoided=True
+        command=ctrl.command((16.233,8.6,-1.,0.),2.,{})
+        self.assertGreater(command[0],0.)
+        self.assertEqual(ctrl.state,'NAVIGATE')
+        ctrl.command((16.4,8.6,-1.,0.),3.,dict(navigation_passed=True))
+        self.assertEqual(ctrl.state,'CLEAR_GATE')
+        other=ArenaController()
+        obj['span_px']=20.
+        for _ in range(3): other.observe(packet,pose)
+        self.assertNotIn('navigation_gate',other.targets)
+
     def test_order_validation_and_camera_map_only_confirmed(self):
         self.assertEqual(valid_order('r-b-y'),['red_flare','blue_flare','yellow_flare'])
         for value in ('B-B-Y','B-R','B-R-Y-Z'):

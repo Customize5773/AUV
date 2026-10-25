@@ -220,6 +220,8 @@ Deteksi menambahkan `track_id`, `track_hits`, dan `confirmed` setelah tiga penga
 
 Kandidat yang cukup lengkap mendapat `position_body_m` dan `range_method`, dari ukuran antartiang gate 1,55 m, tinggi flare 0,8 m, diameter orange flare 0,15 m atau drum 0,6 m. Range gate mengasumsikan pandangan mendekati tegak lurus. Drum diproyeksikan ke pusat rim yang terlihat. Objek terpotong yang tidak mendukung estimasi tidak diberi posisi metrik. Tidak ada pose world properti yang dibaca detektor.
 
+Untuk Navigation, controller mengoreksi posisi gate memakai dua sinar tiang dan yaw pada timestamp gambar. Koreksi memakai orientasi bidang gate pada fixture kolam (normal world X), tanpa mengetahui lokasi bidangnya. Landmark gate baru diterima jika span tiang ≥10% lebar citra. Ini mencegah proyeksi miring mengunci posisi terlalu pendek dan membuat AUV berhenti sebelum belakang badan melintas. Nilai range pada JSON kamera tetap estimasi tegak lurus; koreksi bidang dilakukan di controller.
+
 Flare dengan tinggi citra <30 px tetap dapat diberi label, tetapi tidak dipakai untuk estimasi jarak. Controller memasangkan hasil kamera dengan interpolasi pose pada timestamp gambar (buffer sekitar 8 s, toleransi 50 ms di batas buffer), bukan pose saat callback diterima. Landmark statis baru memerlukan tiga estimasi posisi yang konsisten; pembaruan yang melompat >0,75 m ditolak. Jika satu warna terpecah menjadi beberapa komponen, kandidat yang paling sesuai dengan landmark dipilih, sehingga fragmen tidak menggeser target yang sudah diketahui.
 
 ## ARENA autonomous dari kamera

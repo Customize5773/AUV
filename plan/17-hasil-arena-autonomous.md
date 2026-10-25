@@ -2,11 +2,11 @@
 
 Tanggal: **25 Oktober 2026, Asia/Jakarta**. Lingkup: menyelesaikan ketahanan deteksi, tracking, proyeksi kamera dan integrasi misi Navigation → flare → blue drum pada **simulator** `/home/rasya/AUV/ros2_ws`.
 
-**Status jeda atas permintaan pengguna: implementasi tersedia, tetapi ARENA belum dinyatakan selesai/stabil.** Tidak ada proses uji sesi ini yang masih berjalan saat pemeriksaan jeda. Pada kode terakhir, `nominal-synced.json` (layout 0, B-R-Y, drum 1) dan `blue-four-fixed.json` (layout 1, R-Y-B, drum 4) lulus `COMPLETE`. Namun `alternate-synced.json` (layout 1, Y-B-R, drum 3) gagal saat Navigation dengan `mission_or_state_timeout`; hasil positif `alternate.json` di bawah berasal dari revisi sebelumnya.
+**Status akhir: perbaikan gate dan pekerjaan penerimaan laporan 17 selesai pada simulator untuk tiga skenario yang diuji.** Build serta 56 tes lulus. Ketiga misi nominal/alternatif mencapai `DONE` dengan referee `COMPLETE`: gate dilewati penuh, tiga bola flare jatuh sesuai urutan, payload menetap dalam blue drum, surface dan stop aktual. Ketiga simulator menutup bersih tanpa pemaksaan kill. Ringkasan hasil serta hash sumber tersedia dalam [verification.json](../ros2_ws/evidence/arena-autonomous/verification.json).
 
-Temuan terakhir: peta mengestimasi gate pada x≈15,033 m, sedangkan gate sebenarnya x=16 m. AUV berhenti pada x≈16,233 m sehingga belakang badan belum lewat sepenuhnya. Dugaan yang perlu diperbaiki adalah proyeksi gate pada pandangan miring dan penerimaan pembaruan landmark yang mengunci estimasi pendek. Penutupan simulator pada run gagal itu juga belum bersih. **Belum ada perbaikan gate tersebut yang diterapkan setelah permintaan jeda.**
+Masalah sebelum jeda: peta mengestimasi gate pada x≈15,033 m, sedangkan gate sebenarnya x=16 m. AUV berhenti pada x≈16,233 m sehingga belakang badan belum lewat sepenuhnya. Proyeksi dengan asumsi tegak lurus menghasilkan estimasi pendek pada pandangan miring, lalu filter landmark mengunci estimasi tersebut. Controller kini menghitung perpotongan dua sinar tiang menggunakan yaw gambar dan orientasi bidang gate kolam (normal world X), tanpa mengetahui posisi bidangnya. Landmark gate baru diterima saat span tiang ≥10% lebar citra. Referee tetap menentukan keberhasilan dari pelintasan seluruh badan, bukan dari tercapainya waypoint.
 
-Pekerjaan tersisa: perbaiki pendekatan/estimasi gate, ulangi regresi layout/urutan yang terdampak, selesaikan build serta ringkasan bukti akhir. `evidence/arena-autonomous/verification.json` belum dibuat; tautan ringkasan pada bagian bawah adalah keluaran yang masih harus diselesaikan. Bukti lain yang sudah lulus: 54 tes logika/geometri, 18 skenario kamera, 94 perturbasi, lima uji gangguan, uji fisika bola dan regresi kualifikasi (9,316 s start sampai surface).
+Bukti sebelumnya yang dipertahankan, tanpa dijalankan ulang pada perbaikan gate ini: 18 skenario kamera, 94 perturbasi, lima uji gangguan, uji fisika bola dan regresi kualifikasi (9,316 s start sampai surface). Perbaikan hanya menyentuh proyeksi/penerimaan landmark gate pada controller ARENA; perintah kualifikasi, detektor piksel, mekanisme fisika dan pengawas tidak diubah. Ini penerimaan pada fixture yang diuji, bukan jaminan untuk semua susunan arena atau kendaraan nyata.
 
 ## Acuan dan batas hasil
 
@@ -53,24 +53,26 @@ Preset latihan menggagalkan kontak gate, dasar, dinding atau drum oleh hull; ini
 
 ## Bukti pengujian
 
-- **54 tes logika/geometri lulus**, termasuk decode RGB/BGR/stride, deteksi warna/bentuk, clutter red drum di belakang gate, konfirmasi/expiry track, interpolasi yaw pada batas ±π, penolakan landmark melompat, alignment offset payload, penerimaan bola dan hasil terminal.
+- **56 tes logika/geometri lulus**, termasuk decode RGB/BGR/stride, deteksi warna/bentuk, clutter red drum di belakang gate, konfirmasi/expiry track, interpolasi yaw pada batas ±π, penolakan landmark melompat, alignment offset payload, penerimaan bola dan hasil terminal. Dua regresi tambahan mencakup koreksi gate miring/arah balik dan memastikan controller terus maju ketika belakang badan belum lewat.
 - **18 skenario kamera Gazebo lulus**, mencakup gate depan/balik, jauh/miring, empat warna flare, red/blue drum, posisi offset, satu tiang, citra kosong dan objek terpotong. JSON, raw image, anotasi dan `CameraInfo` dicocokkan melalui timestamp/header.
 - **94 pemeriksaan perturbasi frame lulus**: intensitas 55% dan 125%, gain kanal biru 85%, noise ±8, blur horizontal tiga piksel, serta penolakan gate/drum yang dioklusi/dipotong. Ini batas perturbasi yang diuji, bukan jaminan untuk semua pencahayaan/occlusion.
-- Pada sampel posisi terkontrol, galat proyeksi terbesar sekitar **0,118 m** pada gate miring. Range gate tetap mengasumsikan orientasi mendekati tegak lurus; angka tersebut bukan akurasi kamera nyata atau galat lokalisasi saat bergerak.
+- Pada 18 sampel awal, galat proyeksi terbesar sekitar **0,118 m** pada gate miring. Range pada JSON kamera tetap memakai asumsi tegak lurus. Reproyeksi empat frame gate Gazebo yang sama dengan koreksi bidang menghasilkan galat XY maksimum **0,0204 m**; pada frame gate miring galat XY sekitar **0,0053 m**. Ini pemeriksaan ulang piksel tersimpan, bukan empat run navigasi baru atau akurasi kamera nyata. Bukti: [gate-reprojection.json](../ros2_ws/evidence/arena-autonomous/final/gate-reprojection.json).
 - Uji fisika terpisah membuktikan bola tertahan stabil, bola flare jatuh setelah kontak dan payload menetap di dasar drum. Posisi AUV hanya diatur oleh harness pada uji fisika/kamera terpisah, bukan pada misi penuh.
 - Regresi kualifikasi `vision`, lane 1, `speed_scale=8` lulus `DONE`: **9,316 s** start sampai surface, **10,438 s** sampai stop pada satu run. Ini bukan median benchmark baru.
 
 Misi penuh dimulai dari starting zone tanpa teleport atau waypoint properti yang disuntikkan ke controller. Fixture alternatif menggeser gate, orange dan ketiga flare; warna drum biru juga ditukar.
 
-| Misi | Layout | Drum biru | Urutan | Kriteria |
+| Misi | Layout | Drum biru | Urutan | Hasil final |
 | --- | --- | --- | --- | --- |
-| Nominal | 0 | 1 | B-R-Y | Full gate, tiga bola jatuh, payload dalam blue drum, surface dan stop |
-| Alternatif | 1 | 3 | Y-B-R | Kriteria yang sama; red drum dilewati tanpa drop |
-| Regresi fragmen flare | 1 | 4 | R-Y-B | Kasus yang sempat gagal kini mencapai `COMPLETE` setelah perbaikan landmark/timestamp |
+| Nominal | 0 | 1 | B-R-Y | [Lulus COMPLETE](../ros2_ws/evidence/arena-autonomous/final/nominal-host.json); galat pusat payload 2,36 cm |
+| Alternatif yang gagal sebelum jeda | 1 | 3 | Y-B-R | [Lulus COMPLETE](../ros2_ws/evidence/arena-autonomous/final/alternate-host.json); galat pusat payload 2,47 cm |
+| Regresi fragmen flare | 1 | 4 | R-Y-B | [Lulus COMPLETE](../ros2_ws/evidence/arena-autonomous/final/blue-four-host.json); galat pusat payload 2,36 cm |
 
 Lima skenario gangguan kamera, perintah, odometri, kontak dan clock membuktikan `ABORT`, perintah nol dan posisi diam. Kehilangan perintah ditangani pengawas independen dengan timeout 0,5 s; data wajib macet ditangani dalam 2 s wall clock. Pengujian kamera terpisah juga memastikan JSON lama serta gambar anotasi dibersihkan ketika kamera berhenti. Alat uji menutup server melalui API sebelum cleanup untuk menghindari hang SIGINT Gazebo yang ditemukan pada salah satu percobaan awal.
 
-Ringkasan akhir, hash sumber dan tautan bukti **belum difinalisasi**; target keluaran adalah `ros2_ws/evidence/arena-autonomous/verification.json`. Bukti lokal berada di `ros2_ws/evidence/`, diabaikan Git; kode dan alat uji disimpan dalam repositori. Percobaan gagal awal tetap disimpan agar tidak tercampur dengan hasil penerimaan akhir.
+Ringkasan akhir, hash 35 file sumber/alat uji dan tautan bukti telah difinalisasi dalam [verification.json](../ros2_ws/evidence/arena-autonomous/verification.json). Log build ada pada [final/build.log](../ros2_ws/evidence/arena-autonomous/final/build.log). Bukti lokal berada di `ros2_ws/evidence/`, diabaikan Git; kode dan alat uji disimpan dalam repositori. Percobaan gagal awal tetap disimpan agar tidak tercampur dengan hasil penerimaan akhir.
+
+Uji penerimaan dijalankan pada host dengan ROS domain dan Gazebo partition terpisah karena sandbox menolak socket UDP lokal DDS/Gazebo. Percobaan sandbox yang gagal membuka transport (`final/alternate.json`) bukan kegagalan navigasi dan tidak termasuk tiga run penerimaan di atas. Saat dijalankan dari terminal lokal biasa, gunakan wrapper workspace seperti perintah berikut.
 
 ## Menjalankan dan status
 

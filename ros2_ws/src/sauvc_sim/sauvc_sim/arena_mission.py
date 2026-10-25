@@ -1,6 +1,6 @@
 """Visual ARENA mission. The target map contains camera estimates, never prop poses."""
 import math
-from sauvc_sim.camera_geometry import to_world
+from sauvc_sim.camera_geometry import CameraModel, to_world
 from sauvc_sim.referee import wrap
 
 
@@ -38,12 +38,18 @@ class ArenaController:
     def observe(self, packet, pose):
         if not packet.get('fresh') or not packet.get('valid_image'):
             return
+        camera=CameraModel(packet.get('width',640),packet.get('height',480))
         candidates={}
         for obj in packet['detections']:
             if not obj.get('confirmed') or 'position_body_m' not in obj:
                 continue
             label = obj['label']
-            point = to_world(obj['position_body_m'],pose)
+            body=obj['position_body_m']
+            if label=='navigation_gate':
+                if obj.get('span_px',0)<camera.width*.1: continue
+                body=camera.gate_position(obj,pose[3])
+                if body is None: continue
+            point = to_world(body,pose)
             if label.endswith('_flare') and label != 'orange_flare' and obj['position_body_m'][0] < 1:
                 continue
             if not all(math.isfinite(v) for v in point) or not (0<point[0]<25 and 0<point[1]<16):
