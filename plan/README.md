@@ -37,3 +37,5 @@ Sumber aturan dan gambar arena tersedia dalam [riset SAUVC](../doc/README.md) da
 Urutan kerja yang diusulkan: **identifikasi perangkat → BlueOS dan komunikasi → kamera → kendali dasar → navigasi → tugas tambahan → latihan terintegrasi**. Beberapa eksperimen persepsi dapat berjalan memakai rekaman saat hardware gerak belum siap.
 
 [19 — Penilaian ARENA dan rancangan servo payload](19-penilaian-arena-dan-rancangan-servo.md): ledger skor, bukti fisika bola dan rancangan mekanik awal; tanpa aktivasi hardware.
+
+[20 — Pinger, pickup dan servo simulator](20-pinger-pickup-dan-servo-simulator.md): mode ARENA tambahan, TDOA hidrofon virtual, pickup berbasis kontak dan retensi bola; mekanisme hardware masih rancangan.

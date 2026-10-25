@@ -288,3 +288,5 @@ Alat uji membuka/menutup simulator sendiri; gunakan domain/partition terpisah bi
 Hasil dan batas pengujian terintegrasi dicatat dalam [laporan ARENA autonomous](../plan/17-hasil-arena-autonomous.md).
 
 Penilaian ARENA kini tersedia sebagai `score` pada `/sauvc/arena/result`: poin tugas, bonus urutan/waktu/surface, penalti dan total attempt. Kebijakan abort latihan tetap lebih ketat daripada rulebook. Rincian, keterbatasan tugas pinger/pickup dan konsep servo payload ada pada [laporan 19](../plan/19-penilaian-arena-dan-rancangan-servo.md).
+
+Mode tambahan ARENA: `bash tools/ros.sh launch sauvc_sim arena.launch.py arena:=finals autonomous:=true extended:=true`. Mode ini memakai pinger virtual untuk red drum, kemudian melintasi gate lagi dan mengambil serta mempertahankan bola yang sama sampai surface. `pinger_drum:=0` memilih red drum pertama; indeks 1–4 memilih red drum tertentu dan harus berbeda dari `blue_drum`. Mode biasa tanpa `extended` tetap memilih blue drum. Bukti serta batas model aktuator/acoustics ada pada [laporan 20](../plan/20-pinger-pickup-dan-servo-simulator.md).

@@ -19,6 +19,8 @@ from sauvc_sim.runtime import STATUS_QOS
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output',type=Path,required=True)
+    parser.add_argument('--extended',action='store_true')
+    parser.add_argument('--pinger-drum',type=int,choices=[0,1,2,3,4],default=0)
     parser.add_argument('--order',default='B-R-Y')
     parser.add_argument('--scene-variant',type=int,choices=[0,1],default=0)
     parser.add_argument('--blue-drum',type=int,choices=[1,2,3,4],default=1)
@@ -27,6 +29,11 @@ def main():
     rclpy.init();node=rclpy.create_node('arena_check')
     observed={'state':'','result':{},'trajectory':[],'physics':[],'commands':[]}
     tracks={}
+    acoustic={'samples':0,'contract_valid':True}
+    def ping(m):
+        p=json.loads(m.data);acoustic['samples']+=1
+        acoustic['contract_valid'] &= set(p)=={'time','frequency_hz','tdoa_s'} and len(p['tdoa_s'])==4
+    node.create_subscription(String,'/sauvc/acoustics',ping,10)
     def result(m): observed['result']=json.loads(m.data)
     def state(m): observed['state']=m.data
     def physics(m): observed['physics'].append(json.loads(m.data))
@@ -50,11 +57,13 @@ def main():
     for camera in ('front','bottom'):
         node.create_subscription(String,'/sauvc/perception/'+camera,perception,10)
     report={'passed':False,'order':args.order,'fault':args.fault,
-            'scene_variant':args.scene_variant,'blue_drum':args.blue_drum}
+            'scene_variant':args.scene_variant,'blue_drum':args.blue_drum,
+            'extended':args.extended,'pinger_drum':args.pinger_drum}
     with args.output.with_suffix('.log').open('w') as log:
         process=subprocess.Popen(['bash','tools/ros.sh','launch','sauvc_sim','arena.launch.py',
             'arena:=finals','autonomous:=true','headless:=true',f'flare_order:={args.order}',
             f'scene_variant:={args.scene_variant}',f'blue_drum:={args.blue_drum}',
+            f'extended:={str(args.extended).lower()}',f'pinger_drum:={args.pinger_drum}',
             f'fault:={args.fault}',f'output:={args.output.with_suffix("")}'],
             stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
         try:
@@ -88,6 +97,12 @@ def main():
         finally:
             if process.poll() is None:
                 try:
+                    pause=subprocess.run(['ign','service','-s','/world/sauvc_finals/control',
+                        '--reqtype','ignition.msgs.WorldControl','--reptype','ignition.msgs.Boolean',
+                        '--timeout','3000','--req','pause: true'],capture_output=True,text=True,timeout=5)
+                    report['paused_before_shutdown']='data: true' in pause.stdout
+                    drain=time.monotonic()+.15
+                    while time.monotonic()<drain:rclpy.spin_once(node,timeout_sec=.02)
                     stop=subprocess.run(['ign','service','-s','/server_control',
                         '--reqtype','ignition.msgs.ServerControl','--reptype','ignition.msgs.Boolean',
                         '--timeout','3000','--req','stop: true'],capture_output=True,text=True,timeout=5)
@@ -105,9 +120,15 @@ def main():
     report['passed']=report['passed'] and report['shutdown_clean']
     report['tracking']=tracks
     if args.fault=='none':
-        required={'navigation_gate','orange_flare','blue_flare','red_flare','yellow_flare','blue_drum'}
+        required={'navigation_gate','orange_flare','blue_flare','red_flare','yellow_flare'} | (set() if args.extended else {'blue_drum'})
         report['confirmed_all_targets']=required<=tracks.keys()
         report['passed']=report['passed'] and report['confirmed_all_targets']
+    if args.extended and args.fault=='none':
+        report['acoustics']=acoustic
+        report['physical_retention']=bool(observed['physics']) and observed['physics'][-1].get('payload_attached',False)
+        score=observed['result'].get('score',{})
+        report['extended_proof']=report['physical_retention'] and acoustic['samples']>20 and acoustic['contract_valid'] and score.get('target_acquisition')==50 and score.get('target_reacquisition')==60
+        report['passed']=report['passed'] and report['extended_proof']
     report.update(observed)
     args.output.write_text(json.dumps(report,indent=2)+'\n')
     print(json.dumps({k:v for k,v in report.items() if k not in ('trajectory','commands','physics')},indent=2))

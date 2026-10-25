@@ -35,7 +35,9 @@ def start(context):
                                 float(LaunchConfiguration('yaw').perform(context)),
                                 int(LaunchConfiguration('scene_variant').perform(context)),
                                 int(LaunchConfiguration('blue_drum').perform(context)),physical,
-                                LaunchConfiguration('fault').perform(context)))
+                                LaunchConfiguration('fault').perform(context),
+                                LaunchConfiguration('extended').perform(context)=='true',
+                                int(LaunchConfiguration('pinger_drum').perform(context))))
     actions = [
         RegisterEventHandler(OnShutdown(on_shutdown=[
             OpaqueFunction(function=lambda context: directory.cleanup()),
@@ -69,13 +71,15 @@ def start(context):
         if arena == 'finals':
             params={'mission':'finals','output':LaunchConfiguration('output').perform(context),
                     'flare_order':LaunchConfiguration('flare_order').perform(context),
+                    'extended':LaunchConfiguration('extended').perform(context)=='true',
                     'fault':LaunchConfiguration('fault').perform(context)}
             executables=('arena_referee','command_guard','arena_mission')
         for executable in executables:
             node_params=dict(params)
             if executable=='arena_referee':
                 node_params.update(scene_variant=int(LaunchConfiguration('scene_variant').perform(context)),
-                                   blue_drum=int(LaunchConfiguration('blue_drum').perform(context)))
+                                   blue_drum=int(LaunchConfiguration('blue_drum').perform(context)),
+                                   pinger_drum=int(LaunchConfiguration('pinger_drum').perform(context)))
             actions.append(Node(package='sauvc_sim', executable=executable,
                                 parameters=[node_params], output='screen', on_exit=Shutdown()))
     return actions
@@ -95,6 +99,8 @@ def generate_launch_description():
         DeclareLaunchArgument('lateral_offset', default_value='0.0'),
         DeclareLaunchArgument('yaw', default_value='0.0'),
         DeclareLaunchArgument('output', default_value=''),
+        DeclareLaunchArgument('extended',default_value='false',choices=['true','false']),
+        DeclareLaunchArgument('pinger_drum',default_value='0',choices=['0','1','2','3','4']),
         DeclareLaunchArgument('flare_order', default_value='B-R-Y'),
         DeclareLaunchArgument('scene_variant', default_value='0',choices=['0','1']),
         DeclareLaunchArgument('blue_drum', default_value='1',choices=['1','2','3','4']),

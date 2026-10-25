@@ -8,12 +8,20 @@ from sauvc_sim.arena_scoring import ArenaScore
 
 
 class ArenaJudge:
-    def __init__(self, order='B-R-Y', scene_variant=0, blue_drum=1):
+    def __init__(self, order='B-R-Y', scene_variant=0, blue_drum=1, extended=False, pinger_drum=0):
         self.order=valid_order(order)
         self.gate_y=layout(scene_variant)['gate_y']
         if blue_drum not in (1,2,3,4): raise ValueError('invalid blue drum index')
         self.blue_drum=blue_drum-1
-        self.score=ArenaScore(self.order,self.blue_drum)
+        self.extended=extended
+        if pinger_drum==0:pinger_drum=next(i for i in range(1,5) if i!=blue_drum)
+        self.score=ArenaScore(self.order,self.blue_drum,pinger_drum-1 if extended else None)
+        self.payload_acquired=False
+        self.payload_grasped=False
+        self.payload_retrieved=False
+        self.grasp_since=None
+        self.gate_side=None
+        self.crossing_seen=False
         self.acquisition_since=None
         self.acquisition_candidate=None
         self.phase='START'
@@ -50,6 +58,18 @@ class ArenaJudge:
         if not all(math.isfinite(v) for v in (*pose,t)):
             self.fail('nonfinite_pose',t);return
         lo,hi,yl,yh,zl,zh=envelope(pose)
+        if self.extended:
+            # Include the permanently deployed capture tool in the vehicle envelope.
+            roll,pitch=pose[3:5] if len(pose)==6 else (0.,0.)
+            cr,sr,cp,sp=math.cos(roll),math.sin(roll),math.cos(pitch),math.sin(pitch)
+            cy,sy=math.cos(pose[-1]),math.sin(pose[-1])
+            for a in (-.24,-.16):
+                for b in (-.04,.04):
+                    for d in (-.459,-.41):
+                        bx,by,bz=a,b*cr-d*sr,b*sr+d*cr
+                        bx,bz=bx*cp+bz*sp,-bx*sp+bz*cp
+                        px,py,pz=pose[0]+bx*cy-by*sy,pose[1]+bx*sy+by*cy,pose[2]+bz
+                        lo,hi,yl,yh,zl,zh=min(lo,px),max(hi,px),min(yl,py),max(yh,py),min(zl,pz),max(zh,pz)
         kinds=set()
         for contact in contacts:
             if 'navigation_gate' in contact: kinds.add('gate')
@@ -76,7 +96,8 @@ class ArenaJudge:
                 self.phase='RUNNING';self.event('UNDERWATER',t)
         elif zh>=0:
             self.score.finish(t,'surface')
-            if not (self.navigation and len(self.fallen)==3 and self.payload_in_blue):
+            if not (self.navigation and len(self.fallen)==3 and
+                    (self.payload_acquired and self.payload_retrieved if self.extended else self.payload_in_blue)):
                 self.fail('premature_surface',t);return
             if not self.surface:
                 self.surface=True;self.event('SURFACE',t)
@@ -90,9 +111,19 @@ class ArenaJudge:
                     self.contact_times.setdefault(label,t)
             if any(k in contact for k in ('wall_','floor_','navigation_gate','drum_')):
                 self.fail('training_contact:'+contact,t);return
-        if not self.navigation and lo<=16.025 and hi>=15.975:
+        if (self.extended or not self.navigation) and lo<=16.025 and hi>=15.975:
             if yl<=self.gate_y-.75 or yh>=self.gate_y+.75 or zl<=floor_z(16) or zh>=floor_z(16)+1:
-                self.fail('outside_navigation_opening',t);return
+                if not self.navigation:
+                    self.fail('outside_navigation_opening',t);return
+                self.crossing_seen=False
+            else:self.crossing_seen=True
+        side=1 if lo>16.025 else -1 if hi<15.975 else None
+        if side is not None:
+            if self.gate_side is not None and side!=self.gate_side and self.crossing_seen and self.score.acquisition is not None:
+                self.score.award('navigation',t)
+                self.event('REACQUISITION_FULL_CROSSING',t)
+            if side!=self.gate_side:self.crossing_seen=False
+            self.gate_side=side
         if not self.navigation and lo>16.025:
             if abs(wrap(pose[-1]))>math.pi/3:
                 self.fail('navigation_direction',t);return
@@ -134,6 +165,24 @@ class ArenaJudge:
             self.acquisition_candidate=drum;self.acquisition_since=t if drum is not None else None
         if drum is not None and self.acquisition_since is not None and t-self.acquisition_since>.5:
             self.score.award('acquisition',t,ball_id='payload',drum=drum)
+            self.payload_acquired=self.score.acquisition is not None
+        if self.extended and self.previous is not None:
+            pose=self.previous;yaw=pose[-1]
+            point=(pose[0]-.2*math.cos(yaw),pose[1]-.2*math.sin(yaw),pose[2]-.45)
+            attached=bool(data.get('payload_attached')) and math.dist((x,y,z),point)<.075
+            self.payload_grasped=attached and self.score.retrieval_crossing
+            if self.payload_grasped:
+                if self.grasp_since is None:
+                    self.grasp_since=t;self.event('PAYLOAD_GRASPED',t,position=[x,y,z])
+                if t-self.grasp_since>.5 and not self.payload_retrieved:
+                    self.payload_retrieved=True
+                    self.score.award('retrieval',t,ball_id='payload',held=True)
+            else:
+                self.grasp_since=None
+                if self.payload_retrieved:
+                    self.event('PAYLOAD_RETENTION_LOST',t)
+                    self.score.award('retrieval',t,ball_id='payload',held=False)
+                self.payload_retrieved=False
         if drum is not None and self.first_drum is None:
             self.first_drum=drum;self.event('FIRST_PAYLOAD_INSIDE_DRUM',t,drum=drum+1,position=[x,y,z])
         if drum==self.blue_drum and self.first_drum==self.blue_drum and self.navigation and len(self.fallen)==3:
@@ -144,9 +193,11 @@ class ArenaJudge:
             self.inside_since=None
 
     def result(self):
-        return dict(score=self.score.result(),scoring_policy='strict_training_abort',phase=self.phase,reason=self.reason,navigation_passed=self.navigation,
+        return dict(payload_acquired=self.payload_acquired,payload_grasped=self.payload_grasped,
+                    payload_retrieved=self.payload_retrieved,reacquisition_crossed=self.score.retrieval_crossing,
+                    score=self.score.result(),scoring_policy='strict_training_abort',phase=self.phase,reason=self.reason,navigation_passed=self.navigation,
                     fallen_flares=self.fallen,payload_in_blue=self.payload_in_blue,
                     surface_completed=self.surface,stopped=self.stopped,
                     passed=self.phase!='FAILED' and self.navigation and len(self.fallen)==3
-                           and self.payload_in_blue and self.surface and self.stopped,
+                           and (self.payload_acquired and self.payload_retrieved if self.extended else self.payload_in_blue) and self.surface and self.stopped,
                     events=self.events)
