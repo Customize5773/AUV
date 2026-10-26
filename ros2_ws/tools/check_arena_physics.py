@@ -12,6 +12,7 @@ from std_msgs.msg import String,Bool
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
+    p.add_argument('--edition',choices=['2026','2027'],default='2027')
     p.add_argument('--extended',action='store_true')
     p.add_argument('--output',type=Path,required=True)
     args=p.parse_args();args.output.parent.mkdir(parents=True,exist_ok=True)
@@ -20,7 +21,11 @@ def main():
     node.create_subscription(String,'/sauvc/arena/physics',lambda m:samples.append(json.loads(m.data)),10)
     grip=node.create_publisher(Bool,'/sauvc/payload/grip',10)
     release=node.create_publisher(Bool,'/sauvc/payload/release',10)
-    report={'passed':False}
+    report={'passed':False,'edition':args.edition}
+    modern=args.edition=='2027'
+    drum_x,drum_y=(21.,22.) if modern else (24.,12.5)
+    floor=-2. if modern else -1.232
+    flare_z=-1.17865 if modern else -.73065
     def until(condition,seconds):
         end=time.monotonic()+seconds
         while time.monotonic()<end:
@@ -35,27 +40,27 @@ def main():
         if 'data: true' not in r.stdout: raise RuntimeError(r.stdout+r.stderr)
     with args.output.with_suffix('.log').open('w') as log:
         process=subprocess.Popen(['bash','tools/ros.sh','launch','sauvc_sim','arena.launch.py',
-                                 'arena:=finals','headless:=true','cameras:=false',f'extended:={str(args.extended).lower()}'],
+                                 'arena:=finals',f'edition:={args.edition}','headless:=true','cameras:=false',f'extended:={str(args.extended).lower()}'],
                                  stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
         try:
             if not until(lambda: samples and samples[-1]['time']>3,30): raise RuntimeError('no physics stream')
             balls=samples[-1]['balls']
-            report['held_balls_stable']=abs(balls['blue_flare']['position'][2]+.73065)<.005 and abs(balls['payload']['position'][2]+.23)<.005
-            move(10.71,11.,-1.)
+            report['held_balls_stable']=abs(balls['blue_flare']['position'][2]-flare_z)<.005 and abs(balls['payload']['position'][2]+.23)<.005
+            move(20.71,16.5,-1.45) if modern else move(10.71,11.,-1.)
             report['flare_ball_physically_fell']=until(lambda: samples[-1]['balls']['blue_flare']['released'] and samples[-1]['balls']['blue_flare']['position'][2]<-1.,5)
-            move(23.8,12.5,-.3)
-            until(lambda: abs(samples[-1]['balls']['payload']['position'][0]-24)<.01,3)
+            move(drum_x-.2,drum_y,-.3)
+            until(lambda: abs(samples[-1]['balls']['payload']['position'][0]-drum_x)<.01,3)
             release.publish(Bool(data=True))
             def settled():
                 recent=[s for s in samples if s['time']>=samples[-1]['time']-.6]
                 return (len(recent)>8 and recent[-1]['time']-recent[0]['time']>.5 and
                         all(s['balls']['payload']['released'] and
-                            abs(s['balls']['payload']['position'][0]-24)<.05 and
-                            abs(s['balls']['payload']['position'][1]-12.5)<.05 and
-                            -1.2<s['balls']['payload']['position'][2]<-1.15 for s in recent))
+                            abs(s['balls']['payload']['position'][0]-drum_x)<.05 and
+                            abs(s['balls']['payload']['position'][1]-drum_y)<.05 and
+                            floor+.03<s['balls']['payload']['position'][2]<floor+.08 for s in recent))
             report['payload_physically_settled']=until(settled,7)
             before=samples[-1]['balls']['payload']['position']
-            move(22.,12.5,-.3)
+            move(drum_x-2.,drum_y,-.3)
             release.publish(Bool(data=True))
             start=samples[-1]['time']
             until(lambda:samples[-1]['time']>start+1,4)
@@ -65,9 +70,9 @@ def main():
                 start=samples[-1]['time']
                 until(lambda:samples[-1]['time']>start+.2,3)
                 report['grip_miss_not_attached']=not samples[-1].get('payload_attached',False)
-                move(24.2,12.5,-.74)
+                move(drum_x+.2,drum_y,floor+.49)
                 report['contact_pickup_attached']=until(lambda:samples[-1].get('payload_attached',False),5)
-                move(24.2,12.5,-.4)
+                move(drum_x+.2,drum_y,-.4)
                 start=samples[-1]['time']
                 until(lambda:samples[-1]['time']>start+1,4)
                 pos=samples[-1]['balls']['payload']['position']

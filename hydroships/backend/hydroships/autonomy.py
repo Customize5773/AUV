@@ -45,6 +45,7 @@ class Autonomy:
         self.stopping = False
         self.domain = int(os.environ.get('HYDROSHIPS_ROS_DOMAIN_ID', '0'))
         self.setup = Path(os.environ.get('HYDROSHIPS_ROS_SETUP', '/opt/ros/humble/setup.bash'))
+        self.python = Path(os.environ.get('HYDROSHIPS_ROS_PYTHON','/usr/bin/python3'))
         self.test_tasks = os.environ.get('HYDROSHIPS_ROS_TEST_TASKS', '1') == '1'
         self._interrupt('Layanan dimulai ulang; eksekusi sebelumnya tidak dilanjutkan.')
 
@@ -85,10 +86,10 @@ class Autonomy:
             self.status = 'starting'; self.error = None; self.received = None; self.ros = None; self.signature = None
             env = dict(os.environ, PYTHONNOUSERSITE='1', ROS_DOMAIN_ID=str(self.domain))
             # Source only the administrator-configured ROS setup; arguments never become shell code.
-            command = 'source "$1" && export PYTHONPATH="$2${PYTHONPATH:+:$PYTHONPATH}" && exec /usr/bin/python3 -m auv2027_autonomy.ros --console "$3"'
+            command = 'source "$1" && export PYTHONPATH="$2${PYTHONPATH:+:$PYTHONPATH}" && exec "$4" -m auv2027_autonomy.ros --console "$3"'
             self.process = await asyncio.create_subprocess_exec(
                 '/bin/bash', '--noprofile', '--norc', '-c', command, 'hydroships-ros', str(self.setup),
-                str(ROOT / 'ros2_ws/src/auv2027_autonomy'), '--test-tasks' if self.test_tasks else '--external-tasks', env=env, start_new_session=True,
+                str(ROOT / 'ros2_ws/src/auv2027_autonomy'), '--test-tasks' if self.test_tasks else '--external-tasks', str(self.python), env=env, start_new_session=True,
                 stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
                 limit=131072)
             self.stderr = asyncio.create_task(self._read_errors(self.process))
@@ -103,6 +104,7 @@ class Autonomy:
                 snapshot = self.vehicle_snapshot()
                 data = {key: snapshot[key] for key in ('session', 'status', 'connection', 'identity',
                         'heartbeat_age', 'fields', 'parameters', 'received')}
+                if 'propulsion' in snapshot:data['propulsion']=snapshot['propulsion']
                 packet = {'kind': 'vehicle', 'data': {'schema_version': 1, 'captured_at': time.time(), **data}}
                 process.stdin.write((json.dumps(packet, allow_nan=False) + '\n').encode())
                 await asyncio.wait_for(process.stdin.drain(), 2)

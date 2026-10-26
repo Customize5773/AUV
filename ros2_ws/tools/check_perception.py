@@ -22,6 +22,7 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--arena',choices=['qualification','finals'],default='finals')
     parser.add_argument('--output',type=Path,required=True)
+    parser.add_argument('--edition',choices=['2026','2027'],default='2027')
     parser.add_argument('--robustness',action='store_true')
     args=parser.parse_args(); args.output.parent.mkdir(parents=True,exist_ok=True)
     rclpy.init(); node=rclpy.create_node('perception_check')
@@ -98,9 +99,39 @@ def main():
     else:
         cases=[('qualification-gate','front',(.3,4,-.6,0),{'qualification_gate'},
                 {'orange_flare','navigation_gate'})]
+    if args.edition=='2027':
+        from sauvc_sim.rules2027 import to_world as world_pose
+        if args.arena=='finals':
+            cases=[
+                ('navigation-gate','front',(9.7,8,-1.1,0),{'navigation_gate'},set()),
+                ('orange-flare','front',(3,8,-1.2,0),{'orange_flare'},set()),
+                ('blue-flare','front',(14,20.4,-1.5,.2),{'blue_flare'},set()),
+                ('red-flare','front',(15.5,14,-1.5,0),{'red_flare'},set()),
+                ('yellow-flare','front',(13.7,6,-1.5,0),{'yellow_flare'},set()),
+                ('reverse-gate','front',(15.7,8,-1.1,math.pi),{'navigation_gate'},set()),
+                ('single-post','front',(10.7,8.7,-1.1,0),set(),{'navigation_gate'}),
+                ('empty-bottom','bottom',(19,8,-.6,0),set(),{'blue_drum','red_drum'}),
+                ('red-drum','bottom',(22,19,-.3,0),{'red_drum'},{'blue_drum'}),
+                ('blue-drum','bottom',(22,21,-.3,0),{'blue_drum'},{'red_drum'}),
+                ('surfacing-square','front',(11,31,-.6,math.pi),{'surfacing_square'},set()),
+            ]
+            if args.robustness:
+                cases += [
+                    ('gate-far','front',(6.2,8,-1.1,0),{'navigation_gate'},set()),
+                    ('gate-angle','front',(8.7,7,-1.1,.2),{'navigation_gate'},set()),
+                    ('gate-cropped','front',(11.8,8,-1.1,0),set(),{'navigation_gate'}),
+                    ('blue-flare-far','front',(11.5,20,-1.5,.2),{'blue_flare'},set()),
+                    ('blue-flare-angle','front',(14,21.6,-1.5,-.2),{'blue_flare'},set()),
+                    ('drum-high','bottom',(22,21,-.12,0),{'blue_drum'},{'red_drum'}),
+                    ('drum-offset','bottom',(21.97,20.975,-.12,0),{'blue_drum'},{'red_drum'}),
+                    ('drum-cropped','bottom',(22,21,-1.5,0),set(),{'blue_drum','red_drum'}),
+                ]
+            cases=[(n,c,world_pose(*p),e,f) for n,c,p,e,f in cases]
+        else:cases=[('qualification-gate','front',(.3,3.5,-.6,0),{'qualification_gate'},{'orange_flare','navigation_gate'})]
+    report['edition']=args.edition
     with args.output.with_suffix('.log').open('w') as log:
         process=subprocess.Popen(['bash','tools/ros.sh','launch','sauvc_sim','arena.launch.py',
-                    f'arena:={args.arena}','headless:=true','perception:=true'],
+                    f'arena:={args.arena}',f'edition:={args.edition}','headless:=true','perception:=true'],
                     stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
         try:
             if not until(lambda: pose is not None and all(c in latest and c in frames for c in ('front','bottom')),40):
@@ -157,6 +188,14 @@ def main():
                        'yellow_flare':(12.,4.,-1.584+.4),
                        'blue_drum':(24.,12.5,-1.232+.32),
                        'red_drum':(24.,9.5,-1.232+.32)}
+                if args.edition=='2027':
+                    if args.arena=='finals':
+                        known={k:world_pose(*v,0)[:3] for k,v in {
+                            'navigation_gate':(12.7,8.,-1.25),'orange_flare':(6.,8.,-1.25),
+                            'blue_flare':(16.5,21.,-1.6),'red_flare':(18.,14.,-1.6),
+                            'yellow_flare':(16.2,6.,-1.6),'blue_drum':(22.,21.,-1.68),
+                            'red_drum':(22.,19.,-1.68)}.items()}
+                    else:known={'qualification_gate':(10.,3.5,-.5)}
                 errors={}
                 for obj in result.get('detections',[]):
                     label=obj['label']

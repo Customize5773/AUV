@@ -20,6 +20,7 @@ from sauvc_sim.arena_referee import ArenaJudge
 from sauvc_sim.runtime import STATUS_QOS, values
 from sauvc_sim.camera_geometry import PoseHistory
 from sauvc_sim.acoustics import AcousticTracker
+from sauvc_sim.rules2027 import to_local
 
 
 class ArenaRuntime(Node):
@@ -33,17 +34,19 @@ class ArenaRuntime(Node):
         self.fault=self.get_parameter('fault').value
         self.order=self.get_parameter('flare_order').value
         valid_order(self.order)
+        self.declare_parameter('edition','2027')
+        self.edition=self.get_parameter('edition').value
         self.declare_parameter('extended',False)
         self.extended=self.get_parameter('extended').value
-        self.ctrl=ArenaController(extended=self.extended)
-        self.acoustic=AcousticTracker()
+        self.ctrl=ArenaController(extended=self.extended,edition=self.edition)
+        self.acoustic=AcousticTracker(bounds=(0.,25.,-8.,42.) if self.edition=='2027' else (0.,25.,0.,16.))
         if referee:
             self.declare_parameter('scene_variant',0)
             self.declare_parameter('blue_drum',1)
             self.declare_parameter('pinger_drum',0)
             self.judge=ArenaJudge(self.order,self.get_parameter('scene_variant').value,
                                   self.get_parameter('blue_drum').value,self.extended,
-                                  self.get_parameter('pinger_drum').value)
+                                  self.get_parameter('pinger_drum').value,edition=self.edition)
         self.pose=None
         self.attitude=(0.,0.)
         self.t=0.
@@ -69,7 +72,7 @@ class ArenaRuntime(Node):
         self.create_subscription(Contacts,'/sauvc/contacts',self.contact,qos_profile_sensor_data)
         self.create_subscription(String,'/sauvc/guard/fault',self.guard_fault,STATUS_QOS)
         if referee:
-            self.create_subscription(Twist,'/sauvc/cmd_vel',lambda m:setattr(self,'zero',all(abs(v)<1e-6 for v in values(m))),10)
+            self.create_subscription(Twist,'/sauvc/cmd_vel',self.actual_command,10)
             self.create_subscription(String,'/sauvc/arena/physics',self.physics,10)
             self.create_subscription(String,'/sauvc/arena/state',self.controller_state,STATUS_QOS)
         else:
@@ -80,6 +83,10 @@ class ArenaRuntime(Node):
                 self.create_subscription(String,'/sauvc/perception/'+camera,
                                          lambda m,c=camera:self.perception(m,c),10)
         self.create_timer(.05,self.tick)
+
+    def actual_command(self,msg):
+        self.zero=all(abs(v)<1e-6 for v in values(msg))
+        self.judge.thrust(self.t,not self.zero)
 
     def drop(self,key):
         return self.fault==key+'_loss' and self.first_clock is not None and self.t-self.first_clock>12
@@ -98,12 +105,13 @@ class ArenaRuntime(Node):
         self.attitude=(math.atan2(2*(q.w*q.x+q.y*q.z),1-2*(q.x*q.x+q.y*q.y)),
                        math.asin(max(-1.,min(1.,2*(q.w*q.y-q.z*q.x)))))
         self.pose=(p.x,p.y,p.z,yaw)
+        if self.edition=='2027':self.pose=to_local(self.pose)
         self.pose_history.add(msg.header.stamp.sec+msg.header.stamp.nanosec*1e-9,self.pose)
         self.received['odom']=time.monotonic()
         if self.referee and 'contacts' in self.received:
             roll=math.atan2(2*(q.w*q.x+q.y*q.z),1-2*(q.x*q.x+q.y*q.y))
             pitch=math.asin(max(-1.,min(1.,2*(q.w*q.y-q.z*q.x))))
-            self.judge.update((p.x,p.y,p.z,roll,pitch,yaw),self.t,self.contacts,self.zero)
+            self.judge.update((*self.pose[:3],roll,pitch,self.pose[-1]),self.t,self.contacts,self.zero)
             self.contacts=[]
 
     def contact(self,msg):
@@ -115,7 +123,10 @@ class ArenaRuntime(Node):
 
     def physics(self,msg):
         self.received['physics']=time.monotonic()
-        self.judge.physics(json.loads(msg.data))
+        packet=json.loads(msg.data)
+        if self.edition=='2027':
+            for ball in packet['balls'].values():ball['position']=list(to_local((*ball['position'],0.))[:3])
+        self.judge.physics(packet)
 
     def perception(self,msg,camera):
         if self.drop('camera'): return
@@ -144,7 +155,7 @@ class ArenaRuntime(Node):
     def result(self,msg):
         packet=json.loads(msg.data)
         self.judgement={key:packet[key] for key in
-                        ('phase','reason','navigation_passed','fallen_flares','payload_in_blue','payload_acquired','payload_grasped','reacquisition_crossed','payload_retrieved','passed')
+                        ('phase','reason','navigation_passed','fallen_flares','payload_in_blue','payload_acquired','payload_grasped','reacquisition_crossed','payload_retrieved','target_zone_exited','passed')
                         if key in packet}
         self.received['referee']=time.monotonic()
 
@@ -196,7 +207,7 @@ class ArenaRuntime(Node):
         velocity=ctrl.command(self.pose,self.t,self.judgement) if self.pose else (0.,0.,0.,0.)
         cmd=Twist()
         cmd.linear.x,cmd.linear.y,cmd.linear.z,cmd.angular.z=velocity
-        if self.extended and ctrl.state not in ('ABORT','DONE','STOP'):
+        if (self.extended or self.edition=='2027') and ctrl.state not in ('ABORT','DONE','STOP'):
             cmd.angular.x,cmd.angular.y=level_rates(*self.attitude)
         self.cmd.publish(cmd)
         self.grip.publish(Bool(data=ctrl.grip))

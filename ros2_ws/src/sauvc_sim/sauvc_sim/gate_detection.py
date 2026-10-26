@@ -27,14 +27,21 @@ def detect_gate(data, width, height, step, encoding='rgb8'):
     if not len(columns):
         return None
     groups = np.split(columns, np.flatnonzero(np.diff(columns) > 3) + 1)
-    # The two strongest vertical stripe stacks must lie on opposite gate posts.
-    groups = sorted(groups, key=lambda c: mask[:, c].sum(), reverse=True)[:2]
-    if len(groups) != 2:
-        return None
-    left, right = sorted(float(c.mean()) for c in groups)
-    span = right - left
-    if span < 15 or any(mask[:, c].any(axis=1).sum() < 10 for c in groups):
-        return None
+    # Reject posts from different lanes using their projected width/height ratio.
+    pairs=[]
+    for i,a in enumerate(groups):
+        ya=np.flatnonzero(mask[:,a].any(axis=1))
+        for b in groups[i+1:]:
+            yb=np.flatnonzero(mask[:,b].any(axis=1))
+            if len(ya)<10 or len(yb)<10:continue
+            ha,hb=ya[-1]-ya[0]+1,yb[-1]-yb[0]+1
+            span=abs(float(a.mean()-b.mean()))
+            if span<15 or min(ha,hb)/max(ha,hb)<.65 or not .65<span/max(ha,hb)<3.:continue
+            pairs.append((int(mask[:,a].sum()+mask[:,b].sum()),a,b))
+    if not pairs:return None
+    _,a,b=max(pairs,key=lambda p:p[0]);groups=[a,b]
+    left,right=sorted(float(c.mean()) for c in groups)
+    span=right-left
     focal = width / (2 * math.tan(1.22173 / 2))
     chosen = np.concatenate(groups)
     ys = np.flatnonzero(mask[:, chosen].any(axis=1))

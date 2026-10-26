@@ -164,3 +164,12 @@ hydroships/
 ```
 
 Referensi protokol: [MAVLink heartbeat](https://mavlink.io/en/services/heartbeat.html), [parameter](https://mavlink.io/en/services/parameter.html), [pymavlink](https://mavlink.io/en/mavgen_python/). Arsitektur fitur mengacu pada [BlueOS](https://blueos.cloud/docs/latest/development/core/); aplikasi ini tidak menyalin source BlueOS atau GUI-ROV.
+
+
+## Profil 7 thruster
+
+Profil bersama berada di [propulsion.json](backend/hydroships/propulsion.json): T1–T4 horizontal pada SERVO1–4, T5–T7 vertikal pada SERVO5–7. Dashboard menampilkan tujuh kanal PWM dari telemetri dan mencocokkan FRAME_CONFIG, fungsi output serta parameter arah motor dengan profil. Pemetaan yang berbeda, parameter belum tersedia atau koneksi stale tidak diberi status sesuai; PWM kanal yang belum terkonfirmasi sebagai motor tidak diberi label thruster. Tidak ada auto-write parameter atau perintah gerak motor yang ditambahkan.
+
+Metadata `propulsion` dan field `thruster_1_pwm` sampai `thruster_7_pwm` tersedia pada snapshot kendaraan serta relay `/auv2027/vehicle/state`. Demo menyediakan pemetaan dan PWM sintetis dengan label DEMO; ini bukan model hidrodinamika/SITL. Geometri latihan pada profil juga dipakai simulator SAUVC, dengan matriks hardware tetap belum terverifikasi. Detail dan bukti: [laporan 23](../plan/23-sinkronisasi-7-thruster.md).
+
+Pada host dengan Python default berbeda ABI dari ROS Humble, interpreter child ROS dapat dipilih melalui `HYDROSHIPS_ROS_PYTHON`. Contoh host pengembangan ini: `HYDROSHIPS_ROS_PYTHON=/home/rasya/AUV/ros2_ws/.venv-ros310/bin/python`. Default tetap `/usr/bin/python3` untuk instalasi Jetson yang sesuai; ini tidak memilih interpreter backend web.

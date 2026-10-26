@@ -1,6 +1,6 @@
 """Procedural primitive geometry; metres, z=0 at the water surface.
 
-Reference: https://sauvc.org/rulebook/ (2026 v6.1.0).
+Reference: https://sauvc.org/rulebook/ (default 2027.2.1; explicit 2026 legacy profile).
 Prop positions are fixed training choices within the diagram's zones.
 """
 
@@ -91,10 +91,10 @@ def pool(world):
          '0.1 0.6 0.8 0.08', collision=False)
 
 
-def gate(world, name, x, y, qualification=False):
-    bottom = floor_z(x)
-    height = -bottom if qualification else 1.0
-    link = model(world, name, (x, y, bottom, 0, 0, 0))
+def gate(world, name, x, y, qualification=False, bottom=None, height=None, yaw=0.):
+    bottom = floor_z(x) if bottom is None else bottom
+    height = (-bottom if qualification else 1.0) if height is None else height
+    link = model(world, name, (x, y, bottom, 0, 0, yaw))
     # 1.50 m CLEAR opening; 5 cm pole thickness is a modelling assumption.
     for side, offset, color in [('port', 0.775, RED), ('starboard', -0.775, GREEN)]:
         part(link, side, (0, offset, height / 2, 0, 0, 0), 'cylinder',
@@ -227,10 +227,11 @@ def auv(world, arena, cameras, lane=1, lateral_offset=0.0, yaw=0.0, physical=Fal
 
 
 def build_world(arena, cameras=True, lane=1, lateral_offset=0.0, yaw=0.0,
-                scene_variant=0, blue_drum=1, physical=False, fault='none', extended=False, pinger_drum=0):
+                scene_variant=0, blue_drum=1, physical=False, fault='none', extended=False, pinger_drum=0, edition='2027'):
     if arena not in ('qualification', 'finals'):
         raise ValueError('arena must be qualification or finals')
-    if lane not in (1, 2) or not all(math.isfinite(v) for v in (lateral_offset, yaw)):
+    if edition not in ('2026','2027'):raise ValueError('unknown rulebook edition')
+    if lane not in ((1,2,3) if edition=='2027' else (1,2)) or not all(math.isfinite(v) for v in (lateral_offset, yaw)):
         raise ValueError('invalid lane or spawn offset')
     layout(scene_variant)
     if blue_drum not in (1,2,3,4): raise ValueError('invalid blue drum index')
@@ -280,11 +281,26 @@ def build_world(arena, cameras=True, lane=1, lateral_offset=0.0, yaw=0.0,
     if pinger_drum==0: pinger_drum=next(i for i in range(1,5) if i!=blue_drum)
     if pinger_drum not in (1,2,3,4) or pinger_drum==blue_drum:
         raise ValueError('pinger must be in a red drum')
-    pool(world)
-    props(world, arena,scene_variant,blue_drum)
+    if edition=='2027':
+        pool2027(world)
+        props2027(world,arena,scene_variant,blue_drum)
+    else:
+        pool(world)
+        props(world, arena,scene_variant,blue_drum)
     auv(world, arena, cameras, lane, lateral_offset, yaw,physical,fault)
+    if edition=='2027':
+        from sauvc_sim.rules2027 import LANES
+        vehicle=world.find("model[@name='sauvc_auv']")
+        start_x=.3*abs(math.cos(yaw))+.2*abs(math.sin(yaw))
+        pose=(start_x,LANES[lane-1]+lateral_offset,-.05,0,0,yaw) if arena=='qualification' else (34.,.7,-.05,0,0,math.pi/2)
+        vehicle.find('pose').text=numbers(pose)
+        view.find('camera_pose').text='25 -30 36 0 0.7 1.5707963'
     if extended:
         model(world,'pinger_source',(24,(12.5,9.5,6.5,3.5)[pinger_drum-1],floor_z(24)+.15,0,0,0))
+        if edition=='2027':
+            from sauvc_sim.rules2027 import DRUM_U,DRUM_V,to_world,floor_z as depth2027
+            px,py,_,_=to_world(DRUM_U,DRUM_V[pinger_drum-1])
+            world.find("model[@name='pinger_source']/pose").text=numbers((px,py,depth2027(px)+.15,0,0,0))
         body=world.find("model[@name='sauvc_auv']/link")
         # Fixed capture fingers; close command latches only after payload contact.
         for i,dy in enumerate((-.026,.026)):
@@ -299,9 +315,64 @@ def main():
     parser.add_argument('--arena', choices=['qualification', 'finals'], required=True)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--no-cameras', action='store_true')
+    parser.add_argument('--edition',choices=['2026','2027'],default='2027')
     args = parser.parse_args()
-    args.output.write_text(build_world(args.arena, not args.no_cameras))
+    args.output.write_text(build_world(args.arena, not args.no_cameras,edition=args.edition))
 
 
-if __name__ == '__main__':
-    main()
+
+
+def pool2027(world):
+    from sauvc_sim.rules2027 import floor_z as depth
+    for name,a,b in [('floor_shelf',0.,1.8),('floor_slope',1.8,19.3),('floor_deep',19.3,50.)]:
+        za,zb=depth(a),depth(b);pitch=math.atan2(za-zb,b-a)
+        link=model(world,name,((a+b)/2-.05*math.sin(pitch),12.5,(za+zb)/2-.05*math.cos(pitch),0,pitch,0))
+        part(link,'slab',(0,0,0,0,0,0),'box',(math.hypot(b-a,za-zb),25,.1),POOL)
+    for name,pose,size in [('wall_start',(-.1,12.5,-1.25,0,0,0),(.2,25.4,3)),
+                           ('wall_end',(50.1,12.5,-1.25,0,0,0),(.2,25.4,3)),
+                           ('wall_port',(25,25.1,-1.25,0,0,0),(50,.2,3)),
+                           ('wall_starboard',(25,-.1,-1.25,0,0,0),(50,.2,3))]:
+        part(model(world,name,pose),'wall',(0,0,0,0,0,0),'box',size,WHITE)
+    part(model(world,'water_surface_visual_only',(25,12.5,.005,0,0,0)),'surface',(0,0,0,0,0,0),'box',(50,25,.005),'0.1 0.6 0.8 0.08',False)
+
+
+def props2027(world,arena,variant,blue_drum):
+    from sauvc_sim.rules2027 import LANES,DRUM_U,DRUM_V,SQUARE,GATE_U,to_world,floor_z as depth
+    for lane,y in enumerate(LANES,1):
+        gate(world,f'qualification_gate_{lane}',10,y,True,bottom=-1.,height=1.)
+        part(model(world,f'start_line_{lane}',(.012,y,0,0,0,0)),'mark',(0,0,0,0,0,0),'box',(.02,1,.15),YELLOW,False)
+    if arena=='qualification':return
+    start=model(world,'starting_zone_1p4m',(34,.7,.015,0,0,0))
+    for i,(x,y,sx,sy) in enumerate([(-.69,0,.02,1.4),(.69,0,.02,1.4),(0,-.69,1.4,.02),(0,.69,1.4,.02)]):
+        part(start,f'edge_{i}',(x,y,0,0,0,0),'box',(sx,sy,.02),WHITE,False)
+    scene=layout2027(variant)
+    gx,gy,_,_=to_world(GATE_U,scene['gate_y'])
+    gate(world,'navigation_gate',gx,gy,bottom=depth(gx),height=1.5,yaw=math.pi/2)
+    for name,point,height,radius,color in [('orange_flare',scene['orange'],1.5,.075,ORANGE),
+        ('blue_flare',scene['blue'],.8,.008,BLUE),('red_flare',scene['red'],.8,.008,RED),('yellow_flare',scene['yellow'],.8,.008,YELLOW)]:
+        x,y,_,_=to_world(*point)
+        part(model(world,name,(x,y,depth(x),0,0,0)),'pole',(0,0,height/2,0,0,0),'cylinder',(radius,height),color)
+        if name!='orange_flare':ball(world,name+'_ball',(x,y,depth(x)+.82135),.02135)
+    part(model(world,'target_zone_mat',(24,22,depth(24)+.002,0,0,0)),'mat',(0,0,0,0,0,0),'box',(8,2,.004),GREEN,False)
+    for i,v in enumerate(DRUM_V):
+        x,y,_,_=to_world(DRUM_U,v)
+        # Drum local helper uses the original floor; correct its model pose afterwards.
+        drum(world,f'drum_{i+1}',x,y,BLUE if i+1==blue_drum else RED)
+        world.find(f"model[@name='drum_{i+1}']/pose").text=numbers((x,y,depth(x),0,0,0))
+    sx,sy,_,_=to_world(*SQUARE)
+    frame=model(world,'surfacing_square',(sx,sy,0,0,0,math.pi/2))
+    for i,(x,y,a,b) in enumerate([(-1.025,0,.05,2.1),(1.025,0,.05,2.1),(0,-1.025,2.1,.05),(0,1.025,2.1,.05)]):
+        part(frame,f'edge_{i}',(x,y,0,0,0,0),'box',(a,b,.05),WHITE)
+    for i,(x,y) in enumerate([(-1.,-1.),(-1.,1.),(1.,-1.),(1.,1.)]):
+        part(frame,f'blue_marker_{i}',(x,y,-.15,0,0,0),'cylinder',(.025,.3),BLUE,False)
+    ball(world,'payload_ball',(34,.9,-.23),.02)
+    tag(world,'plugin',filename=str(Path(__file__).parent/'libsauvc_contact_monitor.so'),name='sauvc::ArenaPhysics')
+
+
+def layout2027(variant):
+    if variant not in (0,1):raise ValueError('unknown fixture')
+    return dict(gate_y=8.+.6*variant,orange=(6.,8.+.2*variant),
+                blue=(16.5,21.-.5*variant),red=(18.,14.+.3*variant),yellow=(16.2,6.+.5*variant))
+
+
+if __name__ == '__main__':main()

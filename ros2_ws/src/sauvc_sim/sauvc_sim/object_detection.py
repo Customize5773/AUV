@@ -117,6 +117,14 @@ def detect_objects(data, width, height, step, encoding='rgb8', camera='front', a
             detections.append(candidate('navigation_gate', box, width, height,
                 distance_estimate_m=width/(2*math.tan(1.22173/2))*1.55/span,
                 span_px=span, stripe_count=[red['stripes'],green['stripes']]))
+        bars=[p for p in parts['blue'] if p['bbox'][3]-p['bbox'][1]>=15 and
+              (p['bbox'][3]-p['bbox'][1])/max(1,p['bbox'][2]-p['bbox'][0])>=4]
+        bars=sorted(bars,key=lambda p:p['bbox'][3]-p['bbox'][1],reverse=True)
+        if len(bars)>=2:
+            a,b=bars[0]['bbox'],bars[1]['bbox']
+            ha,hb=a[3]-a[1],b[3]-b[1];span=abs((a[0]+a[2]-b[0]-b[2])/2)
+            if min(ha,hb)>.8*max(ha,hb) and span>2*max(ha,hb):
+                detections.append(candidate('surfacing_square',[min(a[0],b[0]),min(a[1],b[1]),max(a[2],b[2]),max(a[3],b[3])],width,height,span_px=span))
         for colour in ('orange','blue','red','yellow'):
             for part in parts[colour]:
                 l,t,r,b = part['bbox']

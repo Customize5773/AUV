@@ -33,6 +33,8 @@ class Runtime(Node):
         super().__init__('sauvc_' + role)
         self.role = role
         self.declare_parameter('lane', 1)
+        self.declare_parameter('edition','2027')
+        self.edition=self.get_parameter('edition').value
         self.declare_parameter('mode', 'vision')
         self.declare_parameter('output', '')
         self.declare_parameter('fault', '')
@@ -62,8 +64,8 @@ class Runtime(Node):
         self.terminal = False
         self.logged_state = None
         self.command = Twist()
-        self.controller = QualificationController(self.mode, lane, self.speed_scale,self.physical)
-        self.judge = QualificationJudge(lane,self.physical)
+        self.controller = QualificationController(self.mode, lane, self.speed_scale,self.physical,edition=self.edition)
+        self.judge = QualificationJudge(lane,self.physical,edition=self.edition)
         self.started_wall = time.monotonic()
         self.ready_since = None
         self.report = self.create_publisher(String, '/sauvc/qualification/result', STATUS_QOS)
@@ -245,7 +247,7 @@ class Runtime(Node):
                 self.feedback_pub.publish(String(data=json.dumps({k:result[k] for k in ('phase','reason','passed')})))
             if result['passed'] or result['phase'] == 'FAILED':
                 self.save('-referee', dict(result, contacts=self.contact_events,
-                                          rulebook='2026 v6.1.0', checked_on='2026-10-25'))
+                                          rulebook='2027.2.1' if self.edition=='2027' else '2026 v6.1.0'))
         else:
             ctrl = self.controller
             if ctrl.started is None:

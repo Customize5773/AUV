@@ -120,3 +120,6 @@ env -u PYTHONPATH .venv/bin/python scripts/check-autonomy-browser.py
 ```
 
 Bukti dan batas validasi: [laporan platform autonomous](../../plan/09-platform-autonomous-ros2.md). Email maintainer `example.invalid` pada metadata package adalah placeholder, bukan alamat kontak tim.
+
+
+Profil propulsi tujuh motor kini ikut pada `propulsion` dalam `/auv2027/vehicle/state`: T1–T4 horizontal, T5–T7 vertikal. Field PWM `thruster_1_pwm`…`thruster_7_pwm` berasal dari SERVO_OUTPUT_RAW dan hanya tersedia ketika fungsi output yang sesuai terkonfirmasi. Relay mempertahankan nomor motor, memperhitungkan usia field, dan menandai mapping unavailable ketika status kendaraan/relay stale. Metadata ini tidak membuktikan posisi motor atau koefisien mixer fisik. Acuan bersama dan pengujian ada pada [laporan 23](../../plan/23-sinkronisasi-7-thruster.md).

@@ -1,5 +1,7 @@
 # Tinjauan rulebook terbaru dan rencana misi ARENA
 
+**Pembaruan 26 Oktober 2026:** rulebook **2027.2.1 sudah dipublikasikan** dan PR #25 telah merged. Isi berikut dipertahankan sebagai snapshot 25 Oktober; status sumber serta rencana terbaru ada pada [laporan 21](21-update-rulebook-2027.md). Implementasi kualifikasi/ARENA juga sudah berkembang setelah rencana awal ini; hasilnya tercatat pada laporan 15–20.
+
 Pemeriksaan: **25 Oktober 2026, Asia/Jakarta**. **Pengguna telah menyetujui implementasi kualifikasi terlebih dahulu; implementasi ARENA belum dimulai.** Rulebook penyelenggara menjadi acuan utama; pemahaman atau usulan alur dalam percakapan dikoreksi apabila bertentangan dengan aturan.
 
 ## Sumber dan status versi

@@ -7,7 +7,7 @@ from sauvc_sim.arena import build_world, floor_z
 
 class ArenaTest(unittest.TestCase):
     def world(self, arena):
-        return ET.fromstring(build_world(arena)).find('world')
+        return ET.fromstring(build_world(arena,edition='2026')).find('world')
 
     def test_floor_collision_surfaces_match_depth_profile(self):
         world = self.world('finals')
@@ -67,7 +67,7 @@ class ArenaTest(unittest.TestCase):
                     self.assertIsNone(marker.find('link/collision'))
 
     def test_dynamic_balls_and_alternate_fixture(self):
-        world=ET.fromstring(build_world('finals',scene_variant=1,blue_drum=3)).find('world')
+        world=ET.fromstring(build_world('finals',scene_variant=1,blue_drum=3,edition='2026')).find('world')
         gate=world.find("model[@name='navigation_gate']")
         self.assertEqual(float(gate.findtext('pose').split()[1]),8.6)
         for name in ('blue_flare_ball','red_flare_ball','yellow_flare_ball','payload_ball'):
@@ -76,13 +76,13 @@ class ArenaTest(unittest.TestCase):
             self.assertEqual(item.findtext('link/gravity'),'true')
             self.assertIsNotNone(item.find('link/collision/geometry/sphere'))
         self.assertEqual(world.findtext("model[@name='drum_3']/link/visual/material/diffuse"),'0.025 0.2 0.85 1')
-        with self.assertRaises(ValueError): build_world('finals',blue_drum=0)
-        with self.assertRaises(ValueError): build_world('finals',scene_variant=2)
+        with self.assertRaises(ValueError): build_world('finals',blue_drum=0,edition='2026')
+        with self.assertRaises(ValueError): build_world('finals',scene_variant=2,edition='2026')
 
     def test_invalid_arena_rejected_and_camera_disable_removes_renderer(self):
         with self.assertRaises(ValueError):
-            build_world('../unknown')
-        world = ET.fromstring(build_world('qualification', cameras=False)).find('world')
+            build_world('../unknown',edition='2026')
+        world = ET.fromstring(build_world('qualification', cameras=False,edition='2026')).find('world')
         self.assertEqual(world.findall(".//sensor[@type='camera']"), [])
         self.assertEqual(len(world.findall(".//sensor[@type='contact']")), 1)
         self.assertIsNone(world.find("plugin[@name='ignition::gazebo::systems::Sensors']"))

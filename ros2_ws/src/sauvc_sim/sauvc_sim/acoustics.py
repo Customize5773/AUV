@@ -3,7 +3,8 @@ import math
 
 
 class AcousticTracker:
-    def __init__(self):
+    def __init__(self,bounds=(0.,25.,0.,16.)):
+        self.bounds=bounds
         self.rays=[]
         self.target=None
         self.last=None
@@ -29,7 +30,7 @@ class AcousticTracker:
         det=aa*bb-ab*ab
         if det<.0001*(aa+bb)**2:return None
         x,y=(ac*bb-bc*ab)/det,(bc*aa-ac*ab)/det
-        if not (0<x<25 and 0<y<16):return None
+        if not (self.bounds[0]<x<self.bounds[1] and self.bounds[2]<y<self.bounds[3]):return None
         residual=sum((-(x-rx)*math.sin(a)+(y-ry)*math.cos(a))**2 for rx,ry,a in self.rays)/len(self.rays)
         if residual>.04:return None
         self.target=[x,y]

@@ -7,7 +7,10 @@ export type Snapshot = {
   version: string; name: string; events: Event[];
   vehicle: {
     status: string; error: string | null; session: string; connection: Connection | null;
-    identity: {system_id?: number; component_id?: number; firmware?: string; mode?: string; armed?: boolean; autopilot?: number; vehicle_type?: number};
+    identity: {system_id?: number; component_id?: number; firmware?: string; frame?: string; mode?: string; armed?: boolean; autopilot?: number; vehicle_type?: number};
+    propulsion?: {profile_id: string; name: string; hardware_mixer_verified: boolean;
+      mapping_status: 'unavailable' | 'waiting' | 'match' | 'mismatch'; different: string[]; missing: string[];
+      motors: {id: string; motor: number; output: number; orientation: string; function: number; direction: number}[]};
     heartbeat_age: number | null; fields: Record<string, Field>; received: number;
     parameters: {count: number; expected: number; state: string; writing: boolean}; write_allowed: boolean;
   };

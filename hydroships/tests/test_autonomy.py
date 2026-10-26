@@ -112,9 +112,10 @@ def test_actual_ros_transport_and_failure_recovery(tmp_path, monkeypatch):
         env = dict(os.environ, ROS_DOMAIN_ID='78', PYTHONNOUSERSITE='1')
         env.pop('PYTHONPATH', None)
         result = subprocess.run(['/bin/bash', '--noprofile', '--norc', '-c',
-            'source /opt/ros/humble/setup.bash && exec /usr/bin/python3 "$1" --source demo --output "$2"',
-            'probe', str(probe), str(tmp_path / 'ros-vehicle.json')], env=env, capture_output=True, text=True, timeout=25)
+            'source /opt/ros/humble/setup.bash && exec "$3" "$1" --source demo --output "$2"',
+            'probe', str(probe), str(tmp_path / 'ros-vehicle.json'), os.environ.get('HYDROSHIPS_ROS_PYTHON','/usr/bin/python3')], env=env, capture_output=True, text=True, timeout=25)
         assert result.returncode == 0, result.stdout + result.stderr
+        assert len(json.loads((tmp_path / 'ros-vehicle.json').read_text())['latest']['propulsion']['motors'])==7
         assert client.delete('/api/connection', headers=HEADERS).status_code == 200
         wait_for(lambda: (state()['vehicle_bridge'] or {}).get('status') == 'disconnected')
         assert state()['vehicle']['fields'] == {}

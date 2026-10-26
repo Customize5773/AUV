@@ -10,8 +10,9 @@ def wrap(a): return math.atan2(math.sin(a),math.cos(a))
 
 
 class StateEstimator:
-    def __init__(self, lane=1, lateral_offset=0., density=1000., gravity=9.81):
-        self.y=(4. if lane==1 else 12.)+lateral_offset
+    def __init__(self, lane=1, lateral_offset=0., density=1000., gravity=9.81,edition='2026'):
+        from sauvc_sim.rules2027 import LANES
+        self.y=(LANES[lane-1] if edition=='2027' else (4. if lane==1 else 12.))+lateral_offset
         self.x=None
         self.z=0.
         self.roll=self.pitch=self.yaw=0.

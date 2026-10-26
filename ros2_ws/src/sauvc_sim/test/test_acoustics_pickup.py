@@ -35,10 +35,10 @@ class AcousticPickupTest(unittest.TestCase):
 
     def test_world_metadata_is_not_in_acoustic_measurements(self):
         import xml.etree.ElementTree as ET
-        w=ET.fromstring(build_world('finals',extended=True))
+        w=ET.fromstring(build_world('finals',extended=True,edition='2026'))
         self.assertIsNotNone(w.find("world/model[@name='pinger_source']"))
         self.assertIsNotNone(w.find("world/model[@name='sauvc_auv']/link/collision[@name='pickup_finger_0']"))
-        with self.assertRaises(ValueError):build_world('finals',extended=True,pinger_drum=1)
+        with self.assertRaises(ValueError):build_world('finals',extended=True,pinger_drum=1,edition='2026')
 
     def test_tool_envelope_rejects_floor_and_extended_dive_is_shallower(self):
         j=ArenaJudge(extended=True)

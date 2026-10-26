@@ -14,6 +14,7 @@ from pymavlink import mavutil
 from serial.tools import list_ports
 
 from .simulator import DemoVehicle
+from .propulsion import PROFILE, propulsion_state
 
 
 class VehicleError(Exception):
@@ -113,6 +114,8 @@ class Vehicle:
                     "connection": copy.deepcopy(self.spec), "identity": copy.deepcopy(self.identity),
                     "heartbeat_age": None if self.last_heartbeat is None else now-self.last_heartbeat,
                     "fields": fields, "received": self.received,
+                    "propulsion": propulsion_state(self.params,self.status=="connected" and
+                        self.last_heartbeat is not None and now-self.last_heartbeat<self.heartbeat_timeout),
                     "parameters": {"count": len(self.params), "expected": self.param_count,
                                    "state": self.param_state, "writing": self.pending is not None},
                     "write_allowed": self._write_allowed(), "worker_alive": self.thread.is_alive()}
@@ -317,6 +320,13 @@ class Vehicle:
         elif typ == "VFR_HUD":
             self._field("heading", msg.heading, "°", typ)
             self._field("altitude", msg.alt, "m", typ)
+        elif typ == "SERVO_OUTPUT_RAW":
+            for motor in PROFILE['thrusters']:
+                field=f"thruster_{motor['motor']}_pwm"
+                function=self.params.get(f"SERVO{motor['output']}_FUNCTION",{}).get('value')
+                if function==motor['function']:
+                    self._field(field,getattr(msg,f"servo{motor['output']}_raw",None),"µs",typ)
+                else:self.fields.pop(field,None)
         elif typ == "PARAM_VALUE":
             name = msg.param_id
             if isinstance(name, bytes):
@@ -326,6 +336,9 @@ class Vehicle:
                 return
             self.params[name] = {"name": name, "value": msg.param_value, "type": msg.param_type,
                                  "index": msg.param_index, "updated": time.time()}
+            for motor in PROFILE['thrusters']:
+                if name==f"SERVO{motor['output']}_FUNCTION" and msg.param_value!=motor['function']:
+                    self.fields.pop(f"thruster_{motor['motor']}_pwm",None)
             if 0 < msg.param_count <= 10000:
                 if self.param_state == "complete" and self.param_count != msg.param_count:
                     self.param_state = "incomplete"
@@ -352,6 +365,7 @@ class Vehicle:
                     self._fail_pending("Autopilot mengembalikan nilai berbeda; perubahan belum terkonfirmasi.")
         elif typ == "STATUSTEXT":
             text = msg.text.decode(errors="replace") if isinstance(msg.text, bytes) else msg.text
+            if text.startswith("Frame: "):self.identity["frame"]=text[7:].strip()[:80]
             self.storage.event("autopilot.message", text.rstrip("\0")[:500], "warning" if msg.severity <= 4 else "info")
 
     def _tick(self):

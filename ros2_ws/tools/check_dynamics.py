@@ -62,6 +62,7 @@ def main():
                             if times['brake']+.2<row['time']<times['brake']+1.]
             passive=[s for s in samples if s[0]>times['passive_float']+4]
             checks=dict(finite_acceleration=bool(ramp) and max(abs(s[4]) for s in ramp)<.3,
+                seven_thruster_telemetry=bool(forces) and all(len(r["force_n"])==7 for r in forces),
                 speed_tracks=bool(cruise) and abs(sum(s[4] for s in cruise)/len(cruise)-.6)<.1,
                 reverse_thrust_braking=bool(braking_forces) and min(braking_forces)<-1,
                 actively_stopped=bool(brake) and max(abs(s[4]) for s in brake)<.03,

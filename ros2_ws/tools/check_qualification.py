@@ -8,6 +8,8 @@ import signal
 import subprocess
 import time
 import bisect
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 import rclpy
 from rclpy.qos import qos_profile_sensor_data, QoSProfile, DurabilityPolicy
@@ -41,13 +43,14 @@ def main():
     parser.add_argument('--mode', choices=['vision', 'odom'], default='vision')
     parser.add_argument('--vehicle-model',choices=['auto','ideal','dynamic'],default='auto')
     parser.add_argument('--speed-scale', type=float, default=MAX_SPEED_SCALE)
-    parser.add_argument('--lane', type=int, choices=[1, 2], default=1)
+    parser.add_argument('--lane', type=int, choices=[1, 2,3], default=1)
     parser.add_argument('--lateral-offset', type=float, default=0.)
     parser.add_argument('--yaw', type=float, default=0.)
     parser.add_argument('--fault', choices=['', 'camera_loss', 'command_loss',
                                           'odom_loss', 'contact_loss', 'clock_loss',
                                           'controller_freeze','imu_loss','pressure_loss','dvl_loss','actuator_loss'], default='')
     parser.add_argument('--gui', action='store_true')
+    parser.add_argument('--edition',choices=['2026','2027'],default='2027')
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
     args.output.parent.mkdir(parents=True, exist_ok=True)
@@ -82,11 +85,11 @@ def main():
               'speed_scale': args.speed_scale,
               'vehicle_model':args.vehicle_model,
               'lateral_offset': args.lateral_offset, 'yaw': args.yaw, 'fault': args.fault,
-              'rulebook': '2026 v6.1.0', 'checked_on': '2026-10-25'}
+              'rulebook': '2027.2.1' if args.edition=='2027' else '2026 v6.1.0', 'checked_on': datetime.now(ZoneInfo('Asia/Jakarta')).date().isoformat()}
     frozen_pid = None
     with args.output.with_suffix('.log').open('w') as log:
         process = subprocess.Popen(['bash', 'tools/ros.sh', 'launch', 'sauvc_sim', 'arena.launch.py',
-            'autonomous:=true', f'mode:={args.mode}', f'lane:={args.lane}',
+            'autonomous:=true',f'edition:={args.edition}', f'mode:={args.mode}', f'lane:={args.lane}',
             f'vehicle_model:={args.vehicle_model}',
             f'speed_scale:={args.speed_scale}',
             f'lateral_offset:={args.lateral_offset}', f'yaw:={args.yaw}',

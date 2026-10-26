@@ -32,6 +32,7 @@ import ParameterComparison from "./ParameterComparison.vue";
 import AutonomyPanel from "./AutonomyPanel.vue";
 import ConnectionStatus from "./ConnectionStatus.vue";
 import OrientationMonitor from "./OrientationMonitor.vue";
+import ThrusterConfiguration from "./ThrusterConfiguration.vue";
 import { typeNames } from "./parameterComparison";
 
 const tabs = [
@@ -738,6 +739,7 @@ onUnmounted(() => {
               </div>
             </article>
           </div>
+          <ThrusterConfiguration :vehicle="vehicle" :online="online" :elapsed="Math.max(0, now - lastUpdate) / 1000" />
           <div class="dashboard-grid">
             <OrientationMonitor
               :vehicle="vehicle"

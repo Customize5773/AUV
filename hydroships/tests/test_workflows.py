@@ -64,7 +64,7 @@ def test_missing_parameter_is_retried_by_index():
         v.demo.drop_parameter_index = 2
         v.submit("download").result(2)
         until(lambda: v.param_state == "complete")
-        assert len(v.params) == 6
+        assert len(v.params) == len(v.demo.params)
         assert v.params["PILOT_SPEED_UP"]["index"] == 2
 
 
@@ -77,7 +77,7 @@ def test_changed_parameter_count_requires_fresh_download():
             write(v, value=41).result(2)
         v.submit("download").result(2)
         until(lambda: v.param_state == "complete")
-        assert len(v.params) == 7
+        assert len(v.params) == len(v.demo.params)
 
 
 def test_rejection_timeout_and_no_automatic_write_retry():

@@ -1,0 +1,68 @@
+{
+  "checked_on": "2026-10-26",
+  "timezone": "Asia/Jakarta",
+  "retrieved_at_utc": "2026-10-26T14:38:15.064721+00:00",
+  "records": [
+    {
+      "file": "rulebook.html",
+      "url": "https://sauvc.org/rulebook/?review=20261026",
+      "resolved_url": "https://sauvc.org/rulebook/?review=20261026",
+      "bytes": 67773,
+      "sha256": "aed421ba5f4bd4625400c5fa721c95d81474e86474242163c841fe12e94a169d"
+    },
+    {
+      "file": "pr25.json",
+      "url": "https://api.github.com/repos/sauvc/rulebook/pulls/25",
+      "resolved_url": "https://api.github.com/repos/sauvc/rulebook/pulls/25",
+      "bytes": 19810,
+      "sha256": "556e63e035508b8ea03b9ee21c0a5f2ca1dc14d7809d7bd8282268cb5c217057"
+    },
+    {
+      "file": "master-commit.json",
+      "url": "https://api.github.com/repos/sauvc/rulebook/commits/master",
+      "resolved_url": "https://api.github.com/repos/sauvc/rulebook/commits/master",
+      "bytes": 6753,
+      "sha256": "fae7d4cf0f85b7f61d3ff6053e3a9c54f36c5dbd8dd798a7b6475e6f38c42c4e"
+    },
+    {
+      "file": "arena-2027.png",
+      "url": "https://sauvc.org/rulebook/img/arena-2027.png",
+      "resolved_url": "https://sauvc.org/rulebook/img/arena-2027.png",
+      "bytes": 135210,
+      "sha256": "65e46bc6d6d4de31bde94b8954d8114d263215c8e54da288d4bbd8f18b6cd362"
+    },
+    {
+      "file": "qualification-gate.jpg",
+      "url": "https://sauvc.org/rulebook/img/qualification-gate.jpg",
+      "resolved_url": "https://sauvc.org/rulebook/img/qualification-gate.jpg",
+      "bytes": 26970,
+      "sha256": "5c99734862738457bbb98605af093b212e4c7ff9eb4630259587232c9ef508ce"
+    },
+    {
+      "file": "surfacing-square-2027.png",
+      "url": "https://sauvc.org/rulebook/img/surfacing-square-2027.png",
+      "resolved_url": "https://sauvc.org/rulebook/img/surfacing-square-2027.png",
+      "bytes": 18858,
+      "sha256": "d13cbcfb4c8191675e17660a585fb92e9bdf8488f343a9d8ffa2ad5c7013c28f"
+    },
+    {
+      "file": "rulebook.md",
+      "url": "https://raw.githubusercontent.com/sauvc/rulebook/dd6a05cbf147212ddd14c4994b746a45b0bf91fd/rulebook.md",
+      "resolved_url": "https://raw.githubusercontent.com/sauvc/rulebook/dd6a05cbf147212ddd14c4994b746a45b0bf91fd/rulebook.md",
+      "bytes": 41589,
+      "sha256": "ce4512af99c6e180e49f98adad4e1c702eee34e0326674598012920c0c79974f"
+    },
+    {
+      "file": "baseline-2026.md",
+      "url": "https://raw.githubusercontent.com/sauvc/rulebook/1caf29cf132318b9b5fc81b7a73ac772db9fbca0/rulebook.md",
+      "bytes": 36437,
+      "sha256": "6909ba32f4a09504b499d03b98ab09ee915f8fc7c0f14bbffb3fc2b86c191102"
+    },
+    {
+      "file": "proposal-2027.1.1.md",
+      "url": "https://raw.githubusercontent.com/sauvc/rulebook/746357dcfe2e0fe89364aaad6ef8a2d60c5f5f8d/rulebook.md",
+      "bytes": 37994,
+      "sha256": "6b29612ed81404800e97ed4463d3a60069ef73dd0a2bd29e0b989f648a18595c"
+    }
+  ]
+}

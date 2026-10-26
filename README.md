@@ -13,19 +13,17 @@ Repositori persiapan AUV tim HydroShips: aplikasi onboard Jetson–Pixhawk, simu
 
 ## Status simulator
 
-Ringkasan berdasarkan bukti penerimaan **25 Oktober 2026**. Acuan implementasi adalah [rulebook SAUVC 2026 v6.1.0](https://sauvc.org/rulebook/); status dan perbedaan aturan dibahas pada [tinjauan rulebook](plan/14-tinjauan-rulebook-dan-rencana-arena.md). Detail yang tidak ditentukan aturan, seperti koordinat fixture dan ketebalan konstruksi, dipilih sebagai asumsi latihan.
+**Profil default kini SAUVC 2027.2.1**, berdasarkan [rulebook resmi](https://sauvc.org/rulebook/) yang diperiksa 26 Oktober 2026. Kolam 50 × 25 m, tiga jalur kualifikasi, gate 2027, target zone, Surfacing Square, syarat reacquisition dan timer sudah dimigrasikan. Detail serta bukti penerimaan: [laporan 24](plan/24-migrasi-dan-uji-arena-2027.md). Fixture 2026 hanya untuk regresi eksplisit; hasil lama tetap berlabel edisi lamanya.
 
 | Bagian | Status dan batas hasil |
 | --- | --- |
-| Kualifikasi autonomous | Dive → lewat gate seluruh badan → U-turn → lewat kembali → surface → stop; empat skenario terbaru lulus |
-| Dinamika kualifikasi | Gaya enam thruster, drag, buoyancy, inersia dan pengereman; kontrol memakai estimasi tekanan, IMU/magnetometer dan DVL virtual |
-| U-turn lebih dekat | Jarak tambahan setelah pelintasan terestimasi 0,6 m; empat run terbaru mencatat start–surface 27,458–30,116 s |
-| Persepsi kamera | Deteksi gate, flare dan drum, tracking antarframe serta proyeksi metrik; pengujian kamera dan perturbasi gambar tersedia |
-| ARENA blue drum | Navigation, tiga flare sesuai urutan, drop ke blue drum, surface dan stop telah dibuktikan pada simulator |
-| ARENA tambahan | Pinger virtual → drop ke red drum berpinger → gate tambahan → pickup bola yang sama → retensi sampai surface → stop; dua fixture lulus |
-| Bukti bola/payload | Collision dan posisi bola aktual diperiksa oleh referee terpisah; perintah release/close saja tidak dianggap berhasil |
-| Penilaian dan abort | Rincian poin tugas, bonus, penalti dan retensi; aturan abort latihan tetap lebih ketat daripada rulebook |
-| Penerimaan terbaru | 84 tes unit, dua misi tambahan, uji mekanisme dan regresi blue drum lulus; run penerimaan menutup bersih |
+| Geometri 2027 | Kolam, tiga jalur, gate menggantung, gate utama 1,5 × 1,5 m, mat 8 × 2 m dan Surfacing Square 2 × 2 m tersedia; posisi properti adalah pilihan latihan |
+| Kualifikasi | Dive → pelintasan penuh → U-turn → kembali → surface → stop; dinamika tujuh thruster dan estimasi sensor virtual |
+| Persepsi | Gate, flare, drum dan marker Surfacing Square dari kamera; tracking dan proyeksi metrik |
+| ARENA blue drum | Navigation dahulu → flare sesuai urutan → drop blue drum → Surfacing Square → stop |
+| ARENA pinger/pickup | TDOA virtual → drop red drum berpinger → seluruh badan keluar target zone → pickup bola yang sama → retensi sampai akhir |
+| Penilaian 2027 | Timer sejak thrust, poin tugas, penalti kontak, bonus surface dan bonus Square; bonus inspeksi fisik tidak dimasukkan |
+| Bukti penerimaan | 96 tes unit, tiga jalur kualifikasi, dua misi ARENA, uji fisika dan 19 sudut kamera lulus; ketahanan sintetis 97/98, satu kasus blur belum lulus |
 
 **ARENA masih memakai gerak ideal dan odometri ground truth.** Model gaya dan estimator sensor digunakan pada kualifikasi. Pinger adalah model geometrik TDOA, servo pelepas memakai respons ideal, dan pickup memakai latch fixed setelah kontak. Hasil ini belum membuktikan performa AUV fisik atau ketahanan pada seluruh kondisi kolam.
 
@@ -38,13 +36,13 @@ cd /home/rasya/AUV/ros2_ws
 bash tools/ros.sh build --symlink-install
 
 # Kualifikasi autonomous; default memakai model dinamis dan estimasi sensor
-bash tools/ros.sh launch sauvc_sim arena.launch.py autonomous:=true
+bash tools/ros.sh launch sauvc_sim arena.launch.py edition:=2027 autonomous:=true
 
 # ARENA: Navigation, flare dan blue drum
-bash tools/ros.sh launch sauvc_sim arena.launch.py arena:=finals autonomous:=true
+bash tools/ros.sh launch sauvc_sim arena.launch.py edition:=2027 arena:=finals autonomous:=true
 
-# ARENA tambahan: pinger, drop, pelintasan gate tambahan dan pickup
-bash tools/ros.sh launch sauvc_sim arena.launch.py arena:=finals autonomous:=true extended:=true
+# ARENA tambahan: pinger, drop, keluar target zone dan pickup
+bash tools/ros.sh launch sauvc_sim arena.launch.py edition:=2027 arena:=finals autonomous:=true extended:=true
 ```
 
 Jalankan satu mode setiap kali; hentikan mode sebelumnya sebelum membuka mode lain pada domain/partition yang sama. Tambahkan `headless:=true` untuk pengujian tanpa jendela. Simulasi terisolasi di `/home/rasya/AUV/ros2_ws` dan tidak menjalankan MAVLink atau output hardware.
@@ -57,9 +55,12 @@ Jalankan satu mode setiap kali; hentikan mode sebelumnya sebelum membuka mode la
 | [17 — Persepsi dan ARENA](plan/17-hasil-arena-autonomous.md) | Ketahanan deteksi, perbaikan gate dan misi blue drum |
 | [18 — Dinamika dan estimasi sensor](plan/18-dinamika-dan-estimasi-sensor.md) | Model gaya, instrumen virtual dan pengujian gangguan |
 | [19 — Penilaian dan rancangan servo](plan/19-penilaian-arena-dan-rancangan-servo.md) | Perhitungan skor, perbedaan interpretasi contoh aturan dan konsep dropper |
+| [24 — Migrasi dan uji 2027](plan/24-migrasi-dan-uji-arena-2027.md) | Profil default 2027, hasil runtime dan batas pembuktian |
 | [20 — Pinger, pickup dan servo simulator](plan/20-pinger-pickup-dan-servo-simulator.md) | Mekanisme tambahan, dua fixture penerimaan dan batas model |
 
 Log, trajectory, hasil referee dan ringkasan JSON berada secara lokal di `ros2_ws/evidence/`, yang diabaikan Git. Laporan menautkan artefak tersebut; artefak tidak otomatis tersedia pada clone baru. Percobaan gagal dipertahankan terpisah dari run penerimaan.
+
+**Sinkronisasi 26 Oktober 2026:** `ros2_ws` dan HydroShips memakai satu profil tujuh thruster. Pemetaan output sudah dicocokkan dengan parameter Pixhawk; posisi/sudut dan matriks mixer fisik masih belum terverifikasi. Bukti terbaru tersedia pada [laporan 23](plan/23-sinkronisasi-7-thruster.md).
 
 ## Pekerjaan fisik yang tersisa
 

@@ -4,6 +4,7 @@ import threading
 import time
 
 from pymavlink import mavutil
+from .propulsion import expected_parameters
 
 
 class DemoVehicle:
@@ -18,6 +19,7 @@ class DemoVehicle:
         self.params = {"SYSID_THISMAV": (42.0, 4), "PILOT_SPEED_DN": (50.0, 9),
                        "PILOT_SPEED_UP": (50.0, 9), "WPNAV_SPEED": (100.0, 9),
                        "GCS_PID_MASK": (0.0, 6), "SURFACE_DEPTH": (-0.1, 9)}
+        self.params.update({name:(float(value),4) for name,value in expected_parameters().items()})
         self.writes = []
         self.thread = threading.Thread(target=self.run, name="demo-autopilot", daemon=True)
 
@@ -57,6 +59,7 @@ class DemoVehicle:
                     # SCALED_PRESSURE2: display water pressure, not an invented depth.
                     link.mav.scaled_pressure2_send(int(elapsed*1000), 1013.25+100*abs(math.sin(elapsed/20)), 0, 2700)
                     link.mav.vfr_hud_send(0, 0, int(elapsed*3)%360, 0, -1.2-.2*math.sin(elapsed/10), 0)
+                    link.mav.servo_output_raw_send(int(elapsed*1e6),0,*([1500]*7+[0]))
                     last_data = now
                 for _ in range(30):
                     msg = link.recv_match(blocking=False)

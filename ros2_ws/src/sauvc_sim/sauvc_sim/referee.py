@@ -25,8 +25,12 @@ def envelope(pose):
 
 
 class QualificationJudge:
-    def __init__(self, lane=1, physical=False):
-        self.gate_y = 4 if lane == 1 else 12
+    def __init__(self, lane=1, physical=False,edition='2026'):
+        from sauvc_sim.rules2027 import LANES,floor_z as depth2027
+        self.edition=edition
+        self.pool_x,self.pool_y=(50,25) if edition=='2027' else (25,16)
+        self.floor=depth2027 if edition=='2027' else floor_z
+        self.gate_y = LANES[lane-1] if edition=='2027' else (4 if lane == 1 else 12)
         self.physical=physical
         self.phase = 'START'
         self.reason = ''
@@ -90,10 +94,10 @@ class QualificationJudge:
                 continue
             self.fail('contact:' + name, t)
             return
-        if bottom_y <= 0 or top_y >= 16 or hi >= 25 or (lo < -.025 and not launching):
+        if bottom_y <= 0 or top_y >= self.pool_y or hi >= self.pool_x or (lo < -.025 and not launching):
             self.fail('pool_boundary', t)
             return
-        if bottom_z <= max(floor_z(max(0, lo)), floor_z(min(25, hi))):
+        if bottom_z <= max(self.floor(max(0, lo)), self.floor(min(self.pool_x, hi))):
             self.fail('floor_envelope', t)
             return
         if self.physical and self.run_started is None:
@@ -110,7 +114,7 @@ class QualificationJudge:
             self.fail('early_surface', t)
             return
         if not self.qualified and lo <= 10.025 and hi >= 9.975:
-            if bottom_y <= self.gate_y-.75 or top_y >= self.gate_y+.75 or top_z >= 0:
+            if bottom_y <= self.gate_y-.75 or top_y >= self.gate_y+.75 or top_z >= 0 or (self.edition=='2027' and bottom_z<=-1.):
                 self.fail('outside_gate_opening', t)
                 return
         if self.phase == 'OUTBOUND' and lo > 10.025:

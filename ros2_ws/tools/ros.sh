@@ -12,6 +12,8 @@ if [[ -x .venv-ros310/bin/python ]]; then
     task_default_python="$task_ws/.venv-ros310/bin/python"
 fi
 task_python="${SAUVC_PYTHON:-$task_default_python}"
+# ROS executables use /usr/bin/env python3; keep children in this interpreter too.
+export PATH="$(dirname "$task_python"):$PATH"
 "$task_python" -c 'import sys; assert sys.version_info[:2] == (3, 10), "Humble needs Python 3.10"'
 export ROS_DOMAIN_ID="${ROS_DOMAIN_ID:-86}"
 # Gazebo also needs isolation from any running KKI simulation.

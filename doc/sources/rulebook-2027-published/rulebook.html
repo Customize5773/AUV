@@ -1,0 +1,1152 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>The Singapore AUV Challenge 2027 Rulebook</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,700,900"/>
+  <link rel="stylesheet" href="https://sauvc.org/css/style.css"/>
+  <style>
+    /* Rulebook layer on top of the sauvc.org styles. Colours are the site palette. */
+    :root {
+      --navy: #1C455D;
+      --sky: #A0DCF1;
+      --pale: #E5F2F7;
+      --orange: #F59A63;
+      --link: #227BA3;   /* site link blue #35A6D3, darkened to 4.7:1 on white */
+      --red: #C93C2E;    /* site coral #F15E50, darkened to 5:1 on white */
+    }
+
+    ::selection { background: var(--sky); color: var(--navy); }
+    :focus-visible { outline: 3px solid var(--navy); outline-offset: 2px; }
+    [id] { scroll-margin-top: 1rem; }
+    @media (prefers-reduced-motion: no-preference) {
+      html { scroll-behavior: smooth; }
+    }
+
+    /* Cover */
+    .hero .synopsis { font-size: 1.5em; font-weight: normal; }
+    .hero .synopsis strong { font-size: 1.2em; }
+    .hero .welcome span { font-size: .5em; }
+    .stats li { width: auto; min-width: 12em; }
+    .num { padding: .5em 1em; }
+
+    /* Links: darker blue, underlined inside running text */
+    section a:link, section a:visited { color: var(--link); }
+    section > p a, section > ul a, section > ol a, td a {
+      text-decoration: underline;
+      text-decoration-thickness: 1px;
+      text-underline-offset: .15em;
+    }
+
+    /* One reading width for text, figures and tables */
+    section { max-width: 90ch; }
+
+    h1, h2, h3, h4 { overflow-wrap: break-word; text-wrap: balance; }
+
+    /* Section numbers (added by scripts/postprocess.mjs), also links to the section */
+    section a.header-link:link, section a.header-link:visited {
+      color: inherit;
+      font-weight: normal;
+      text-decoration: none;
+    }
+    section a.header-link:hover { text-decoration: underline; }
+    section > h4 { position: relative; margin: 1.5em 0 .5em; }
+    section > h4 > .header-link { position: absolute; right: 100%; opacity: 0; }
+    section > h4:hover > .header-link, section > h4 > .header-link:focus-visible { opacity: .6; }
+    .toc .header-link { display: none; }
+
+    /* Contents, numbered to match the sections */
+    .toc h2 { font-size: 1.5em; color: var(--navy); margin: 1em 0 .5em; }
+    .toc ul { list-style: none; padding-left: 0; margin: 0; }
+    .toc ul ul { padding-left: 2.2em; }
+    .toc li { margin: .15em 0; }
+    .toc a { display: flex; }
+    .toc-num { flex: none; min-width: 2.2em; color: var(--navy); }
+    .toc ul ul .toc-num { min-width: 2.6em; }
+
+    /* A button back to the contents */
+    .to-contents {
+      position: fixed;
+      right: 1rem;
+      bottom: 1rem;
+      display: inline-flex;
+      align-items: center;
+      min-height: 44px;
+      box-sizing: border-box;
+      padding: 0 1.1em;
+      border-radius: 4px;
+      background: var(--navy);
+      box-shadow: 0 2px 8px rgba(28, 69, 93, .3);
+      font-size: .8em;
+      font-weight: bold;
+    }
+    .to-contents:link, .to-contents:visited { color: #fff; }
+    main { padding-bottom: 4rem; }   /* room to scroll the last lines clear of the button */
+    .pdf .to-contents { display: none; }
+    .pdf main { padding-bottom: 0; }
+
+    /* Tables: left-aligned text, right-aligned numbers, one neutral rule between rows */
+    section table { font-size: .9em; margin: 1em 0 2em; }
+    table tr, table tr:nth-child(n) { border-top: 1px solid var(--sky); }
+    table thead tr { border-top: none; border-bottom: 2px solid var(--navy); }
+    table th, table td { padding: .6em 1.2em .6em 0; vertical-align: top; }
+    table th:last-child, table td:last-child { padding-right: 0; }
+    table td[align="right"] { font-variant-numeric: tabular-nums; }
+    table tr:has(> td:last-child > strong:only-child) { border-top: 2px solid var(--navy); }
+    @media screen and (max-width: 40em) {
+      section > h2 { font-size: 2.2em; }
+    }
+
+    /* Highlights */
+    .penalty { color: var(--red); font-weight: bold; }
+    .important { background: var(--red); color: #fff; }
+    .indicate-orange { border: solid var(--orange) 3px; padding: 0 .2em; }
+
+    /* Figures: tap to open the full-size image */
+    .figure-link { display: block; cursor: zoom-in; }
+    .img-container img { height: auto; }
+
+    /* Keep headings with the content that follows, and figures and table rows whole, across PDF pages */
+    h2, h3, h4, .img-container { break-after: avoid; }
+    img, tr, .image-caption { break-inside: avoid; }
+
+    /* Figure numbers are added by scripts/postprocess.mjs; the triangle is decoration */
+    .image-caption::before { content: "▲ " / ""; }
+
+    @media print {
+      .to-contents { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="hero bubbles">
+    <h1 class="synopsis">The Singapore AUV Challenge 2027<br>
+      <strong>Rulebook</strong>
+    </h1>
+
+    <ul class="stats">
+      <li>
+        <div class="caption">Current Rulebook version</div>
+        <div class="num">2027.2.1</div>
+      </li>
+    </ul>
+
+    <p class="welcome">
+      <span>Last updated on</span><br>
+      26 October 2026
+    </p>
+  </header>
+
+  <main>
+    <section><nav class="toc" aria-labelledby="contents">
+
+<h2 id="contents"><a class="header-link" href="#contents"></a>Contents</h2>
+<ul class="list">
+<li><a href="#whats-new-in-2027"><span class="toc-num">1</span> What&#39;s new in 2027</a></li>
+<li><a href="#scoring-at-a-glance"><span class="toc-num">2</span> Scoring at a glance</a></li>
+<li><a href="#key-terms"><span class="toc-num">3</span> Key terms</a></li>
+<li><a href="#objectives"><span class="toc-num">4</span> Objectives</a></li>
+<li><a href="#structure-of-the-team"><span class="toc-num">5</span> Structure of the Team</a></li>
+<li><a href="#video-submission"><span class="toc-num">6</span> Video Submission</a></li>
+<li><a href="#qualification"><span class="toc-num">7</span> Qualification</a></li>
+<li><a href="#the-arena"><span class="toc-num">8</span> The Arena</a><ul class="list">
+<li><a href="#qualification-arenas"><span class="toc-num">8.1</span> Qualification Arena(s)</a></li>
+<li><a href="#starting-zone"><span class="toc-num">8.2</span> Starting Zone</a></li>
+</ul>
+</li>
+<li><a href="#tasks"><span class="toc-num">9</span> Tasks</a><ul class="list">
+<li><a href="#navigation"><span class="toc-num">9.1</span> Navigation</a></li>
+<li><a href="#target-acquisition"><span class="toc-num">9.2</span> Target Acquisition</a></li>
+<li><a href="#target-reacquisition"><span class="toc-num">9.3</span> Target Reacquisition</a></li>
+<li><a href="#communication--localization"><span class="toc-num">9.4</span> Communication &amp; Localization</a></li>
+<li><a href="#surfacing"><span class="toc-num">9.5</span> Surfacing</a></li>
+<li><a href="#aborting"><span class="toc-num">9.6</span> Aborting</a></li>
+<li><a href="#automatic-abort"><span class="toc-num">9.7</span> Automatic Abort</a></li>
+<li><a href="#timing-bonus"><span class="toc-num">9.8</span> Timing Bonus</a></li>
+<li><a href="#penalties"><span class="toc-num">9.9</span> Penalties</a></li>
+<li><a href="#examples"><span class="toc-num">9.10</span> Examples</a></li>
+</ul>
+</li>
+<li><a href="#specification-of-auv"><span class="toc-num">10</span> Specification of AUV</a><ul class="list">
+<li><a href="#size"><span class="toc-num">10.1</span> Size</a></li>
+<li><a href="#power"><span class="toc-num">10.2</span> Power</a></li>
+<li><a href="#safety"><span class="toc-num">10.3</span> Safety</a></li>
+<li><a href="#communications"><span class="toc-num">10.4</span> Communications</a></li>
+</ul>
+</li>
+<li><a href="#game-procedure"><span class="toc-num">11</span> Game Procedure</a><ul class="list">
+<li><a href="#sequence-of-events-during-the-competition"><span class="toc-num">11.1</span> Sequence of events during the competition</a></li>
+<li><a href="#practice-rounds"><span class="toc-num">11.2</span> Practice Rounds</a></li>
+<li><a href="#length-of-a-game"><span class="toc-num">11.3</span> Length of a game</a></li>
+<li><a href="#retries"><span class="toc-num">11.4</span> Retries</a></li>
+</ul>
+</li>
+<li><a href="#certificate-of-participation"><span class="toc-num">12</span> Certificate of Participation</a></li>
+<li><a href="#general-restrictions"><span class="toc-num">13</span> General Restrictions</a></li>
+<li><a href="#disqualification"><span class="toc-num">14</span> Disqualification</a></li>
+<li><a href="#others"><span class="toc-num">15</span> Others</a></li>
+<li><a href="#feedback"><span class="toc-num">16</span> Feedback</a></li>
+</ul>
+</nav>
+
+<h2 id="whats-new-in-2027"><a class="header-link" href="#whats-new-in-2027">1</a> What&#39;s new in 2027</h2>
+<p>Changes since the 2025 rulebook:</p>
+<ul class="list">
+<li><strong>Video rules.</strong> Videos must be 40 to 45 seconds long and show at least 20 seconds of untethered swimming in which the AUV dives, swims straight, turns 180° clockwise and swims back. The kill switch must be operated underwater. The deadline is 23:59 20th December, 2026, Anywhere On Earth. See <a href="#video-submission">Video Submission</a>.</li>
+<li><strong>Surfacing Square bonus.</strong> Surfacing inside the new Surfacing Square, without touching it, earns 20 extra points. See <a href="#surfacing-square-bonus">Surfacing Square Bonus</a>.</li>
+<li><strong>Kill switch.</strong> It must be the same kill switch shown in the video. See <a href="#safety">Safety</a>.</li>
+</ul>
+<h2 id="scoring-at-a-glance"><a class="header-link" href="#scoring-at-a-glance">2</a> Scoring at a glance</h2>
+<p>Points for a single attempt. The <a href="#examples">Examples</a> show how they add up.</p>
+<table>
+<thead>
+<tr>
+<th align="left">What the AUV does</th>
+<th align="right">Points</th>
+<th align="left">Rule</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">Passes through the gate</td>
+<td align="right"><span class="info">15</span></td>
+<td align="left"><a href="#navigation">Navigation</a></td>
+</tr>
+<tr>
+<td align="left">Drops the ball in the <span class="indicate-blue">blue drum</span></td>
+<td align="right"><span class="info">30</span></td>
+<td align="left"><a href="#target-acquisition">Target Acquisition</a></td>
+</tr>
+<tr>
+<td align="left">Drops the ball in the <span class="indicate-red">red drum</span> with the pinger</td>
+<td align="right"><span class="info">50</span></td>
+<td align="left"><a href="#target-acquisition">Target Acquisition</a></td>
+</tr>
+<tr>
+<td align="left">Drops the ball in any other <span class="indicate-red">red drum</span></td>
+<td align="right"><span class="info">10</span></td>
+<td align="left"><a href="#target-acquisition">Target Acquisition</a></td>
+</tr>
+<tr>
+<td align="left">Picks up its ball again and holds it until the end of the attempt</td>
+<td align="right"><span class="info">60</span></td>
+<td align="left"><a href="#target-reacquisition">Target Reacquisition</a></td>
+</tr>
+<tr>
+<td align="left">Makes the ball drop from a flare</td>
+<td align="right"><span class="info">20</span> per flare</td>
+<td align="left"><a href="#communication--localization">Communication &amp; Localization</a></td>
+</tr>
+<tr>
+<td align="left">Makes the balls drop from all 3 flares in the specified order</td>
+<td align="right"><span class="info">60</span> extra</td>
+<td align="left"><a href="#communication--localization">Communication &amp; Localization</a></td>
+</tr>
+<tr>
+<td align="left">Surfaces</td>
+<td align="right"><span class="info">5</span></td>
+<td align="left"><a href="#surfacing">Surfacing</a></td>
+</tr>
+<tr>
+<td align="left">Surfaces inside the Surfacing Square without touching it, after completing Navigation</td>
+<td align="right"><span class="info">20</span> extra</td>
+<td align="left"><a href="#surfacing-square-bonus">Surfacing Square Bonus</a></td>
+</tr>
+<tr>
+<td align="left">Completes Navigation and at least one other task</td>
+<td align="right">(900 − run time in seconds) × 0.03</td>
+<td align="left"><a href="#timing-bonus">Timing Bonus</a></td>
+</tr>
+<tr>
+<td align="left">Touches the gate</td>
+<td align="right"><span class="penalty">−2</span></td>
+<td align="left"><a href="#penalties">Penalties</a></td>
+</tr>
+<tr>
+<td align="left">Touches the bottom or a wall of the pool</td>
+<td align="right"><span class="penalty">−5</span></td>
+<td align="left"><a href="#penalties">Penalties</a></td>
+</tr>
+</tbody></table>
+<p>The AUV can also earn a <span class="info">10 point</span> size bonus and a <span class="info">10 point</span> weight bonus at the size and weight check. They are added to the score of every attempt, but count only if the team passes the qualifying round. See <a href="#size">Size</a>.</p>
+<h2 id="key-terms"><a class="header-link" href="#key-terms">3</a> Key terms</h2>
+<table>
+<thead>
+<tr>
+<th align="left">Term</th>
+<th align="left">Meaning</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>Attempt</strong></td>
+<td align="left">One run of the AUV, from the starting zone until the <span class="emphasis">end of the attempt</span>. A game can have several attempts. Only the attempt with the highest score counts.</td>
+</tr>
+<tr>
+<td align="left"><strong>End of the attempt</strong></td>
+<td align="left">The AUV surfaces, the team asks the <span class="inverse">Game Master</span> to abort, or the attempt is automatically aborted. Points are counted at this moment.</td>
+</tr>
+<tr>
+<td align="left"><strong>Game</strong></td>
+<td align="left">The 15 minutes a team has to complete the tasks, including all retries.</td>
+</tr>
+<tr>
+<td align="left"><strong>Retry</strong></td>
+<td align="left">A new attempt in the same game. The AUV starts again from the starting zone with 0 points.</td>
+</tr>
+<tr>
+<td align="left"><strong>Run time</strong></td>
+<td align="left">The time from when the AUV starts thrusting from the starting zone until the end of the attempt. Used for the <a href="#timing-bonus">Timing Bonus</a>.</td>
+</tr>
+<tr>
+<td align="left"><span class="inverse">Game Master</span></td>
+<td align="left">The official the team tells when it wants to abort an attempt.</td>
+</tr>
+<tr>
+<td align="left"><span class="inverse">Judges</span></td>
+<td align="left">The officials who check AUVs, approve retries and decide anything this rulebook does not cover.</td>
+</tr>
+<tr>
+<td align="left"><strong>Communication equipment</strong></td>
+<td align="left">Underwater equipment is carried on the AUV and counts as part of it. Top-side equipment stays in the starting zone. See <a href="#communications">Communications</a>.</td>
+</tr>
+</tbody></table>
+<p>The rulebook highlights terms like this:</p>
+<ul class="list">
+<li><span class="info">15 Points</span>: points awarded</li>
+<li><span class="penalty">−5</span>: penalty points</li>
+<li><span class="emphasis">end of the attempt</span>: when an attempt ends</li>
+<li><span class="important">abort</span>: the attempt is stopped early</li>
+<li><span class="inverse">Judges</span>: competition officials</li>
+<li><span class="indicate-red">red</span>: the colour of a prop</li>
+</ul>
+<h2 id="objectives"><a class="header-link" href="#objectives">4</a> Objectives</h2>
+<p>The goal is for each team to develop an Autonomous Underwater Vehicle (AUV) which can negotiate the tasks put forth under a prescribed time and at the same time, to learn about underwater robotics and have fun in the process.</p>
+<p class="img-container"><a class="figure-link" href="img/sauvc-2017.jpg"><img src="img/sauvc-2017.jpg" alt="Participants of SAUVC 2017 posing beside the competition pool" width="1621" height="720" loading="lazy" decoding="async"></a></p>
+<p class="image-caption">Figure 1: The SAUVC 2017 Participants.</p>
+
+<h2 id="structure-of-the-team"><a class="header-link" href="#structure-of-the-team">5</a> Structure of the Team</h2>
+<p>A team may consist of up to <strong>11 participants</strong> including <strong>faculty supervisors</strong>. There are two team categories, student and open. A team is in the student category if at least half of its participants are full-time students at the time of registration.</p>
+<p class="img-container"><a class="figure-link" href="img/team.jpg"><img src="img/team.jpg" alt="A team with its faculty co-supervisors and AUV at the poolside in 2017" width="1623" height="1080" loading="lazy" decoding="async"></a></p>
+<p class="image-caption">Figure 2: One of the teams with faculty co-supervisors from the 2017 Competition.</p>
+
+<h2 id="video-submission"><a class="header-link" href="#video-submission">6</a> Video Submission</h2>
+<p>All teams have to submit a video of their AUV prior to the competition. The video <strong>HAS TO</strong></p>
+<ul class="list">
+<li> be <strong>40 to 45 seconds</strong> long,</li>
+<li> be submitted before 23:59 20th December, 2026, <a href="https://en.wikipedia.org/wiki/Anywhere_on_Earth">Anywhere On Earth</a>,</li>
+<li> show the AUV swimming underwater without a tether for at least <strong>20 seconds</strong>. In this time, the AUV must <strong>dive, swim straight, turn 180° clockwise and swim back</strong>.</li>
+<li> show a person operating the <a href="#safety">kill switch</a> <strong>underwater</strong>, and all thrusters stopping immediately.</li>
+</ul>
+<p><strong>Note: The video will not be played beyond 45 seconds, so whatever you want to showcase, must be done strictly within the 45 seconds.</strong></p>
+<p>For your video:</p>
+<ul class="list">
+<li>Do not put important parts of the video (safety, control etc.) after 45 seconds. They will not be reviewed, without exception.</li>
+<li>Do not spend time on an intro about your team or university. It takes up valuable time in your video.</li>
+</ul>
+<p>Videos will be reviewed by the organizing committee and <strong>around 35 teams with the best vehicles will be short-listed to attend the competition. The above criteria are the basic necessary criteria, failing which the teams wont be short-listed.</strong> The committee will set the exact number based on logistics.</p>
+<ul class="list">
+<li>The <span class="inverse">Judges</span> will check each video for authenticity.</li>
+<li>Teams may improve the AUV after the video, but must not change it significantly.</li>
+<li>Teams must not modify the kill switch shown in the video. The <span class="inverse">Judges</span> reserve the right to disallow an AUV that breaks this rule.</li>
+</ul>
+<p>The organizing committee reserves the right to publish the video submissions after the competition.</p>
+<h2 id="qualification"><a class="header-link" href="#qualification">7</a> Qualification</h2>
+<ul class="list">
+<li>To qualify, an AUV must swim from the <strong>qualification starting line, pass completely through the qualification gate, perform a U-turn, and completely pass through the gate again</strong>. Note: It is necessary to perform a U-Turn after passing through the gate in the forward run, before attempting the reverse run.</li>
+<li>&quot;Passing through the gate&quot; implies the back-most part of the AUV crosses the line.</li>
+<li>The AUV must complete the entire course without surfacing, touching the bottom, walls, or the qualification gate.</li>
+<li>Passing through the gate once (in the forward run) earns 1 qualification point. 2 qualification points are awarded only after the AUV passes through the gate both times (i.e, on both the forward and reverse run).</li>
+<li>The total run time will be measured from when the <strong>AUV starts the qualification run to when it completely passes through the gate for the second time or when the team requests an abort</strong>.</li>
+<li>Timing of the run will be used for tie-breakers only and does not directly contribute to the qualification score.</li>
+<li>Teams will be allocated a time slot for the qualification round. Teams may attempt multiple qualifying runs during the qualifying slot.</li>
+<li>If multiple qualifying runs are attempted during the qualifying slot, the most successful run will be considered for the final round (i.e the run with highest qualification points, and the fastest amongst those).</li>
+<li><strong>Only the top 15</strong> qualified teams, with the highest qualification score, will advance to the final round.</li>
+<li>The qualification score, followed by the time taken to pass the qualifier round, decides the sequence in which the teams will participate in the final round of the competition. The team that finished the last in the qualifying round would participate first in the final round.</li>
+</ul>
+<p class="img-container"><a class="figure-link" href="img/qualification.jpg"><img src="img/qualification.jpg" alt="An AUV swimming underwater towards the qualification gate while a team member watches from the pool edge" width="1623" height="1080" loading="lazy" decoding="async"></a></p>
+<p class="image-caption">Figure 3: A team attempting qualification in the 2017 Competition.</p>
+
+<p class="img-container"><a class="figure-link" href="img/qualification-2022.jpg"><img src="img/qualification-2022.jpg" alt="Top view of the pool in 2022 with qualification gates set up in separate lanes" width="1600" height="898" loading="lazy" decoding="async"></a></p>
+<p class="image-caption">Figure 4: Top view of the qualification arenas from the 2022 Competition.</p>
+
+<h2 id="the-arena"><a class="header-link" href="#the-arena">8</a> The Arena</h2>
+<p>The challenge will be held in an olympic sized swimming pool (50m × 25m). Divers will be in the pool during the games.</p>
+<p class="img-container"><a class="figure-link" href="img/arena-2027.png"><img src="img/arena-2027.png" alt="Diagram of the 50m × 25m pool. Three qualification arenas, each with a starting point and a qualification gate, run along a 10m strip at one end. In the 28m main arena: the 8m × 2m target zone with one blue and three red drums, a band where the red, yellow and blue flares are placed, the navigation gate line about 12m from the starting zone side, a 4m to 8m zone for the orange flare, the 140cm starting zone, and the 200cm Surfacing Square next to the qualification gates. The side view shows the pool floor sloping from 1.28m deep at the qualification gate to 2m deep in the main arena." width="1098" height="1089" loading="lazy" decoding="async"></a></p>
+<p class="image-caption" id="fig-arena">Figure 5: Top & side views of the Arena (not to scale).</p>
+
+<p class="img-container"><a class="figure-link" href="img/arena-2017.jpg"><img src="img/arena-2017.jpg" alt="Underwater view of the arena in 2017 with an AUV swimming near a gate" width="1920" height="1080" loading="lazy" decoding="async"></a></p>
+<p class="image-caption">Figure 6: Picture of the Arena from 2017 Competition.</p>
+
+<p class="img-container"><a class="figure-link" href="img/arena-top-2022.jpg"><img src="img/arena-top-2022.jpg" alt="Overhead photo of the arena in 2022 showing the lanes and props" width="1600" height="898" loading="lazy" decoding="async"></a></p>
+<p class="image-caption">Figure 7: Picture of the Arena from 2022 Competition.</p>
+
+<h3 id="qualification-arenas"><a class="header-link" href="#qualification-arenas">8.1</a> Qualification Arena(s)</h3>
+<p>The qualification rounds would be held on the side of the main arena.</p>
+<p>The qualification starting line is a marked 1m wide section of the pool wall from where the AUV should be deployed from. The AUV <strong>has to touch the wall</strong> at the beginning of the run.</p>
+<p>At approximately 10m from the starting line the qualification gate is hanging from the surface of the water. The AUV has to go through the gate completely to get 1 qualifying point. If the AUV touches <strong>ANY</strong> of the 3 sides of the qualification gate, the attempt is considered a failure.</p>
+<h4 id="specification-of-props"><a class="header-link" href="#specification-of-props">§</a> Specification of props</h4>
+<table>
+<thead>
+<tr>
+<th align="left">Prop</th>
+<th align="left">Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">Qualification Gate</td>
+<td align="left">150cm wide and ~100cm deep gate hanging from the water surface with <span class="indicate-orange">orange</span> markings on both port and starboard sides.</td>
+</tr>
+</tbody></table>
+<p class="img-container"><a class="figure-link" href="img/qualification-gate.jpg"><img src="img/qualification-gate.jpg" alt="Front view diagram of the qualification gate: 150cm wide, hanging about 100cm deep from the water surface, with orange side posts 4cm wide" width="960" height="720" loading="lazy" decoding="async"></a></p>
+<p class="image-caption">Figure 8: Front view of the qualification gate (not to scale).</p>
+
+<h3 id="starting-zone"><a class="header-link" href="#starting-zone">8.2</a> Starting Zone</h3>
+<p>The starting zone is a <strong>140×140cm area</strong> marked on the surface of water. The teams  <strong>must</strong> start their AUVs from this area. The team may only place the AUV at the water surface, it must autonomously submerge <strong>before</strong> leaving the starting zone. Teams may also place their <a href="#communications">communication equipment</a> in the starting zone.</p>
+<p class="img-container"><a class="figure-link" href="img/starting-zone-2022.jpg"><img src="img/starting-zone-2022.jpg" alt="A team member placing an AUV in the floating starting zone frame in 2022" width="1600" height="1200" loading="lazy" decoding="async"></a></p>
+<p class="image-caption">Figure 9: Picture of the Starting Zone from 2022 Competition.</p>
+
+<h2 id="tasks"><a class="header-link" href="#tasks">9</a> Tasks</h2>
+<p>There are 4 tasks in the challenge:</p>
+<ol class="list">
+<li><a href="#navigation">Navigation</a></li>
+<li><a href="#target-acquisition">Target Acquisition</a></li>
+<li><a href="#target-reacquisition">Target Reacquisition</a></li>
+<li><a href="#communication--localization">Communication &amp; Localization</a></li>
+</ol>
+<p>The first task, Navigation, is mandatory and <strong>must be completed</strong> before attempting any other task. The other tasks can be attempted in any order. Surfacing at any point signifies <span class="emphasis">end of the attempt</span>.</p>
+<h3 id="navigation"><a class="header-link" href="#navigation">9.1</a> Navigation</h3>
+<p>The aim of this task is to swim through a gate placed at the bottom of the pool. The gate may be located anywhere on a horizontal line, parallel to the side of the swimming pool, approximately 12m away from the starting zone. See the <a href="#fig-arena">arena diagram</a>. The AUV has to swim through the 150cm tall gate. Touching the gate does not fail the task, but it costs a <a href="#penalties">penalty</a>.</p>
+<p><strong>An orange flare</strong> may be located anywhere in a rectangular zone 4m-8m from side of the arena, before the gate. The AUV <strong>has to avoid</strong> touching the orange flare. Any part of the AUV touching the orange flare causes an immediate <span class="important">abort</span> of the attempt.</p>
+<p class="img-container"><a class="figure-link" href="img/gate-2022.jpg"><img src="img/gate-2022.jpg" alt="Underwater photo of the navigation gate standing on the pool floor in 2022" width="1600" height="1067" loading="lazy" decoding="async"></a></p>
+<p class="image-caption">Figure 10: Picture of the gate from 2022 Competition.</p>
+
+<h4 id="points"><a class="header-link" href="#points">§</a> Points</h4>
+<p>If the AUV successfully passes through the gate,<span class="info">15 Points</span> will be awarded.</p>
+<h4 id="specification-of-props-1"><a class="header-link" href="#specification-of-props-1">§</a> Specification of props</h4>
+<table>
+<thead>
+<tr>
+<th align="left">Prop</th>
+<th align="left">Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">Gate</td>
+<td align="left">150cm wide and 150cm tall gate with striped <span class="indicate-red">red</span> and <span class="indicate-green">green</span> markings on port and starboard sides respectively.</td>
+</tr>
+<tr>
+<td align="left">Orange Flare</td>
+<td align="left">150cm tall and ~15cm diameter flare, and <span class="indicate-orange">orange</span> in colour.</td>
+</tr>
+</tbody></table>
+<p class="img-container"><a class="figure-link" href="img/gate-2024.jpg"><img src="img/gate-2024.jpg" alt="Front view diagram of the navigation gate: 150cm wide and 150cm tall on the pool floor, with red and black striped left post and green and black striped right post, in water about 200cm deep" width="960" height="720" loading="lazy" decoding="async"></a></p>
+<p class="image-caption">Figure 11: Front view of the gate (not to scale).</p>
+
+<p class="img-container"><a class="figure-link" href="img/orange-flare.jpg"><img src="img/orange-flare.jpg" alt="Diagram of the orange flare: about 150cm tall and 15cm wide, standing on the pool floor in water about 200cm deep" width="457" height="710" loading="lazy" decoding="async"></a></p>
+<p class="image-caption">Figure 12: Front view of the orange flare (not to scale).</p>
+
+<p class="img-container"><a class="figure-link" href="img/orange-flare-2022.jpg"><img src="img/orange-flare-2022.jpg" alt="Underwater photo of the orange flare in 2022" width="1067" height="1600" loading="lazy" decoding="async"></a></p>
+<p class="image-caption">Figure 13: Orange flare from 2022 Competition. </p>
+
+<p class="img-container"><a class="figure-link" href="img/gate+flare-2022.jpg"><img src="img/gate+flare-2022.jpg" alt="Underwater photo of the navigation gate with the orange flare in front of it in 2022" width="1600" height="1067" loading="lazy" decoding="async"></a></p>
+<p class="image-caption">Figure 14: Gate and orange flare from 2022 Competition. </p>
+
+<h3 id="target-acquisition"><a class="header-link" href="#target-acquisition">9.2</a> Target Acquisition</h3>
+<p>The aim of the task is to detect and acquire a target among a series of drums at the bottom of the pool, in the target zone.</p>
+<p>A target zone is defined by a <span class="indicate-green">green coloured mat</span> laid out on the floor of the pool. The mat is 8m × 2m in size. The <a href="#fig-arena">arena diagram</a> shows where the mat is in the arena.</p>
+<p>There are 4 coloured drums in the arena. All of them are on the mat. One of the drums, chosen at random, will be <span class="indicate-blue">blue</span> in colour, while the rest are <span class="indicate-red">red</span> in colour. One of the <span class="indicate-red">red drums</span>, chosen at random, will contain an acoustic pinger. The AUV needs to drop a ball in one of the drums to successfully complete this task. Points will be awarded based on which drum the ball is dropped into. In the event of multiple balls being dropped, only the <strong>first ball</strong> is taken to consideration.</p>
+<p>The location of the <span class="indicate-red">red drum</span> which contains the acoustic pinger may be randomized between attempts, as may be the order of the drums. The order of the drums and location of the pinger will be decided by the organizing committee.</p>
+<h4 id="points-1"><a class="header-link" href="#points-1">§</a> Points</h4>
+<p>Points will be awarded as follows.</p>
+<ul class="list">
+<li>Drop the ball in the <span class="indicate-blue">blue drum</span>: <span class="info">30 Points</span></li>
+<li>Drop the ball in the <span class="indicate-red">red drum</span> with the pinger: <span class="info">50 Points</span></li>
+<li>Dropping the ball in any other <span class="indicate-red">red drum</span>: <span class="info">10 Points</span></li>
+</ul>
+<h4 id="specification-of-props-2"><a class="header-link" href="#specification-of-props-2">§</a> Specification of props</h4>
+<table>
+<thead>
+<tr>
+<th align="left">Prop</th>
+<th align="left">Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">Drum</td>
+<td align="left">60cm in diameter and 30cm in depth.</td>
+</tr>
+<tr>
+<td align="left">Ball</td>
+<td align="left">3.5-4.5cm in diameter and weighs no more than 200g in air. Provided by teams.</td>
+</tr>
+<tr>
+<td align="left">Drum Pinger</td>
+<td align="left"><a href="http://www.rjeint.com/wp-content/uploads/2017/01/ULB-362-ULB-362PL-Manual.pdf">RJE International Pinger Model No. ULB-362B/45 kHz</a>.</td>
+</tr>
+</tbody></table>
+<p class="img-container"><a class="figure-link" href="img/drums-2017.jpg"><img src="img/drums-2017.jpg" alt="Underwater photo of the drums in the target zone in 2017" width="1440" height="1080" loading="lazy" decoding="async"></a></p>
+<p class="image-caption">Figure 15: Picture of the target zone and drums from the 2017 Competition.</p>
+
+<p class="img-container"><a class="figure-link" href="img/pinger.jpg"><img src="img/pinger.jpg" alt="An RJE 45kHz underwater acoustic beacon (pinger)" width="1600" height="532" loading="lazy" decoding="async"></a></p>
+<p class="image-caption">Figure 16: Picture of a 45kHz pinger.</p>
+
+<h3 id="target-reacquisition"><a class="header-link" href="#target-reacquisition">9.3</a> Target Reacquisition</h3>
+<p>The aim of this task is to reacquire a previously detected target.</p>
+<p>This task is only attempt-able if the <a href="#target-acquisition">Target Acquisition</a> has been successfully completed. Furthermore, the AUV has to leave the target zone, before it can attempt the Target Reacquisition task. Every part of the AUV needs to clear the target zone, before it can be considered outside the target zone.</p>
+<p>After the AUV is outside the target zone, it needs to reacquire the target and pick up the ball that it dropped in the <a href="#target-acquisition">Target Acquisition</a> task. The AUV has to hold on to the ball till the <span class="emphasis">end of attempt</span> to successfully complete this task.</p>
+<p>This task does not have to be attempted immediately after Target Acquisition task, other tasks may be attempted in between.</p>
+<h4 id="points-2"><a class="header-link" href="#points-2">§</a> Points</h4>
+<p>If the AUV successfully picks up the ball and holds on to it till the <span class="emphasis">end of the attempt</span>, <span class="info">60 Points</span> will be awarded.</p>
+<h4 id="specification-of-props-3"><a class="header-link" href="#specification-of-props-3">§</a> Specification of props</h4>
+<table>
+<thead>
+<tr>
+<th align="left">Prop</th>
+<th align="left">Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">Target zone</td>
+<td align="left"><span class="indicate-green">Green</span> mat 8m × 2m in size.</td>
+</tr>
+<tr>
+<td align="left">Ball</td>
+<td align="left">Same ball used in target acquisition task. Provided by the teams.</td>
+</tr>
+</tbody></table>
+<h3 id="communication--localization"><a class="header-link" href="#communication--localization">9.4</a> Communication &amp; Localization</h3>
+<p>The aim of this task is to localize on coloured flares and bump them causing a golf ball to drop out. There are <strong>3 coloured flares</strong> in the arena, one <strong>red coloured flare</strong>, one <strong>yellow coloured flare</strong> and one <strong>blue coloured flare</strong>. These flares could be located <strong>anywhere</strong> within the main arena. The AUV may locate and bump the flares in <strong>a specified order</strong>, which may be communicated to the AUV, to receive bonus points.</p>
+<p>On every attempt, after the AUV successfully completes the <em>Navigation task</em>, the team will be informed of the <strong>order</strong> in which the flares have to be bumped. The <strong>specified order</strong> may be different between different attempts. The order will be specified using the following notation, joined by a hyphen (-).</p>
+<ul class="list">
+<li><span class="indicate-red">Red</span> : <strong>R</strong></li>
+<li><span class="indicate-yellow">Yellow</span> : <strong>Y</strong></li>
+<li><span class="indicate-blue">Blue</span> : <strong>B</strong></li>
+</ul>
+<p>So, for example, specifying the order as <strong>R-B-Y</strong> would mean that the AUV has to bump the <strong>red flare</strong> first, followed by the <strong>blue flare</strong> and finally the <strong>yellow flare</strong>.</p>
+<p>The team is then allowed to communicate the <strong>order</strong> with their AUVs using their <a href="#communications">communication equipment</a>.</p>
+<h4 id="points-3"><a class="header-link" href="#points-3">§</a> Points</h4>
+<p>Points would be awarded as follows.</p>
+<ul class="list">
+<li>Successfully causes the ball to drop from any flare via contact or proximity : <span class="info">20 Points per flare</span></li>
+<li>Successfully causes the ball to drop all 3 flares in the <strong>specified order</strong> : <span class="info">60 Points</span> (in addition to above)</li>
+</ul>
+<h4 id="specification-of-props-4"><a class="header-link" href="#specification-of-props-4">§</a> Specification of props</h4>
+<table>
+<thead>
+<tr>
+<th align="left">Prop</th>
+<th align="left">Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">Red Flare</td>
+<td align="left">80cm tall, ~1.6cm in diameter, and <span class="indicate-red">red</span> in colour.</td>
+</tr>
+<tr>
+<td align="left">Yellow Flare</td>
+<td align="left">80cm tall, ~1.6cm in diameter, and <span class="indicate-yellow">yellow</span> in colour.</td>
+</tr>
+<tr>
+<td align="left">Blue Flare</td>
+<td align="left">80cm tall, ~1.6cm in diameter, and <span class="indicate-blue">blue</span> in colour.</td>
+</tr>
+<tr>
+<td align="left">Golf Ball</td>
+<td align="left">A standard golf ball resting on top of each flare.</td>
+</tr>
+</tbody></table>
+<p class="img-container"><a class="figure-link" href="img/flares-2024.jpg"><img src="img/flares-2024.jpg" alt="Side view diagram of the red, yellow and blue flares, each about 80cm tall with a golf ball on top" width="1039" height="710" loading="lazy" decoding="async"></a></p>
+<p class="image-caption">Figure 17: Side view of the flares (not to scale).</p>
+
+<h3 id="surfacing"><a class="header-link" href="#surfacing">9.5</a> Surfacing</h3>
+<p>Breaching the surface at any point during the attempt causes <span class="emphasis">end of the current attempt</span>, the total points for that attempt will be computed based on the tasks accomplished in that attempt and the timing bonus (if applicable) and a <span class="info">5 Points</span> surfacing bonus for ending. The team may wish to retry if they still have time left.</p>
+<h4 id="surfacing-square-bonus"><a class="header-link" href="#surfacing-square-bonus">§</a> Surfacing Square Bonus</h4>
+<p>The Surfacing Square floats on the water surface next to the qualification gates. If the AUV has completed the Navigation task and surfaces inside the Surfacing Square <strong>without touching ANY side of the square</strong>, the team gets a <span class="info">20 Points</span> Surfacing Square bonus on top of the surfacing bonus.</p>
+<p>If the AUV touches any side of the square while surfacing, or surfaces outside it, this counts as a normal surface and the team gets only the surfacing bonus.</p>
+<h4 id="specification-of-the-surfacing-square"><a class="header-link" href="#specification-of-the-surfacing-square">§</a> Specification of the Surfacing Square</h4>
+<table>
+<thead>
+<tr>
+<th align="left">Prop</th>
+<th align="left">Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">Surfacing Square</td>
+<td align="left">200×200cm PVC pipe frame floating on the water surface, held in place by a line. Blue markers hang about 30cm below the frame to make it visible from underwater.</td>
+</tr>
+</tbody></table>
+<p class="img-container"><a class="figure-link" href="img/surfacing-square-2027.png"><img src="img/surfacing-square-2027.png" alt="Diagram of the Surfacing Square: a 200cm × 200cm frame floating on the water surface, with blue markers hanging about 30cm below it" width="960" height="720" loading="lazy" decoding="async"></a></p>
+<p class="image-caption">Figure 18: Top & side views of the Surfacing Square (not to scale).</p>
+
+<h3 id="aborting"><a class="header-link" href="#aborting">9.6</a> Aborting</h3>
+<p>At any time during the attempt, the current attempt can be <span class="important">aborted</span>, by indicating to the <span class="inverse">Game Master</span>. The divers would then retrieve the AUV back to the starting zone. The timing for the current attempt is stopped at the time of indication. The team may wish to retry if they still have time left.</p>
+<p>In the case of an aborted attempt, the team would be awarded the points for all previously successfully completed tasks during the current attempt. Penalties incurred during the attempt still count towards that attempt&#39;s score.</p>
+<h3 id="automatic-abort"><a class="header-link" href="#automatic-abort">9.7</a> Automatic Abort</h3>
+<p>If the AUV touches the bottom or the side walls of the pool for <strong>a cumulative time of more than 10 seconds or 5 discrete touches</strong>, the current attempt would be automatically <span class="important">aborted</span>. The divers would then retrieve the AUV back to the starting zone. The team may wish to retry if they still have time left.</p>
+<p>In the case of an automatic aborted attempt, the team would be awarded the points for all previously successfully completed tasks during the attempt. Penalties incurred during the attempt, including the touches that caused the automatic abort, count towards that attempt&#39;s score.</p>
+<h3 id="timing-bonus"><a class="header-link" href="#timing-bonus">9.8</a> Timing Bonus</h3>
+<p>At the <span class="emphasis">end of an attempt</span>, as long as the AUV has successfully completed at least <strong>2 tasks</strong>, the Navigation task and any other task, bonus points proportional to the remaining time will be awarded in accordance with the following formula.</p>
+<p><code>Bonus points = (900 − RUN_TIME) × 0.03</code></p>
+<p>RUN_TIME is the time in seconds from when the AUV starts thrusting from the starting zone until the <span class="emphasis">end of the attempt</span>.</p>
+<p>For example, for a run time of 420s, Bonus = (900 − 420) × 0.03 = 14.4 Points.</p>
+<h3 id="penalties"><a class="header-link" href="#penalties">9.9</a> Penalties</h3>
+<p>There are penalty points for touching the floor or a wall of the pool at any time, and for touching the gate. The penalty points are:</p>
+<table>
+<thead>
+<tr>
+<th align="left">Description</th>
+<th align="right">Penalty Points</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">Touching the gate</td>
+<td align="right">2</td>
+</tr>
+<tr>
+<td align="left">Touching the bottom of the pool or wall</td>
+<td align="right">5</td>
+</tr>
+</tbody></table>
+<p>Penalties count towards the attempt in which they happen, however the attempt ends, including when it is aborted or automatically aborted.</p>
+<p>There is no penalty for your actuator touching the inner part of the drum during the act of deploying or retrieving during Target Acquisition and Target Reacquisition. However, touching the outer part of the drum or with the vehicle body can incur the same penalty as touching the pool floor.</p>
+<h3 id="examples"><a class="header-link" href="#examples">9.10</a> Examples</h3>
+<p>Here are some example scenarios and how they would be scored. They assume the AUV does not earn the size or weight bonus.</p>
+<h4 id="example-1"><a class="header-link" href="#example-1">§</a> Example 1</h4>
+<ul class="list">
+<li>Team launches AUV from starting zone.</li>
+<li>AUV crosses the gate and completes the Navigation task, but touches the side of the gate while passing through.</li>
+<li>AUV can&#39;t find the location of the next task and ends the attempt by rising to the surface outside the Surfacing Square.</li>
+<li>The team gets the surfacing bonus, but not the Surfacing Square bonus.</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th align="left">Task</th>
+<th align="right">Points</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">Navigation Task</td>
+<td align="right">15</td>
+</tr>
+<tr>
+<td align="left">Touching the gate</td>
+<td align="right"><span class="penalty">−2</span></td>
+</tr>
+<tr>
+<td align="left">Surfacing Bonus</td>
+<td align="right">5</td>
+</tr>
+<tr>
+<td align="left">Surfacing Square Bonus</td>
+<td align="right">0</td>
+</tr>
+<tr>
+<td align="left"><strong>Attempt Total</strong></td>
+<td align="right"><strong>18</strong></td>
+</tr>
+</tbody></table>
+<h4 id="example-2"><a class="header-link" href="#example-2">§</a> Example 2</h4>
+<ul class="list">
+<li>Team launches AUV from starting zone.</li>
+<li>AUV crosses the gate and completes the Navigation task.</li>
+<li>AUV can&#39;t find the location of the next task and has to be aborted and retrieved by divers.</li>
+<li>The AUV did not surface, so the team gets no surfacing bonus and no Surfacing Square bonus.</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th align="left">Task</th>
+<th align="right">Points</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">Navigation Task</td>
+<td align="right">15</td>
+</tr>
+<tr>
+<td align="left">Surfacing Bonus</td>
+<td align="right">0</td>
+</tr>
+<tr>
+<td align="left">Surfacing Square Bonus</td>
+<td align="right">0</td>
+</tr>
+<tr>
+<td align="left"><strong>Attempt Total</strong></td>
+<td align="right"><strong>15</strong></td>
+</tr>
+</tbody></table>
+<h4 id="example-3"><a class="header-link" href="#example-3">§</a> Example 3</h4>
+<ul class="list">
+<li>Team launches AUV from starting zone.</li>
+<li>AUV crosses the gate and completes the Navigation task.</li>
+<li>AUV finds the drums and successfully drops the ball in the <span class="indicate-blue">blue drum</span>, but touches the side of the wall momentarily while looking for the drum.</li>
+<li>AUV tries to find the flares, but can&#39;t find it and has to be aborted and retrieved by divers.</li>
+<li>The AUV did not surface, so the team gets no surfacing bonus and no Surfacing Square bonus.</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th align="left">Task</th>
+<th align="right">Points</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">Navigation Task</td>
+<td align="right">15</td>
+</tr>
+<tr>
+<td align="left">Target Acquisition Task (blue drum)</td>
+<td align="right">30</td>
+</tr>
+<tr>
+<td align="left">Touching the wall</td>
+<td align="right"><span class="penalty">−5</span></td>
+</tr>
+<tr>
+<td align="left">Surfacing Bonus</td>
+<td align="right">0</td>
+</tr>
+<tr>
+<td align="left">Surfacing Square Bonus</td>
+<td align="right">0</td>
+</tr>
+<tr>
+<td align="left"><strong>Attempt Total</strong></td>
+<td align="right"><strong>40</strong></td>
+</tr>
+</tbody></table>
+<h4 id="example-4"><a class="header-link" href="#example-4">§</a> Example 4</h4>
+<ul class="list">
+<li>Team launches AUV from starting zone.</li>
+<li>AUV crosses the gate and completes the Navigation task.</li>
+<li>AUV finds the drums and successfully drops the ball in the <span class="indicate-blue">blue drum</span>.</li>
+<li>AUV locates the <span class="indicate-red">red flare</span> and knocks off the golf ball.</li>
+<li>AUV surfaces outside the Surfacing Square with run time of 400 seconds.</li>
+<li>The team gets the surfacing bonus, but not the Surfacing Square bonus.</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th align="left">Task</th>
+<th align="right">Points</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">Navigation Task</td>
+<td align="right">15</td>
+</tr>
+<tr>
+<td align="left">Target Acquisition Task (blue drum)</td>
+<td align="right">30</td>
+</tr>
+<tr>
+<td align="left">Communication &amp; Localization Task</td>
+<td align="right">20</td>
+</tr>
+<tr>
+<td align="left">Surfacing Bonus</td>
+<td align="right">5</td>
+</tr>
+<tr>
+<td align="left">Surfacing Square Bonus</td>
+<td align="right">0</td>
+</tr>
+<tr>
+<td align="left">Timing Bonus</td>
+<td align="right">15</td>
+</tr>
+<tr>
+<td align="left"><strong>Attempt Total</strong></td>
+<td align="right"><strong>85</strong></td>
+</tr>
+</tbody></table>
+<h4 id="example-5"><a class="header-link" href="#example-5">§</a> Example 5</h4>
+<ul class="list">
+<li>Team launches AUV from starting zone.</li>
+<li>AUV crosses the gate and completes the Navigation task.</li>
+<li>Team is given the sequence of R-B-Y for the flares.</li>
+<li>AUV finds the drums and successfully drops the ball in the <span class="indicate-blue">blue drum</span>.</li>
+<li>AUV locates the <span class="indicate-red">red flare</span> and knocks off the golf ball.</li>
+<li>AUV locates the <span class="indicate-yellow">yellow flare</span> and knocks off the golf ball.</li>
+<li>AUV touches the bottom of the pool for more than 10 seconds while trying to find 3rd flare and gets automatically aborted by divers.</li>
+<li>The penalty for touching the bottom of the pool still counts towards this attempt.</li>
+<li>The AUV did not surface, so the team gets no surfacing bonus and no Surfacing Square bonus.</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th align="left">Task</th>
+<th align="right">Points</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">Navigation Task</td>
+<td align="right">15</td>
+</tr>
+<tr>
+<td align="left">Target Acquisition Task (blue drum)</td>
+<td align="right">30</td>
+</tr>
+<tr>
+<td align="left">Communication &amp; Localization Task</td>
+<td align="right">40</td>
+</tr>
+<tr>
+<td align="left">Touching the bottom of the pool</td>
+<td align="right"><span class="penalty">−5</span></td>
+</tr>
+<tr>
+<td align="left">Surfacing Bonus</td>
+<td align="right">0</td>
+</tr>
+<tr>
+<td align="left">Surfacing Square Bonus</td>
+<td align="right">0</td>
+</tr>
+<tr>
+<td align="left"><strong>Attempt Total</strong></td>
+<td align="right"><strong>80</strong></td>
+</tr>
+</tbody></table>
+<h4 id="example-6"><a class="header-link" href="#example-6">§</a> Example 6</h4>
+<ul class="list">
+<li>Team launches AUV from starting zone.</li>
+<li>AUV crosses the gate and completes the Navigation task.</li>
+<li>Team is given the sequence of R-B-Y for the flares.</li>
+<li>AUV finds the drums and successfully drops the ball in the <span class="indicate-blue">blue drum</span>.</li>
+<li>AUV locates the <span class="indicate-red">red flare</span> and knocks off the golf ball.</li>
+<li>AUV locates the <span class="indicate-yellow">yellow flare</span> and knocks off the golf ball.</li>
+<li>AUV locates the <span class="indicate-blue">blue flare</span> and knocks off the golf ball.</li>
+<li>AUV touches the bottom of the pool for more than 10 seconds while trying to find the Surfacing Square and gets automatically aborted by divers.</li>
+<li>The penalty for touching the bottom of the pool still counts towards this attempt.</li>
+<li>The AUV did not surface, so the team gets no surfacing bonus and no Surfacing Square bonus.</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th align="left">Task</th>
+<th align="right">Points</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">Navigation Task</td>
+<td align="right">15</td>
+</tr>
+<tr>
+<td align="left">Target Acquisition Task (blue drum)</td>
+<td align="right">30</td>
+</tr>
+<tr>
+<td align="left">Communication &amp; Localization Task</td>
+<td align="right">60</td>
+</tr>
+<tr>
+<td align="left">Touching the bottom of the pool</td>
+<td align="right"><span class="penalty">−5</span></td>
+</tr>
+<tr>
+<td align="left">Surfacing Bonus</td>
+<td align="right">0</td>
+</tr>
+<tr>
+<td align="left">Surfacing Square Bonus</td>
+<td align="right">0</td>
+</tr>
+<tr>
+<td align="left"><strong>Attempt Total</strong></td>
+<td align="right"><strong>100</strong></td>
+</tr>
+</tbody></table>
+<h4 id="example-7"><a class="header-link" href="#example-7">§</a> Example 7</h4>
+<ul class="list">
+<li>Team launches AUV from starting zone.</li>
+<li>AUV crosses the gate and completes the Navigation task.</li>
+<li>Team is given the sequence of R-B-Y for the flares.</li>
+<li>AUV finds the drums and successfully drops the ball in the <span class="indicate-blue">blue drum</span>.</li>
+<li>AUV locates the <span class="indicate-red">red flare</span> and knocks off the golf ball.</li>
+<li>AUV locates the <span class="indicate-blue">blue flare</span> and knocks off the golf ball.</li>
+<li>AUV locates the <span class="indicate-yellow">yellow flare</span> and knocks off the golf ball.</li>
+<li>AUV surfaces outside the Surfacing Square with run time of 400 seconds.</li>
+<li>The team gets the surfacing bonus, but not the Surfacing Square bonus.</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th align="left">Task</th>
+<th align="right">Points</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">Navigation Task</td>
+<td align="right">15</td>
+</tr>
+<tr>
+<td align="left">Target Acquisition Task (blue drum)</td>
+<td align="right">30</td>
+</tr>
+<tr>
+<td align="left">Communication &amp; Localization Task</td>
+<td align="right">120</td>
+</tr>
+<tr>
+<td align="left">Surfacing Bonus</td>
+<td align="right">5</td>
+</tr>
+<tr>
+<td align="left">Surfacing Square Bonus</td>
+<td align="right">0</td>
+</tr>
+<tr>
+<td align="left">Timing Bonus</td>
+<td align="right">15</td>
+</tr>
+<tr>
+<td align="left"><strong>Attempt Total</strong></td>
+<td align="right"><strong>185</strong></td>
+</tr>
+</tbody></table>
+<h4 id="example-8"><a class="header-link" href="#example-8">§</a> Example 8</h4>
+<ul class="list">
+<li>Team launches AUV from starting zone.</li>
+<li>AUV crosses the gate and completes the Navigation task.</li>
+<li>AUV finds the drums and successfully drops the ball in the <span class="indicate-blue">blue drum</span>.</li>
+<li>AUV locates the <span class="indicate-red">red flare</span> and knocks off the golf ball.</li>
+<li>AUV swims to the Surfacing Square and surfaces inside it without touching any side. The run time is 520 seconds.</li>
+<li>The team gets the surfacing bonus and the Surfacing Square bonus.</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th align="left">Task</th>
+<th align="right">Points</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">Navigation Task</td>
+<td align="right">15</td>
+</tr>
+<tr>
+<td align="left">Target Acquisition Task (blue drum)</td>
+<td align="right">30</td>
+</tr>
+<tr>
+<td align="left">Communication &amp; Localization Task</td>
+<td align="right">20</td>
+</tr>
+<tr>
+<td align="left">Surfacing Bonus</td>
+<td align="right">5</td>
+</tr>
+<tr>
+<td align="left">Surfacing Square Bonus</td>
+<td align="right">20</td>
+</tr>
+<tr>
+<td align="left">Timing Bonus</td>
+<td align="right">11.4</td>
+</tr>
+<tr>
+<td align="left"><strong>Attempt Total</strong></td>
+<td align="right"><strong>101.4</strong></td>
+</tr>
+</tbody></table>
+<h4 id="example-9"><a class="header-link" href="#example-9">§</a> Example 9</h4>
+<ul class="list">
+<li>Team launches AUV from starting zone.</li>
+<li>AUV crosses the gate and completes the Navigation task.</li>
+<li>AUV finds the drums and successfully drops the ball in the <span class="indicate-blue">blue drum</span>.</li>
+<li>AUV locates the <span class="indicate-red">red flare</span> and knocks off the golf ball.</li>
+<li>AUV swims to the Surfacing Square, but touches a side of the square while surfacing. The run time is 520 seconds.</li>
+<li>This counts as a normal surface, so the team gets the surfacing bonus, but not the Surfacing Square bonus.</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th align="left">Task</th>
+<th align="right">Points</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">Navigation Task</td>
+<td align="right">15</td>
+</tr>
+<tr>
+<td align="left">Target Acquisition Task (blue drum)</td>
+<td align="right">30</td>
+</tr>
+<tr>
+<td align="left">Communication &amp; Localization Task</td>
+<td align="right">20</td>
+</tr>
+<tr>
+<td align="left">Surfacing Bonus</td>
+<td align="right">5</td>
+</tr>
+<tr>
+<td align="left">Surfacing Square Bonus</td>
+<td align="right">0</td>
+</tr>
+<tr>
+<td align="left">Timing Bonus</td>
+<td align="right">11.4</td>
+</tr>
+<tr>
+<td align="left"><strong>Attempt Total</strong></td>
+<td align="right"><strong>81.4</strong></td>
+</tr>
+</tbody></table>
+<h4 id="example-10"><a class="header-link" href="#example-10">§</a> Example 10</h4>
+<ul class="list">
+<li>Team launches AUV from starting zone.</li>
+<li>AUV misses the gate and does not complete the Navigation task.</li>
+<li>AUV surfaces inside the Surfacing Square without touching any side.</li>
+<li>The AUV did not complete the Navigation task, so the team gets the surfacing bonus, but not the Surfacing Square bonus.</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th align="left">Task</th>
+<th align="right">Points</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">Surfacing Bonus</td>
+<td align="right">5</td>
+</tr>
+<tr>
+<td align="left">Surfacing Square Bonus</td>
+<td align="right">0</td>
+</tr>
+<tr>
+<td align="left"><strong>Attempt Total</strong></td>
+<td align="right"><strong>5</strong></td>
+</tr>
+</tbody></table>
+<h2 id="specification-of-auv"><a class="header-link" href="#specification-of-auv">10</a> Specification of AUV</h2>
+<h3 id="size"><a class="header-link" href="#size">10.1</a> Size</h3>
+<p>The <span class="inverse">Judges</span> measure size and weight at, or right before, deployment. These measurements count towards the limits and bonuses below. Cables and antennas that hang over the AUV count towards its size and weight. Parts that extend and retract during a run do not count towards its size, but still count towards its weight.</p>
+<ul class="list">
+<li>The AUV must fit within a 140 × 100 × 100 cm box.</li>
+<li>An AUV with dimensions of less than 70 cm × 50 cm × 50 cm will be given bonus <span class="info">10 points</span>.</li>
+<li>The AUV must not weigh more than 52 kg in air.</li>
+<li>An AUV weighing less than 42 kg in air will be given bonus <span class="info">10 points</span>.</li>
+</ul>
+<p>The size and weight bonuses are added to the score of every attempt.</p>
+<h3 id="power"><a class="header-link" href="#power">10.2</a> Power</h3>
+<ul class="list">
+<li>Power must be self contained.</li>
+<li><strong>Tethers of any sort are not allowed</strong>, except when <a href="#practice-rounds">calibrating AUV sensors during practice rounds</a>.</li>
+<li>The voltage of the power source used by each AUV must not exceed 24VDC.</li>
+</ul>
+<h3 id="safety"><a class="header-link" href="#safety">10.3</a> Safety</h3>
+<ul class="list">
+<li>AUVs must not leak and pollute the pool.</li>
+<li>AUVs must be designed and manufactured as to pose no danger of any kind to anyone or anything at the venue. This includes making sure that thrusters/propeller blades are shrouded.</li>
+<li>AUVs <strong>must have a kill switch</strong> that turns off the vehicle including thrusters, or any other propulsion mechanism.</li>
+<li>The kill switch must be <strong>easy to reach</strong> and <strong>easy to operate</strong> for a diver underwater. This must be marked in bright colour.</li>
+<li>The kill switch must be the same as the one shown in the <a href="#video-submission">video submission</a>.</li>
+<li>Pressure of any compressed gas used must not exceed <strong>6 bars</strong>.</li>
+<li>The use of explosives, fire or hazardous chemicals is prohibited. Certified lithium batteries are allowed.</li>
+<li>If lasers are used, they must be of class 2 or lower. Care must be taken to protect all persons at the venue from harm. Beams must be oriented in such a fashion that they cannot shine into the eyes of the spectators.</li>
+<li>The <span class="inverse">Judges</span> reserve the right to <strong>disallow any team</strong> whose AUV does not meet these safety rules, including the kill switch rules, from taking part in the competition.</li>
+</ul>
+<p class="img-container"><a class="figure-link" href="img/killswitch.jpg"><img src="img/killswitch.jpg" alt="A bright red kill switch mounted on the top of an AUV, from the 2015 competition" width="1600" height="1066" loading="lazy" decoding="async"></a></p>
+<p class="image-caption">Figure 19: Example of a kill switch on an AUV from 2015 Competition.</p>
+
+<h3 id="communications"><a class="header-link" href="#communications">10.4</a> Communications</h3>
+<ul class="list">
+<li>Untethered communications with the AUV <strong>are allowed</strong> in the main arena.</li>
+<li>AUVs can carry their own &quot;underwater&quot; communication equipment.</li>
+<li>Teams are allowed to deploy &quot;top-side&quot; communication equipment in the starting zone during the game.</li>
+<li>All &quot;underwater&quot; communication equipment on the AUV <em>MUST fit</em> within the size limits for the AUV.</li>
+<li>Any &quot;underwater&quot; communication equipment on the AUV is considered a part of the AUV.</li>
+<li>The &quot;top-side&quot; communication equipment <em>MUST fit</em> within the dimensions of the starting zone and weigh no more than 42 kg in air.</li>
+<li>Any &quot;top-side&quot; communication equipment must stay within the starting zone. It may be submerged in the water, and can have <strong>a single tether</strong> to the surface.</li>
+<li>Any &quot;top-side&quot; communication equipment submerged in the water, must not leak and pollute the pool.</li>
+<li>Any &quot;top-side&quot; communication equipment must be removed at the end of the game.</li>
+</ul>
+<h2 id="game-procedure"><a class="header-link" href="#game-procedure">11</a> Game Procedure</h2>
+<h3 id="sequence-of-events-during-the-competition"><a class="header-link" href="#sequence-of-events-during-the-competition">11.1</a> Sequence of events during the competition</h3>
+<ul class="list">
+<li>AUVs will undergo weight and size check. Bonus points, if applicable, will be awarded.</li>
+<li>AUVs will be tested for battery, oil or lubricant leak check, and a waterproofness check. Failing any of these checks would bar the team from attempting to qualify until the AUV passes the checks.</li>
+<li>Team will proceed to qualifying round. The bonus points for size and weight is applicable only if the team passes the qualifying round.</li>
+<li>Top 15 qualified teams (according to qualification score and the qualification time) will proceed to the final rounds of competition. The organizing committee reserves the right to change the number of teams in the final based on logistical constraints.</li>
+<li>The final round will be held in the main arena.</li>
+</ul>
+<h3 id="practice-rounds"><a class="header-link" href="#practice-rounds">11.2</a> Practice Rounds</h3>
+<ul class="list">
+<li>Teams will be allowed to practice in the main arena after they successfully complete the qualifying round, subject to availability of time slots and the schedule during the competition.</li>
+<li>No tethers are allowed at ANY time inside the main arena, except in and under the starting zone.</li>
+<li>Teams will be allowed to calibrate their AUV sensors with tethers, at the edge of the pool, with the vehicle held <strong>stationary</strong>.</li>
+</ul>
+<h3 id="length-of-a-game"><a class="header-link" href="#length-of-a-game">11.3</a> Length of a game</h3>
+<ul class="list">
+<li>Each team is given <strong>15 minutes</strong> to complete the tasks.</li>
+<li>In any of the following cases, the game ends immediately.<ul class="list">
+<li>Disqualification is announced in the game.</li>
+<li>When the <span class="inverse">Judges</span> determine that the game cannot continue.</li>
+</ul>
+</li>
+<li>Setting up of AUV<ul class="list">
+<li>Five minutes is given for setting up the AUV before the game starts.</li>
+<li>No more than two members of respective teams can engage in setting up of their AUV at the poolside.</li>
+<li>The two designated members setting up must wear life jackets. Failure to do so may result in disqualification.</li>
+<li>Any team that fails to complete setting their AUV within five minutes can resume the setting up again once the game starts.</li>
+<li>Setting up during the game uses the allocated time for the tasks and game.</li>
+<li>The AUV can only start from the starting zone. This is the only place where the AUV is allowed to be on the water surface.</li>
+<li>The AUV must start its maneuver only after it has <strong>completely submerged</strong> in the water.</li>
+</ul>
+</li>
+</ul>
+<h3 id="retries"><a class="header-link" href="#retries">11.4</a> Retries</h3>
+<ul class="list">
+<li>A retry attempt can be made only after the <span class="inverse">Judges&#39;</span> permission.</li>
+<li>The AUV will be passed to the two designated team members standing beside the pool by the divers.</li>
+<li>A retry would mean that the AUV starts from the starting zone with 0 points</li>
+<li>A maximum of 15 minutes is allowed including all the retries.</li>
+<li>The attempt with the highest score (including retries) will be considered for final scoring.</li>
+</ul>
+<h2 id="certificate-of-participation"><a class="header-link" href="#certificate-of-participation">12</a> Certificate of Participation</h2>
+<ul class="list">
+<li>Teams whose AUVs successfully complete the qualifier round will receive Certificate of Participation.</li>
+<li>Teams whose video submissions have been accepted &amp; attend the competition will receive a Certificate of Participation.</li>
+<li>Failing the above two criteria, no Certificate of Participation will be awarded.</li>
+</ul>
+<h2 id="general-restrictions"><a class="header-link" href="#general-restrictions">13</a> General Restrictions</h2>
+<ul class="list">
+<li>Team members are not allowed to enter the swimming pool at any point during the game.</li>
+<li>Team members may not disturb the water surface once the game starts, except when handling their AUV or &quot;top-side&quot; communication equipment in the starting zone.</li>
+<li>Members of other teams are not allowed in the game area.</li>
+<li>Nobody is allowed to wear any footwear near the pool area.</li>
+<li>The <span class="inverse">Judges</span> may suspend the challenge if weather turns unfavorable.</li>
+<li>The pool area must be evacuated in case of lightning.</li>
+</ul>
+<h2 id="disqualification"><a class="header-link" href="#disqualification">14</a> Disqualification</h2>
+<p>Teams may be disqualified if :</p>
+<ul class="list">
+<li>Oil or lubrication leaks causing the pollution of pool.</li>
+<li>Battery leak causing the pollution of pool.</li>
+<li>The AUV damages or tries to damage the arena, facilities or equipment.</li>
+<li>The team performs any acts that are not in the spirit of fair play.</li>
+<li>The team fails to obey instructions or warnings issued by the <span class="inverse">Judges</span> or <span class="inverse">Game Master</span>.</li>
+<li>If the team does not abide by the general restrictions.</li>
+</ul>
+<h2 id="others"><a class="header-link" href="#others">15</a> Others</h2>
+<ul class="list">
+<li>The legitimacy of any actions not provided in this rulebook will be subject to discretion of the <span class="inverse">Judges</span>.</li>
+<li>The dimensions, weights, etc. of the field, facilities and equipments stated in this rulebook have a margin of error of ±5% unless otherwise stated. However the dimensions and weights of the AUVs as stated in the rule book are the maximum and cannot be deviated.</li>
+<li>The <span class="inverse">Judges</span> may demand additional explanations on safety issues when the safety of a vehicle is deemed to be in question.</li>
+</ul>
+<h2 id="feedback"><a class="header-link" href="#feedback">16</a> Feedback</h2>
+<p>If you spot any errors in the rulebook or have queries about the rules, please email <a href="/cdn-cgi/l/email-protection#3d1b1e0c0c09061b1e450a08061b1e450b5e061b1e450b08061b1e0c0c08061b1e45090d061b1e450a0e061b1e040a061b1e0c0c0a061b1e0c0c05061b1e0404061b1e450f58061b1e450b5b061b1e450a0f061b1e0c0d0e06">&#114;&#x75;&#x6c;&#x65;&#115;&#x40;&#x73;&#97;&#117;&#118;&#99;&#x2e;&#x6f;&#x72;&#103;</a> or contact us through <a href="https://sauvc.org/#contact">our website</a>.</p>
+    </section>
+  </main>
+
+  <a class="to-contents" href="#contents">Contents</a>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"0d719825ebef443eb1f94bcfc581fa62","r":1,"spa":2}' crossorigin="anonymous"></script>
+</body>
+</html>

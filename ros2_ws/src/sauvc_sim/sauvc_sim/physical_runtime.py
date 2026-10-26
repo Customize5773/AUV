@@ -20,10 +20,10 @@ class PhysicalRuntime(Node):
         self.role=role;self.cfg=config();self.last_received=0.;self.valid=False
         self.reason='waiting_sensors';self.stamp=0.;self.desired=[0.]*4
         self.measured=[0.]*4;self.z=0.;self.cmd_time=0.;self.disarmed=False
-        self.declare_parameter('lane',1);self.declare_parameter('lateral_offset',0.)
+        self.declare_parameter('edition','2027');self.declare_parameter('lane',1);self.declare_parameter('lateral_offset',0.)
         if role=='state_estimator':
             self.estimator=StateEstimator(self.get_parameter('lane').value,
-                    self.get_parameter('lateral_offset').value,self.cfg['density'],self.cfg['gravity'])
+                    self.get_parameter('lateral_offset').value,self.cfg['density'],self.cfg['gravity'],edition=self.get_parameter('edition').value)
             self.odom=self.create_publisher(Odometry,'/sauvc/state/odom',qos_profile_sensor_data)
             self.health=self.create_publisher(String,'/sauvc/state/health',10)
             self.create_subscription(String,'/sauvc/sensors',self.sensor,10)
@@ -89,7 +89,7 @@ class PhysicalRuntime(Node):
             try:
                 u=self.controller.command(self.desired,self.measured,self.z,.02,armed)
             except ValueError:
-                self.disarmed=True;u=[0.]*6
+                self.disarmed=True;u=[0.]*self.controller.matrix.shape[1]
             self.thrusters.publish(String(data=' '.join(f'{v:.9g}' for v in u)))
 
 
@@ -105,7 +105,7 @@ def run(role):
         while not stopping:executor.spin_once(timeout_sec=.05)
     finally:
         signal.signal(signal.SIGINT,signal.SIG_IGN)
-        if role=='propulsion':node.thrusters.publish(String(data='0 0 0 0 0 0'))
+        if role=='propulsion':node.thrusters.publish(String(data=' '.join(['0']*node.controller.matrix.shape[1])))
         executor.shutdown();node.destroy_node();rclpy.try_shutdown()
 
 

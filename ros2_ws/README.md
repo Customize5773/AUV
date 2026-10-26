@@ -2,7 +2,7 @@
 
 Workspace SAUVC terpisah dalam repositori AUV. Package `sauvc_sim` menyediakan **Qualification Arena(s)** dan **The Arena / finals**, AUV latihan berbentuk kotak, dua kamera, odometri, dan perintah gerak ROS 2. Tidak memerlukan model dari internet atau workspace KKI.
 
-Acuan: [rulebook resmi](https://sauvc.org/rulebook/), **2026 v6.1.0**, diperiksa ulang 25 Oktober 2026. [Usulan 2027](https://github.com/sauvc/rulebook/pull/25) masih terbuka; geometri simulator ini tetap edisi 2026. [Diagram kualifikasi](../doc/sources/rulebook-images/arena-2026-qualifiers.png) dan [diagram final](../doc/sources/rulebook-images/arena-2026-finals.png) tersedia lokal. Diagram tidak berskala; koordinat properti dipilih untuk latihan, bukan hasil pengukuran piksel.
+**Profil default: SAUVC 2027.2.1**, diperiksa dari [rulebook resmi](https://sauvc.org/rulebook/) pada 26 Oktober 2026. Launch, generator arena dan pemeriksa misi memakai `edition:=2027` / `--edition 2027`. Edisi 2026 hanya tersedia sebagai regresi eksplisit. Migrasi dan bukti runtime: [laporan 24](../plan/24-migrasi-dan-uji-arena-2027.md); sumber terkunci: [arsip 2027](../doc/sources/rulebook-2027-published/README.md). Bagian bukti bertanggal sebelum migrasi adalah hasil historis 2026. Penerimaan terbaru: 96 tes unit, tiga jalur kualifikasi, dua misi ARENA dengan bonus Square, uji fisika dan 19 sudut kamera lulus. Uji perturbasi lulus 97/98; blur 3 piksel pada flare biru jauh masih gagal.
 
 ## Menjalankan
 
@@ -12,7 +12,7 @@ Prasyarat: ROS 2 Humble, Gazebo **Fortress / ignition-gazebo6**, `ros_gz_bridge`
 cd /home/rasya/AUV/ros2_ws
 bash tools/ros.sh build --symlink-install
 
-# Dua jalur kualifikasi, jarak gerbang 10 m
+# Tiga jalur kualifikasi, jarak gerbang sekitar 10 m; lane:=1/2/3
 bash tools/ros.sh launch sauvc_sim arena.launch.py arena:=qualification
 
 # Hentikan dengan Ctrl+C sebelum membuka arena lain
@@ -36,20 +36,22 @@ Wrapper memilih `.venv-ros310/bin/python` jika tersedia dan mengabaikan paket us
 
 ## Geometri dan koordinat
 
-Satuan meter, `x=0…25` dari dinding start menuju target, `y=0…16` melintang kolam, `z=0` permukaan dan z negatif di bawah air. AUV menghadap +x. Gerak menggunakan kerangka badan: +x maju, +y kiri, +z naik; yaw positif berputar ke kiri.
+Koordinat dunia: `x=0…50`, `y=0…25`, `z=0` permukaan. Kualifikasi menghadap +x; ARENA menghadap +y. Controller/referee ARENA menggunakan koordinat lokal `U=y`, `V=42−x`; arah +U menuju target zone. Gerak ROS tetap memakai kerangka badan.
 
-| Komponen | Implementasi |
+| Komponen | Profil latihan 2027 |
 | --- | --- |
-| Kolam | Interior 25 × 16 m, empat dinding dengan collision |
-| Dasar | Dua bidang miring: −1,2 m pada x=0/25; −1,6 m pada x=12,5 |
-| Gerbang kualifikasi | Dua jalur pada (10,4) dan (10,12); bukaan bersih 1,5 m; dari dasar ke permukaan; penanda oranye |
-| Start kualifikasi | Garis 1 m pada dinding x=0; AUV di (0,3; 4; −0,05), belakang badan menyentuh dinding |
-| Start final | Penanda permukaan 1,4 × 1,4 m, pusat (0,7; 8); AUV di pusat |
-| Gerbang final | (16,8), bukaan 1,5 m × 1 m; sisi port merah, starboard hijau |
-| Orange flare | (6,8), diameter 15 cm, dasar sampai permukaan |
-| Flare target | Biru (11,11), merah (14,12), kuning (12,4); tiang diameter 1,6 cm, tinggi 80 cm |
-| Drum | Empat pada x=24, y=12,5/9,5/6,5/3,5; satu biru, tiga merah; diameter luar 60 cm, kedalaman 30 cm, atas terbuka |
-| AUV latihan | Kotak 60 × 40 × 20 cm, massa contoh 20 kg; kamera depan/bawah 640 × 480, 10 Hz |
+| Kolam | 50 × 25 m; shelf −1,28 m, slope menuju −2 m lalu dasar datar |
+| Kualifikasi | Tiga gate pada x=10, y=3,5/12,5/22; lebar bersih 1,5 m, menggantung sekitar 1 m dari permukaan |
+| Start ARENA | Dunia (34; 0,7), penanda 1,4 × 1,4 m |
+| Gate ARENA | Lokal (U=12,7; V=8), bukaan 1,5 × 1,5 m dari dasar |
+| Orange flare | Tinggi 1,5 m, lokal (6; 8) |
+| Flare target | Biru (16,5; 21), merah (18; 14), kuning (16,2; 6) lokal; tinggi tiang 0,8 m |
+| Target zone | Mat hijau 8 × 2 m; lokal U=21…23, V=14…22 |
+| Drum | Dunia y=22, x=21/23/25/27; diameter 60 cm, kedalaman 30 cm |
+| Surfacing Square | Pusat dunia (11,1; 7), bukaan 2 × 2 m, marker biru 0,3 m di bawah permukaan |
+| AUV latihan | Kotak 60 × 40 × 20 cm; profil bersama 4 thruster horizontal + 3 vertikal |
+
+Posisi setiap prop dan ukuran konstruksi adalah fixture latihan, bukan koordinat resmi hasil pengukuran diagram. Shelf 1,8 m dan slope 17,5 m ditafsirkan untuk pemodelan; diagram resmi tidak berskala. Gunakan `edition:=2026` hanya untuk mengulang bukti lama.
 
 Ketebalan tiang gerbang 5 cm, ketebalan drum 2 cm, posisi properti, massa dan ukuran AUV adalah asumsi latihan. Dasar tiap properti mengikuti kedalaman lokal di posisi pusatnya. Drum berdinding 32 segmen; penanda permukaan tidak memiliki collision. Bola flare dan payload kini benda dinamis dengan collision dan gravitasi. Plugin latihan menahan bola, melepas penyangga flare saat hull menyentuh tiang, lalu membiarkan fisika menggerakkannya. Ini pendekatan mekanisme latihan, tanpa dinamika tiang lentur atau drag bola di air.
 
@@ -100,7 +102,7 @@ bash tools/ros.sh python tools/check_sim.py --arena finals --output evidence/fin
 
 Lima tes geometri memeriksa kedalaman permukaan collision, lebar bersih gerbang, zona/dimensi properti, drum terbuka, dan visual tanpa collision. Pemeriksaan runtime menunggu clock/odom/kamera, mengirim perintah menyelam/maju/berputar/berhenti, lalu menyimpan JSON, log dan frame PPM. Tanpa dukungan rendering dapat memakai `--no-cameras`, tetapi hasil tersebut tidak membuktikan kamera berfungsi.
 
-**Batas model:** dinamika thruster/drag/buoyancy tersedia untuk kualifikasi, dengan koefisien latihan yang belum diukur pada kendaraan fisik. ARENA masih memakai model ideal. Akustik pinger, pengambilan kembali bola dan integrasi executor HydroShips belum tersedia. Hasil simulator tidak membuktikan kesiapan kendaraan fisik atau kepatuhan edisi 2027.
+**Batas model:** dinamika thruster/drag/buoyancy tersedia untuk kualifikasi, dengan koefisien latihan yang belum diukur pada kendaraan fisik. ARENA masih memakai model ideal. Pinger TDOA virtual dan pickup berbasis kontak/latch tersedia. Integrasi executor fisik HydroShips belum divalidasi. Hasil simulator tidak membuktikan kesiapan kendaraan fisik.
 
 
 ## Kualifikasi autonomous
@@ -176,7 +178,7 @@ Hasil implementasi dan batas pembuktiannya tercatat pada [laporan kualifikasi](.
 
 ## Model gaya dan estimasi sensor kualifikasi
 
-`vehicle_model:=dynamic` mengaktifkan gravitasi dan plugin gaya `VehicleDynamics`, serta menghapus `VelocityControl`. Enam thruster abstrak (empat horizontal, dua vertikal) menghasilkan wrench melalui posisi/arah masing-masing. Gaya mengikuti `F=Fmax*u*abs(u)` dengan batas ±20 N horizontal/±40 N vertikal dan respons orde satu τ=0,15 s. Pengendali kecepatan mengalokasikan wrench menjadi enam input `u` dan mengerem melalui thrust balik. Pose atau kecepatan aktual tidak di-set langsung.
+`vehicle_model:=dynamic` mengaktifkan gravitasi dan plugin gaya `VehicleDynamics`, serta menghapus `VelocityControl`. Tujuh thruster abstrak (T1–T4 horizontal, T5–T7 vertikal) menghasilkan wrench melalui posisi/arah masing-masing. Gaya mengikuti `F=Fmax*u*abs(u)` dengan batas ±20 N horizontal/±40 N vertikal dan respons orde satu τ=0,15 s. Pengendali kecepatan mengalokasikan wrench menjadi tujuh input `u` dan mengerem melalui thrust balik. Pose atau kecepatan aktual tidak di-set langsung.
 
 Drag translasi/rotasi mengikuti `-D*v-Q*v*abs(v)`. Buoyancy memakai `rho*g*V_submerged`, pusat apung di atas pusat massa, dan volume terendam yang berkurang ketika mendekati permukaan. Parameter awal di [dynamics.yaml](src/sauvc_sim/config/dynamics.yaml): massa 20 kg, displaced volume 20,5 L, air tawar 1000 kg/m³. Preset sedikit positif buoyancy sehingga setelah thrust dimatikan kendaraan mengapung pada waterline. Collision box tetap 60×40×20 cm; volume efektif mewakili frame yang sebagian tergenang. Ini model drag diagonal dan buoyancy pendekatan untuk badan hampir datar, belum CFD/added-mass/Coriolis penuh atau model thruster terkalibrasi. Arus konfigurasi default nol.
 
@@ -192,7 +194,7 @@ Drag translasi/rotasi mengikuti `-D*v-Q*v*abs(v)`. Buoyancy memakai `rho*g*V_sub
 
 Estimator mengintegrasikan gyro dan mengoreksi heading dari magnetometer, memakai accelerometer saat hampir diam, memprediksi kedalaman dari DVL lalu mengoreksinya dengan tekanan. XY merupakan dead reckoning DVL dengan orientasi terestimasi dan prior deployment pada garis start; tidak ada GPS/pose world yang disuntikkan ke estimator. Covariance adalah perkiraan diagnostik, bukan EKF terkalibrasi; drift tidak dikoreksi secara global. Sensor virtual ini tidak membuktikan bahwa DVL/IMU/depth sensor fisik sudah tersedia atau terpasang.
 
-Tidak ada fallback ground truth ketika instrumen hilang. Pada `STOP`/`DONE`/`ABORT`, propulsion mengunci status disarm dan mengirim enam nol; lag thrust, drag dan buoyancy tetap berlaku sehingga gerak tidak berhenti seketika. Watchdog plant memutus target thrust jika perintah aktuator macet >0,5 s wall clock. Saat controller dibekukan tetapi estimator/propulsion masih sehat, pengawas mengirim target kecepatan nol untuk pengereman/hover. Referee mengesahkan stop dari pose fisika yang stabil; sukses surface juga memerlukan seluruh gaya thruster kembali mendekati nol pada alat uji.
+Tidak ada fallback ground truth ketika instrumen hilang. Pada `STOP`/`DONE`/`ABORT`, propulsion mengunci status disarm dan mengirim tujuh nol; lag thrust, drag dan buoyancy tetap berlaku sehingga gerak tidak berhenti seketika. Watchdog plant memutus target thrust jika perintah aktuator macet >0,5 s wall clock. Saat controller dibekukan tetapi estimator/propulsion masih sehat, pengawas mengirim target kecepatan nol untuk pengereman/hover. Referee mengesahkan stop dari pose fisika yang stabil; sukses surface juga memerlukan seluruh gaya thruster kembali mendekati nol pada alat uji.
 
 ```bash
 # Mode baru: default auto untuk autonomous qualification vision
@@ -216,9 +218,19 @@ bash tools/ros.sh launch sauvc_sim arena.launch.py arena:=finals
 # Terminal lain pada domain/partition yang sama
 bash tools/ros.sh topic echo /sauvc/perception/front --once
 bash tools/ros.sh topic echo /sauvc/perception/bottom --once
-# Tampilan kamera: pilih salah satu topic image_annotated pada dropdown
-bash tools/ros.sh run rqt_image_view rqt_image_view
+# Dua terminal terpisah untuk POV depan dan bawah dengan label deteksi
+bash tools/ros.sh run rqt_image_view rqt_image_view /sauvc/perception/front/image_annotated
+bash tools/ros.sh run rqt_image_view rqt_image_view /sauvc/perception/bottom/image_annotated
 ```
+
+Jika viewer gagal dengan `No module named PyQt5` / `PyQt5.sip`, pasang binding Qt pada virtualenv **ROS**, bukan virtualenv HydroShips:
+
+```bash
+cd /home/rasya/AUV/ros2_ws
+python3 -m pip --python .venv-ros310/bin/python install --ignore-installed PyQt5==5.15.11
+```
+
+Wrapper `tools/ros.sh` juga mengarahkan executable turunan `#!/usr/bin/env python3` ke interpreter ROS. Perintah viewer tetap dapat dipanggil ketika virtualenv HydroShips sedang aktif.
 
 Gambar berlabel tersedia pada `/sauvc/perception/front/image_annotated` dan `/sauvc/perception/bottom/image_annotated` (`sensor_msgs/msg/Image`, RGB8). Kotak magenta menunjukkan bbox, tanda silang putih menunjukkan pusat, dan teks menunjukkan kelas objek. Gambar mempertahankan timestamp/frame ID kamera sumber; label digambar dengan huruf kapital. Topic kamera asli tetap menjadi masukan detektor. Anotasi hanya dikerjakan ketika ada subscriber gambar, memakai NumPy tanpa dependensi imaging tambahan.
 
@@ -267,11 +279,11 @@ bash tools/ros.sh launch sauvc_sim arena.launch.py arena:=finals autonomous:=tru
 bash tools/ros.sh launch sauvc_sim arena.launch.py arena:=finals autonomous:=true scene_variant:=1 blue_drum:=3 flare_order:=Y-B-R
 ```
 
-Jalankan satu launch saja pada domain/partition yang sama. Misi: menyelam dalam starting zone → menghindari orange flare → lewat gate seluruh badan → kembali ke area flare → menerima urutan warna → menyentuh flare sesuai urutan dan menunggu bukti bola jatuh → mencari blue drum dengan kamera bawah → alignment titik payload → drop → menunggu payload masuk → surface → stop otomatis. Navigation didahulukan sesuai [rulebook terbit](https://sauvc.org/rulebook/). Urutan warna bawaan adalah masukan penyelenggara simulasi; referee baru mengirimkannya pada `/sauvc/arena/flare_order` sesudah Navigation. Urutan harus permutasi B, R, Y.
+Jalankan satu launch saja pada domain/partition yang sama. Misi: menyelam dalam starting zone → menghindari orange flare → lewat gate seluruh badan → menerima urutan warna → menyentuh flare sesuai urutan dan menunggu bukti bola jatuh → mencari blue drum dengan kamera bawah → alignment titik payload → drop → menunggu payload masuk → mencari marker Surfacing Square → alignment → surface → stop otomatis. Navigation didahulukan sesuai [rulebook terbit](https://sauvc.org/rulebook/). Urutan warna bawaan adalah masukan penyelenggara simulasi; referee baru mengirimkannya pada `/sauvc/arena/flare_order` sesudah Navigation. Urutan harus permutasi B, R, Y.
 
 Controller menyimpan posisi target hasil proyeksi kamera + odometri AUV, memakai target terkonfirmasi, dan tidak berlangganan topic posisi bola/objek simulator. Search area memakai dimensi kolam/zona latihan. Saat objek sangat dekat dan keluar FOV, pendekatan terakhir dibatasi terhadap perkiraan target yang sudah diamati. Payload berada 0,20 m di depan dan 0,18 m di bawah pusat badan, sehingga tidak menutup kamera bawah; alignment memperhitungkan offset tersebut.
 
-Referee terpisah mengetahui layout simulator untuk memeriksa envelope pelintasan, kontak, urutan bola flare yang turun minimal 12 cm, dan payload pertama berada dalam radius dalam drum serta dekat dasar selama >0,5 s. Perintah `release` dan `DONE` controller tidak cukup untuk lulus. Kontak orange flare gagal; preset latihan ini juga menggagalkan kontak gate/lantai/dinding/drum, lebih ketat daripada sistem penalti resmi. Ini pembuktian tugas Navigation, flare dan blue drum; bukan implementasi pinger, reacquisition atau seluruh sistem skor lomba.
+Referee terpisah mengetahui layout simulator untuk memeriksa envelope pelintasan, kontak, urutan bola flare yang turun minimal 12 cm, dan payload pertama berada dalam radius dalam drum serta dekat dasar selama >0,5 s. Perintah `release` dan `DONE` controller tidak cukup untuk lulus. Kontak orange flare menggagalkan attempt. Pada profil 2027, kontak gate utama dan pool diproses sebagai penalti serta automatic abort sesuai ledger; penerimaan misi lengkap tetap mensyaratkan flare, acquisition dan surface/stop. Bonus inspeksi ukuran/berat fisik tidak dimasukkan.
 
 Status: `/sauvc/arena/state`, hasil independen: `/sauvc/arena/result`. Pengawas tetap satu-satunya penulis kecepatan autonomous: timeout perintah 0,5 s, input sensor/referee 2 s wall clock, terminal gagal tidak resume otomatis. Timestamp gambar yang tidak maju tidak memperpanjang kesegaran input.
 
@@ -287,6 +299,9 @@ Alat uji membuka/menutup simulator sendiri; gunakan domain/partition terpisah bi
 
 Hasil dan batas pengujian terintegrasi dicatat dalam [laporan ARENA autonomous](../plan/17-hasil-arena-autonomous.md).
 
-Penilaian ARENA kini tersedia sebagai `score` pada `/sauvc/arena/result`: poin tugas, bonus urutan/waktu/surface, penalti dan total attempt. Kebijakan abort latihan tetap lebih ketat daripada rulebook. Rincian, keterbatasan tugas pinger/pickup dan konsep servo payload ada pada [laporan 19](../plan/19-penilaian-arena-dan-rancangan-servo.md).
+Penilaian ARENA kini tersedia sebagai `score` pada `/sauvc/arena/result`: poin tugas, bonus urutan/waktu/surface, penalti dan total attempt. Profil 2027 memasukkan bonus Square dan awal timer sejak thrust; rincian migrasi ada pada [laporan 24](../plan/24-migrasi-dan-uji-arena-2027.md). Konsep awal servo payload ada pada [laporan 19](../plan/19-penilaian-arena-dan-rancangan-servo.md).
 
-Mode tambahan ARENA: `bash tools/ros.sh launch sauvc_sim arena.launch.py arena:=finals autonomous:=true extended:=true`. Mode ini memakai pinger virtual untuk red drum, kemudian melintasi gate lagi dan mengambil serta mempertahankan bola yang sama sampai surface. `pinger_drum:=0` memilih red drum pertama; indeks 1–4 memilih red drum tertentu dan harus berbeda dari `blue_drum`. Mode biasa tanpa `extended` tetap memilih blue drum. Bukti serta batas model aktuator/acoustics ada pada [laporan 20](../plan/20-pinger-pickup-dan-servo-simulator.md).
+Mode tambahan ARENA: `bash tools/ros.sh launch sauvc_sim arena.launch.py arena:=finals autonomous:=true extended:=true`. Mode ini memakai pinger virtual untuk red drum, kemudian keluar sepenuhnya dari target zone, kembali mengambil bola yang sama, mempertahankannya sampai surface di Square, lalu stop. Pelintasan gate tambahan hanya berlaku pada profil historis 2026. `pinger_drum:=0` memilih red drum pertama; indeks 1–4 memilih red drum tertentu dan harus berbeda dari `blue_drum`. Mode biasa tanpa `extended` tetap memilih blue drum. Bukti serta batas model aktuator/acoustics ada pada [laporan 20](../plan/20-pinger-pickup-dan-servo-simulator.md).
+
+
+Sinkronisasi 7 thruster (26 Oktober 2026): profil canonical di [propulsion.json](../hydroships/backend/hydroships/propulsion.json), ditautkan dari `src/sauvc_sim/config/propulsion.json` dan disertakan pada share package saat install. Python allocator dan plugin gaya memakai geometri yang sama melalui SDF; tiga thruster vertikal dialokasikan dengan momen roll/pitch target nol. Posisi/sudut, gaya maksimum dan dinamika adalah asumsi latihan, belum matriks `CUSTOM_7T` yang diverifikasi dari firmware. Pembalikan `MOT_x_DIRECTION` dicatat sebagai konfigurasi ESC, tidak dikalikan ulang ke gaya ideal simulator. Controller misi tetap mengendalikan surge/sway/heave/yaw; rank geometri enam tidak berarti kontrol aktif 6-DoF sudah diimplementasikan. Profil default kini 2027; bukti pada laporan 23 adalah snapshot sebelum migrasi. Bukti: [laporan 23](../plan/23-sinkronisasi-7-thruster.md).

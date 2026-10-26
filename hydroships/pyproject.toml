@@ -22,3 +22,6 @@ package-dir = {hydroships = "backend/hydroships", auv2027_autonomy = "ros2_ws/sr
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["backend", "ros2_ws/src/auv2027_autonomy"]
+
+[tool.setuptools.package-data]
+hydroships = ["propulsion.json"]

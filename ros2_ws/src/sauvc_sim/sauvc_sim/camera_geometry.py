@@ -52,7 +52,9 @@ class CameraModel:
         """Metric estimates from known prop dimensions; no world coordinates."""
         l, t, r, b = obj['bbox']
         label = obj['label']
-        if label.endswith('_gate') and not obj['partial']:
+        if label=='surfacing_square' and not obj['partial']:
+            depth=self.focal*2./obj['span_px'];method='known_square_marker_span'
+        elif label.endswith('_gate') and not obj['partial']:
             depth = self.focal*1.55/obj['span_px']
             method = 'known_gate_span_frontoparallel'
         elif label == 'orange_flare' and l > 0 and r < self.width:
@@ -70,8 +72,8 @@ class CameraModel:
         return dict(position_body_m=[origin[i]+depth*ray[i] for i in range(3)],
                     range_method=method)
 
-    def gate_position(self, obj, yaw):
-        """Body position from post rays and the pool gate plane's known X normal.
+    def gate_position(self, obj, yaw, span_m=1.55):
+        """Body position from post rays and the gate plane's known X normal in the supplied mission frame.
 
         The plane's location is unknown. Its two post rays intersect it 1.55 m
         apart along world Y; this resolves range even during an oblique approach.
@@ -88,7 +90,7 @@ class CameraModel:
         slope=abs(world[0][1]/world[0][0]-world[1][1]/world[1][0])
         if slope<1e-6:
             return None
-        dx=math.copysign(1.55/slope,world[0][0])
+        dx=math.copysign(span_m/slope,world[0][0])
         depths=[dx/r[0] for r in world]
         if max(depths)>30:
             return None

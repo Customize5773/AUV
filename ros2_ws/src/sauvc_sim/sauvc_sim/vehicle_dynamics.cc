@@ -14,6 +14,7 @@
 #include <mutex>
 #include <random>
 #include <sstream>
+#include <stdexcept>
 
 namespace sauvc {
 using namespace ignition::gazebo;
@@ -24,10 +25,8 @@ class VehicleDynamics : public System, public ISystemConfigure,
   ignition::transport::Node::Publisher sensors,telemetry;
   Entity model{kNullEntity},link{kNullEntity};
   std::mutex mutex;
-  std::array<double,6> requested{},forces{};
-  std::array<V,6> positions{{V(.2,.15,0),V(.2,-.15,0),V(-.2,.15,0),V(-.2,-.15,0),V(.18,0,0),V(-.18,0,0)}};
-  const double c=std::sqrt(.5);
-  std::array<V,6> axes{{V(c,-c,0),V(c,c,0),V(c,c,0),V(c,-c,0),V(0,0,1),V(0,0,1)}};
+  std::array<double,7> requested{},forces{};
+  std::array<V,7> positions{},axes{};
   double rho=1000,g=9.81,volume=.02005,height=.1336666667,cb=.03,tau=.15,hmax=20,vmax=40;
   double pn=20,dn=.003,gn=.0008,mn=.05,buoyancy=0,now=0,last_sensor=-1,last_slow=-1;
   V linear{8,12,80},quadratic{25,35,40},angular{1.5,1.5,.4},angular2{.8,.8,.8},current{},previous_velocity{};
@@ -39,6 +38,13 @@ class VehicleDynamics : public System, public ISystemConfigure,
 public:
   void Configure(const Entity &,const std::shared_ptr<const sdf::Element> &sdf,
                  EntityComponentManager &,EventManager &) override {
+    auto read_vectors=[&](const char *key,std::array<V,7> &values) {
+      std::istringstream in(sdf->Get<std::string>(key));
+      for (auto &v:values) for (size_t j=0;j<3;++j)
+        if (!(in>>v[j]) || !std::isfinite(v[j])) throw std::runtime_error("invalid thruster geometry");
+      std::string extra;if (in>>extra) throw std::runtime_error("extra thruster geometry values");
+    };
+    read_vectors("thruster_positions",positions);read_vectors("thruster_axes",axes);
     rho=sdf->Get<double>("density");g=sdf->Get<double>("gravity");
     volume=sdf->Get<double>("volume");height=sdf->Get<double>("buoyancy_height");cb=sdf->Get<double>("buoyancy_z");
     tau=sdf->Get<double>("thruster_tau");hmax=sdf->Get<double>("horizontal_thrust");vmax=sdf->Get<double>("vertical_thrust");
@@ -52,7 +58,7 @@ public:
     node.Subscribe("/sauvc/thrusters",&VehicleDynamics::Command,this);
   }
   void Command(const ignition::msgs::StringMsg &msg) {
-    std::istringstream in(msg.data());std::array<double,6> values{};
+    std::istringstream in(msg.data());std::array<double,7> values{};
     for (auto &v:values) if (!(in>>v) || !std::isfinite(v) || std::abs(v)>1) return;
     std::string extra;if (in>>extra) return;
     std::lock_guard<std::mutex> lock(mutex);
@@ -73,14 +79,14 @@ public:
     auto vel=Link(link).WorldLinearVelocity(ecm),omega=Link(link).WorldAngularVelocity(ecm);
     if (!vel || !omega) return;
     V v=pose.Rot().RotateVectorReverse(*vel-current),w=pose.Rot().RotateVectorReverse(*omega);
-    std::array<double,6> u{};
+    std::array<double,7> u{};
     {
       std::lock_guard<std::mutex> lock(mutex);
       timed_out=received && (std::chrono::duration<double>(std::chrono::steady_clock::now()-last_command).count()>.5 || (fault=="actuator_loss" && now>12));
       if (received && !timed_out) u=requested;
     }
     V force{},torque{};
-    for (size_t i=0;i<6;++i) {
+    for (size_t i=0;i<7;++i) {
       double target=(i<4?hmax:vmax)*u[i]*std::abs(u[i]);
       forces[i]+=(1-std::exp(-dt/tau))*(target-forces[i]);
       V f=axes[i]*forces[i];force+=f;torque+=positions[i].Cross(f);
@@ -127,7 +133,7 @@ public:
     out<<'}';ignition::msgs::StringMsg msg;msg.set_data(out.str());sensors.Publish(msg);
     std::ostringstream state;state<<"{\"time\":"<<t<<",\"buoyancy_n\":"<<buoyancy
       <<",\"timed_out\":"<<(timed_out?"true":"false")<<",\"force_n\":[";
-    for (size_t i=0;i<6;++i) state<<(i?",":"")<<forces[i];
+    for (size_t i=0;i<7;++i) state<<(i?",":"")<<forces[i];
     state<<"]}";msg.set_data(state.str());telemetry.Publish(msg);
   }
 };

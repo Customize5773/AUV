@@ -18,6 +18,8 @@ from sauvc_sim.runtime import STATUS_QOS
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--gui',action='store_true')
+    parser.add_argument('--edition',choices=['2026','2027'],default='2027')
     parser.add_argument('--output',type=Path,required=True)
     parser.add_argument('--extended',action='store_true')
     parser.add_argument('--pinger-drum',type=int,choices=[0,1,2,3,4],default=0)
@@ -56,12 +58,12 @@ def main():
     node.create_subscription(Twist,'/sauvc/cmd_vel',command,10)
     for camera in ('front','bottom'):
         node.create_subscription(String,'/sauvc/perception/'+camera,perception,10)
-    report={'passed':False,'order':args.order,'fault':args.fault,
+    report={'passed':False,'edition':args.edition,'order':args.order,'fault':args.fault,
             'scene_variant':args.scene_variant,'blue_drum':args.blue_drum,
             'extended':args.extended,'pinger_drum':args.pinger_drum}
     with args.output.with_suffix('.log').open('w') as log:
         process=subprocess.Popen(['bash','tools/ros.sh','launch','sauvc_sim','arena.launch.py',
-            'arena:=finals','autonomous:=true','headless:=true',f'flare_order:={args.order}',
+            'arena:=finals',f'edition:={args.edition}','autonomous:=true',f'headless:={str(not args.gui).lower()}',f'flare_order:={args.order}',
             f'scene_variant:={args.scene_variant}',f'blue_drum:={args.blue_drum}',
             f'extended:={str(args.extended).lower()}',f'pinger_drum:={args.pinger_drum}',
             f'fault:={args.fault}',f'output:={args.output.with_suffix("")}'],
@@ -127,8 +129,11 @@ def main():
         report['acoustics']=acoustic
         report['physical_retention']=bool(observed['physics']) and observed['physics'][-1].get('payload_attached',False)
         score=observed['result'].get('score',{})
-        report['extended_proof']=report['physical_retention'] and acoustic['samples']>20 and acoustic['contract_valid'] and score.get('target_acquisition')==50 and score.get('target_reacquisition')==60
+        report['extended_proof']=report['physical_retention'] and acoustic['samples']>20 and acoustic['contract_valid'] and score.get('target_acquisition')==50 and score.get('target_reacquisition')==60 and (args.edition!='2027' or observed['result'].get('target_zone_exited'))
         report['passed']=report['passed'] and report['extended_proof']
+    if args.edition=='2027' and args.fault=='none':
+        report['surfacing_square_verified']=observed['result'].get('score',{}).get('surfacing_square_bonus')==20 and 'surfacing_square' in tracks
+        report['passed']=report['passed'] and report['surfacing_square_verified']
     report.update(observed)
     args.output.write_text(json.dumps(report,indent=2)+'\n')
     print(json.dumps({k:v for k,v in report.items() if k not in ('trajectory','commands','physics')},indent=2))

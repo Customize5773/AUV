@@ -32,10 +32,18 @@ Tujuan pekerjaan Program adalah mengintegrasikan Jetson, Pixhawk–ArduSub, dan 
 
 Arah awal platform adalah menjalankan/menyesuaikan **BlueOS pada Jetson**, kemudian berkembang menjadi aplikasi mandiri HydroShips. Pemeriksaan langsung mengidentifikasi Jetson Orin NX kelas 16 GB, Ubuntu 22.04.5, dan L4T 36.4.7. Akses Docker telah diberikan dan pengujian tanpa periferal berhasil dengan keterbatasan yang tercatat; ini belum validasi robot lengkap. Pixhawk1 teridentifikasi pada 12 Oktober 2026; model DWE, jumlah thruster, ESC, dan sensor kedalaman belum dikonfirmasi pada sesi ini.
 
-Sumber aturan dan gambar arena tersedia dalam [riset SAUVC](../doc/README.md) dan [indeks gambar rulebook](../doc/sources/rulebook-images/README.md). Acuan teknis lomba yang ditelaah masih edisi 2026; perubahan aturan 2027 perlu ditinjau sebelum desain dibekukan.
+Sumber aturan dan gambar arena tersedia dalam [riset SAUVC](../doc/README.md) dan [indeks gambar rulebook](../doc/sources/rulebook-images/README.md). Acuan aktif adalah edisi 2027.2.1; laporan 21 dan 24 mencatat perubahan serta migrasi simulator.
 
 Urutan kerja yang diusulkan: **identifikasi perangkat → BlueOS dan komunikasi → kamera → kendali dasar → navigasi → tugas tambahan → latihan terintegrasi**. Beberapa eksperimen persepsi dapat berjalan memakai rekaman saat hardware gerak belum siap.
 
 [19 — Penilaian ARENA dan rancangan servo payload](19-penilaian-arena-dan-rancangan-servo.md): ledger skor, bukti fisika bola dan rancangan mekanik awal; tanpa aktivasi hardware.
 
 [20 — Pinger, pickup dan servo simulator](20-pinger-pickup-dan-servo-simulator.md): mode ARENA tambahan, TDOA hidrofon virtual, pickup berbasis kontak dan retensi bola; mekanisme hardware masih rancangan.
+
+[21 — Pembaruan rulebook 2027.2.1](21-update-rulebook-2027.md): publikasi resmi 26 Oktober, perubahan geometri/reacquisition/square/timer dan kebutuhan migrasi; simulator tetap baseline 2026 sampai implementasi diuji ulang.
+
+[22 — Pixhawk dan rencana 7 thruster](22-pixhawk-konfigurasi-7-thruster.md): pembacaan USB langsung, CUSTOM_7T, backup parameter dan pemetaan output; geometri serta koefisien mixer masih perlu dikonfirmasi, tanpa motor test.
+
+[23 — Sinkronisasi 7 thruster](23-sinkronisasi-7-thruster.md): profil bersama 4 horizontal + 3 vertikal, allocator/plant tujuh kanal, panel HydroShips dan relay ROS; asumsi geometri tetap terpisah dari mixer hardware yang belum terverifikasi.
+
+[24 — Migrasi dan uji arena 2027](24-migrasi-dan-uji-arena-2027.md): profil default 2027.2.1, geometri baru, target-zone exit, Surfacing Square dan penerimaan runtime.

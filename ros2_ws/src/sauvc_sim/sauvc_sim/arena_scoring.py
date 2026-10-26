@@ -1,11 +1,13 @@
-"""Published SAUVC 2026 attempt accounting, separate from strict training success."""
+"""SAUVC 2026/2027.2.1 attempt accounting, separate from strict training success."""
 import math
 
 
 class ArenaScore:
-    def __init__(self, order, blue_drum=0, pinger_drum=None):
+    def __init__(self, order, blue_drum=0, pinger_drum=None,edition='2026'):
         if pinger_drum is not None and (pinger_drum not in range(4) or pinger_drum == blue_drum):
             raise ValueError('pinger must be in a red drum')
+        self.edition=edition
+        self.square_ok=False
         self.order=list(order)
         self.blue_drum=blue_drum
         self.pinger_drum=pinger_drum
@@ -28,7 +30,7 @@ class ArenaScore:
     def award(self, kind, t, **data):
         if self.ended is not None: return
         if kind=='navigation':
-            if self.navigation and self.acquisition is not None: self.retrieval_crossing=True
+            if self.edition=='2026' and self.navigation and self.acquisition is not None:self.retrieval_crossing=True
             self.navigation=True
         elif kind=='flare' and self.navigation and data['label'] not in self.flares:
             self.flares.append(data['label'])
@@ -37,6 +39,8 @@ class ArenaScore:
             self.first_payload=data['ball_id']
         elif kind=='acquisition' and self.navigation and data['ball_id']==self.first_payload and self.acquisition is None:
             self.acquisition=data['drum']
+        elif kind=='target_zone_exit' and self.acquisition is not None:
+            self.retrieval_crossing=True
         elif kind=='retrieval':
             self.retrieved=bool(self.retrieval_crossing and data['ball_id']==self.first_payload and data['held'])
         else: return
@@ -55,11 +59,12 @@ class ArenaScore:
         self.last_contact_time=t
         if self.pool_seconds>10 or self.pool_touches>=5: self.finish(t,'automatic_abort')
 
-    def finish(self, t, reason):
+    def finish(self, t, reason, square=False):
         if self.ended is not None: return
         if not math.isfinite(t): raise ValueError('nonfinite end time')
         self.ended=t
         self.end_reason=reason
+        self.square_ok=bool(self.edition=='2027' and self.navigation and reason=='surface' and square)
 
     def result(self):
         nav=15 if self.navigation else 0
@@ -72,10 +77,11 @@ class ArenaScore:
         other=acquisition>0 or flare>0 or retrieval>0
         timing=max(0.,900-elapsed)*.03 if elapsed is not None and nav and other else 0.
         surface=5 if self.end_reason=='surface' else 0
-        return dict(rulebook='2026 v6.1.0',final=self.ended is not None,end_reason=self.end_reason,
+        square=20 if self.square_ok else 0
+        return dict(rulebook='2027.2.1' if self.edition=='2027' else '2026 v6.1.0',final=self.ended is not None,end_reason=self.end_reason,
                     run_time_s=elapsed,navigation=nav,target_acquisition=acquisition,
                     communication_localization=flare,flare_order_bonus=ordered,target_reacquisition=retrieval,
-                    surface_bonus=surface,timing_bonus=timing,penalty_points=self.penalties,
+                    surface_bonus=surface,surfacing_square_bonus=square,timing_bonus=timing,penalty_points=self.penalties,
                     pool_contact_seconds=self.pool_seconds,pool_contact_episodes=self.pool_touches,
-                    attempt_total=nav+acquisition+flare+ordered+retrieval+surface+timing-self.penalties,
+                    attempt_total=nav+acquisition+flare+ordered+retrieval+surface+square+timing-self.penalties,
                     inspection_bonus_included=False,entries=self.entries)

@@ -1,0 +1,136 @@
+{
+  "id": "custom_7t",
+  "name": "7 thruster: 4 horizontal + 3 vertikal",
+  "frame_config": 7,
+  "reported_frame": "CUSTOM_7T",
+  "hardware_mixer_verified": false,
+  "simulation_geometry": "assumed_training_geometry",
+  "thrusters": [
+    {
+      "id": "T1",
+      "motor": 1,
+      "output": 1,
+      "function": 33,
+      "orientation": "horizontal",
+      "direction": 1,
+      "position_m": [
+        0.2,
+        0.15,
+        0
+      ],
+      "axis": [
+        0.7071067811865476,
+        -0.7071067811865476,
+        0
+      ]
+    },
+    {
+      "id": "T2",
+      "motor": 2,
+      "output": 2,
+      "function": 34,
+      "orientation": "horizontal",
+      "direction": 1,
+      "position_m": [
+        0.2,
+        -0.15,
+        0
+      ],
+      "axis": [
+        0.7071067811865476,
+        0.7071067811865476,
+        0
+      ]
+    },
+    {
+      "id": "T3",
+      "motor": 3,
+      "output": 3,
+      "function": 35,
+      "orientation": "horizontal",
+      "direction": -1,
+      "position_m": [
+        -0.2,
+        0.15,
+        0
+      ],
+      "axis": [
+        0.7071067811865476,
+        0.7071067811865476,
+        0
+      ]
+    },
+    {
+      "id": "T4",
+      "motor": 4,
+      "output": 4,
+      "function": 36,
+      "orientation": "horizontal",
+      "direction": 1,
+      "position_m": [
+        -0.2,
+        -0.15,
+        0
+      ],
+      "axis": [
+        0.7071067811865476,
+        -0.7071067811865476,
+        0
+      ]
+    },
+    {
+      "id": "T5",
+      "motor": 5,
+      "output": 5,
+      "function": 37,
+      "orientation": "vertical",
+      "direction": -1,
+      "position_m": [
+        0.18,
+        0.15,
+        0
+      ],
+      "axis": [
+        0,
+        0,
+        1
+      ]
+    },
+    {
+      "id": "T6",
+      "motor": 6,
+      "output": 6,
+      "function": 38,
+      "orientation": "vertical",
+      "direction": 1,
+      "position_m": [
+        0.18,
+        -0.15,
+        0
+      ],
+      "axis": [
+        0,
+        0,
+        1
+      ]
+    },
+    {
+      "id": "T7",
+      "motor": 7,
+      "output": 7,
+      "function": 39,
+      "orientation": "vertical",
+      "direction": -1,
+      "position_m": [
+        -0.18,
+        0,
+        0
+      ],
+      "axis": [
+        0,
+        0,
+        1
+      ]
+    }
+  ]
+}

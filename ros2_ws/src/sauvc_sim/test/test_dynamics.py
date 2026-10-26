@@ -11,7 +11,7 @@ from sauvc_sim.referee import QualificationJudge
 
 class DynamicsTest(unittest.TestCase):
     def test_physical_world_has_gravity_and_no_velocity_override(self):
-        world=ET.fromstring(build_world('qualification',physical=True)).find('world')
+        world=ET.fromstring(build_world('qualification',physical=True,edition='2026')).find('world')
         model=world.find("model[@name='sauvc_auv']")
         self.assertEqual(model.findtext('link/gravity'),'true')
         self.assertIsNone(model.find("plugin[@name='ignition::gazebo::systems::VelocityControl']"))
@@ -20,13 +20,13 @@ class DynamicsTest(unittest.TestCase):
 
     def test_allocation_axes_limits_and_reverse_braking(self):
         ctrl=PropulsionController()
-        self.assertEqual(allocation().shape,(6,6))
-        self.assertEqual(np.linalg.matrix_rank(ctrl.matrix),4)
+        self.assertEqual(allocation().shape,(6,7))
+        self.assertEqual(np.linalg.matrix_rank(ctrl.matrix),6)
         u=np.array(ctrl.command([0.,0.,0.,0.],[.8,0.,0.,0.],-.6,.02))
         forces=u*np.abs(u)*ctrl.max_force
         self.assertLess((ctrl.matrix@forces)[0],0.)
         self.assertTrue(np.all(np.abs(u)<=1))
-        self.assertEqual(ctrl.command([1.,0.,0.,0.],[0.]*4,-.6,.02,False),[0.]*6)
+        self.assertEqual(ctrl.command([1.,0.,0.,0.],[0.]*4,-.6,.02,False),[0.]*7)
         with self.assertRaises(ValueError):ctrl.command([float('nan')]*4,[0.]*4,-.6,.02)
 
     def test_archimedes_surface_equilibrium_and_drag_passivity(self):
@@ -145,3 +145,25 @@ class DynamicMissionTest(unittest.TestCase):
         judge.arm(3.)
         judge.update((.3,4.,-.3,0.),3.)
         self.assertEqual(judge.phase,'OUTBOUND')
+
+
+class SevenThrusterTest(unittest.TestCase):
+    def test_vertical_allocation_balances_roll_pitch_and_uses_all_three(self):
+        ctrl=PropulsionController()
+        u=np.array(ctrl.command([0.,0.,.15,0.],[0.]*4,-.6,.02))
+        forces=u*np.abs(u)*ctrl.max_force
+        wrench=ctrl.matrix@forces
+        self.assertTrue(np.all(np.abs(forces[4:])>.01))
+        self.assertGreater(wrench[2],0.)
+        self.assertAlmostEqual(wrench[3],0.,places=8)
+        self.assertAlmostEqual(wrench[4],0.,places=8)
+
+    def test_packaged_profile_and_native_geometry_contract(self):
+        from sauvc_sim.dynamics import propulsion_profile
+        profile=propulsion_profile()
+        self.assertEqual([m['output'] for m in profile['thrusters']],list(range(1,8)))
+        self.assertEqual([m['orientation'] for m in profile['thrusters']],['horizontal']*4+['vertical']*3)
+        self.assertFalse(profile['hardware_mixer_verified'])
+        cfg=config()
+        self.assertEqual(len(cfg['thruster_positions']),21)
+        self.assertEqual(len(cfg['thruster_axes']),21)

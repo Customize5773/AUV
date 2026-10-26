@@ -17,7 +17,9 @@ def valid_order(value):
 
 
 class ArenaController:
-    def __init__(self, extended=False):
+    def __init__(self, extended=False,edition='2026'):
+        self.edition=edition
+        self.flare_depth=-1.45 if edition=='2027' else -1.
         self.state = 'WAIT'
         self.since = 0.
         self.started = None
@@ -54,15 +56,17 @@ class ArenaController:
             if not obj.get('confirmed') or 'position_body_m' not in obj:
                 continue
             label = obj['label']
+            if label=='surfacing_square' and self.edition=='2027' and (self.state not in ('TO_SQUARE','FIND_SQUARE','ALIGN_SQUARE') or abs(math.sin(pose[3]))>.15):continue
             body=obj['position_body_m']
-            if label=='navigation_gate':
+            if label in ('navigation_gate','surfacing_square'):
                 if obj.get('span_px',0)<camera.width*.1: continue
-                body=camera.gate_position(obj,pose[3])
+                body=camera.gate_position(obj,pose[3],span_m=2. if label=='surfacing_square' else 1.55)
                 if body is None: continue
             point = to_world(body,pose)
+            if label=='surfacing_square':point[0]+=math.copysign(1.,math.cos(pose[3]))
             if label.endswith('_flare') and label != 'orange_flare' and obj['position_body_m'][0] < 1:
                 continue
-            if not all(math.isfinite(v) for v in point) or not (0<point[0]<25 and 0<point[1]<16):
+            if not all(math.isfinite(v) for v in point) or not (0<point[0]<25 and (-8<point[1]<42 if self.edition=='2027' else 0<point[1]<16)):
                 continue
             candidates.setdefault(label,[]).append((point,obj))
         for label,choices in candidates.items():
@@ -106,13 +110,15 @@ class ArenaController:
             self.change('ABORT',t,'mission_or_state_timeout')
             return zero
         x,y,z,yaw = pose
-        nav_depth=(-.65 if x<3 or x>22 else -.8) if self.extended else -1.
+        nav_depth=-1. if self.edition=='2027' else ((-.65 if x<3 or x>22 else -.8) if self.extended else -1.)
         if self.state == 'DIVE':
             if z < nav_depth+.06:
                 self.change('NAVIGATE',t)
             return 0.,0.,max(-.3,min(.3,(nav_depth-z)*1.8)),0.
         if self.state == 'NAVIGATE':
             if judgement.get('navigation_passed'):
+                if self.edition=='2027':
+                    self.change('WAIT_ORDER',t);return zero
                 gate=self.targets.get('navigation_gate')
                 self.goal=[x+1.2,y] if gate is None else [gate[0]+1.6,gate[1]]
                 self.change('CLEAR_GATE',t)
@@ -155,14 +161,16 @@ class ArenaController:
                 self.goal=list(self.targets[label])
                 self.change('APPROACH_FLARE',t)
                 return zero
-            return 0.,0.,max(-.2,min(.2,(-1.-z)*1.5)),.35
+            if self.edition=='2027' and math.dist(pose[:2],(16.5,16.))>.2:
+                return self.go(pose,(16.5,16.),.55,depth=self.flare_depth)
+            return 0.,0.,max(-.2,min(.2,(self.flare_depth-z)*1.5)),.35
         if self.state == 'APPROACH_FLARE':
             label=self.order[self.index]
             if label in self.targets:
                 self.goal=list(self.targets[label])
             if math.dist(pose[:2],self.goal[:2]) < .65:
                 self.change('BUMP_FLARE',t)
-            return self.go(pose,self.goal,.45)
+            return self.go(pose,self.goal,.45,depth=self.flare_depth)
         if self.state == 'BUMP_FLARE':
             label=self.order[self.index]
             if label in judgement.get('fallen_flares',[]):
@@ -172,12 +180,12 @@ class ArenaController:
             if t-self.since > 8:
                 self.change('ABORT',t,'flare_contact_did_not_drop_ball')
                 return zero
-            return .18,0.,max(-.2,min(.2,(-1.-z)*1.5)),0.
+            return .18,0.,max(-.2,min(.2,(self.flare_depth-z)*1.5)),0.
         if self.state == 'BACK_OFF':
             if math.dist(pose[:2],self.origin) > .75:
                 self.index+=1
                 if self.index == 3:
-                    self.goal=[22.5,.4]
+                    self.goal=[22.,12.] if self.edition=='2027' else [22.5,.4]
                     self.change('TO_TARGET_ZONE',t)
                 else:
                     self.change('FIND_FLARE',t)
@@ -186,8 +194,9 @@ class ArenaController:
         if self.state == 'TO_TARGET_ZONE':
             if math.dist(pose[:2],self.goal) < .15:
                 self.scan=[]
-                for i,scan_x in enumerate((24.,23.7,24.3,23.4,24.6)):
-                    ys=(.4,15.6) if i%2==0 else (15.6,.4)
+                for i,scan_x in enumerate((22.,21.7,22.3,21.4,22.6) if self.edition=='2027' else (24.,23.7,24.3,23.4,24.6)):
+                    lo,hi=(12.,24.) if self.edition=='2027' else (.4,15.6)
+                    ys=(lo,hi) if i%2==0 else (hi,lo)
                     self.scan.extend([[scan_x,scan_y] for scan_y in ys])
                 self.goal=self.scan.pop(0)
                 self.change('SCAN_DRUMS',t)
@@ -230,13 +239,39 @@ class ArenaController:
         if self.state == 'WAIT_PAYLOAD':
             if judgement.get('payload_acquired' if self.extended else 'payload_in_blue'):
                 if self.extended:
+                    if self.edition=='2027':
+                        self.goal=[20.3,self.acquisition_goal[1]]
+                        self.change('EXIT_TARGET_ZONE',t);return zero
                     gate=self.targets['navigation_gate']
                     self.goal=[gate[0]+1.6,gate[1]]
                     self.change('TO_REACQUISITION_GATE',t)
-                else:self.change('SURFACE',t)
+                else:self.change('TO_SQUARE',t) if self.edition=='2027' else self.change('SURFACE',t)
             elif t-self.since > 8:
                 self.change('ABORT',t,'payload_not_inside_blue_drum')
             return zero
+        if self.state=='EXIT_TARGET_ZONE':
+            if judgement.get('target_zone_exited'):
+                self.goal=list(self.acquisition_goal);self.change('TO_PICKUP',t)
+            return self.go(pose,self.goal,.5,depth=-.9)
+        if self.state=='TO_SQUARE':
+            if self.goal is None or len(self.goal)!=2:self.goal=[11.,31.]
+            # This is the search region beside qualification, not a square target pose.
+            if self.goal!=[11.,31.]:self.goal=[11.,31.]
+            if math.dist(pose[:2],self.goal)<.12:self.change('FIND_SQUARE',t)
+            return self.go(pose,self.goal,.75,depth=-.6)
+        if self.state=='FIND_SQUARE':
+            if 'surfacing_square' in self.targets:
+                self.goal=list(self.targets['surfacing_square']);self.aligned_since=None
+                self.change('ALIGN_SQUARE',t);return zero
+            return 0.,0.,max(-.15,min(.15,(-.6-z)*1.5)),.3
+        if self.state=='ALIGN_SQUARE':
+            self.goal=list(self.targets.get('surfacing_square',self.goal))
+            if math.dist(pose[:2],self.goal[:2])<.05:
+                if self.aligned_since is None:self.aligned_since=t
+                if t-self.aligned_since>1:self.change('SURFACE',t)
+                return zero
+            self.aligned_since=None
+            return self.go(pose,self.goal,.35,depth=-.6)
         if self.state in ('TO_REACQUISITION_GATE','REACQUISITION_CROSS','REACQUISITION_EXIT'):
             if math.dist(pose[:2],self.goal)<.1:
                 gate=self.targets['navigation_gate']
@@ -264,8 +299,8 @@ class ArenaController:
                 elif t-self.since>15:
                     self.change('ABORT',t,'pickup_not_proven');return zero
             if self.state=='LIFT_PICKUP' and z>-.3:
-                self.change('SURFACE',t)
-            depth=-.12 if self.state in ('ALIGN_PICKUP','LIFT_PICKUP') else floor_z(self.goal[0])+.49
+                self.change('TO_SQUARE' if self.edition=='2027' else 'SURFACE',t);return zero
+            depth=-.12 if self.state in ('ALIGN_PICKUP','LIFT_PICKUP') else (-2. if self.edition=='2027' else floor_z(self.goal[0]))+.49
             return (max(-.12,min(.12,(dx*math.cos(yaw)+dy*math.sin(yaw))*.8)),
                     max(-.12,min(.12,(-dx*math.sin(yaw)+dy*math.cos(yaw))*.8)),
                     max(-.12,min(.12,(depth-z)*1.5)),0.)

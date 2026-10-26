@@ -15,6 +15,7 @@ from sauvc_sim.qualification import MAX_SPEED_SCALE
 
 def start(context):
     arena = LaunchConfiguration('arena').perform(context)
+    edition=LaunchConfiguration('edition').perform(context)
     cameras = LaunchConfiguration('cameras').perform(context) == 'true'
     headless = LaunchConfiguration('headless').perform(context) == 'true'
     autonomous = LaunchConfiguration('autonomous').perform(context) == 'true'
@@ -37,7 +38,7 @@ def start(context):
                                 int(LaunchConfiguration('blue_drum').perform(context)),physical,
                                 LaunchConfiguration('fault').perform(context),
                                 LaunchConfiguration('extended').perform(context)=='true',
-                                int(LaunchConfiguration('pinger_drum').perform(context))))
+                                int(LaunchConfiguration('pinger_drum').perform(context)),edition))
     actions = [
         RegisterEventHandler(OnShutdown(on_shutdown=[
             OpaqueFunction(function=lambda context: directory.cleanup()),
@@ -59,17 +60,17 @@ def start(context):
     if physical:
         for executable in ('state_estimator','propulsion'):
             actions.append(Node(package='sauvc_sim',executable=executable,parameters=[dict(
-                lane=lane,lateral_offset=float(LaunchConfiguration('lateral_offset').perform(context)))],
+                lane=lane,edition=edition,lateral_offset=float(LaunchConfiguration('lateral_offset').perform(context)))],
                 output='screen',on_exit=Shutdown()))
     if autonomous:
-        params = {'lane': lane, 'mode': mode,
+        params = {'lane': lane,'edition':edition, 'mode': mode,
                   'physical':physical,
                   'speed_scale': float(LaunchConfiguration('speed_scale').perform(context)),
                   'output': LaunchConfiguration('output').perform(context),
                   'fault': LaunchConfiguration('fault').perform(context)}
         executables=('qualification_referee','command_guard','qualification')
         if arena == 'finals':
-            params={'mission':'finals','output':LaunchConfiguration('output').perform(context),
+            params={'mission':'finals','edition':edition,'output':LaunchConfiguration('output').perform(context),
                     'flare_order':LaunchConfiguration('flare_order').perform(context),
                     'extended':LaunchConfiguration('extended').perform(context)=='true',
                     'fault':LaunchConfiguration('fault').perform(context)}
@@ -87,13 +88,14 @@ def start(context):
 
 def generate_launch_description():
     return LaunchDescription([
+        DeclareLaunchArgument('edition',default_value='2027',choices=['2027','2026']),
         DeclareLaunchArgument('arena', default_value='qualification', choices=['qualification', 'finals']),
         DeclareLaunchArgument('headless', default_value='false', choices=['true', 'false']),
         DeclareLaunchArgument('cameras', default_value='true', choices=['true', 'false']),
         DeclareLaunchArgument('perception', default_value='true', choices=['true', 'false']),
         DeclareLaunchArgument('autonomous', default_value='false', choices=['true', 'false']),
         DeclareLaunchArgument('vehicle_model',default_value='auto',choices=['auto','ideal','dynamic']),
-        DeclareLaunchArgument('lane', default_value='1', choices=['1', '2']),
+        DeclareLaunchArgument('lane', default_value='1', choices=['1', '2','3']),
         DeclareLaunchArgument('mode', default_value='vision', choices=['vision', 'odom']),
         DeclareLaunchArgument('speed_scale', default_value=str(MAX_SPEED_SCALE)),
         DeclareLaunchArgument('lateral_offset', default_value='0.0'),

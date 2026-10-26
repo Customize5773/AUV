@@ -10,7 +10,7 @@ def clamp(value, limit):
 
 
 class QualificationController:
-    def __init__(self, mode='vision', lane=1, speed_scale=MAX_SPEED_SCALE, physical=False):
+    def __init__(self, mode='vision', lane=1, speed_scale=MAX_SPEED_SCALE, physical=False,edition='2026'):
         if mode not in ('vision', 'odom'):
             raise ValueError('unknown navigation mode')
         if physical and mode!='vision':raise ValueError('dynamic qualification requires visual navigation')
@@ -18,6 +18,7 @@ class QualificationController:
             raise ValueError('speed_scale must be finite and in (0, 8]')
         self.speed_scale = speed_scale
         self.physical = physical
+        self.edition=edition
         self.turn_clearance = 0.6 if physical else 1.8
         self.mode = mode
         self.state = 'WAIT_READY'
@@ -26,7 +27,8 @@ class QualificationController:
         self.started = None
         self.gate = None
         self.target = None
-        self.lane_y = 4 if lane == 1 else 12
+        from sauvc_sim.rules2027 import LANES
+        self.lane_y = LANES[lane-1] if edition=='2027' else (4 if lane == 1 else 12)
         self.turn_start = None
         self.turn_progress = 0
         self.last_yaw = None
@@ -101,6 +103,10 @@ class QualificationController:
                 seen = detection is not None and detection_age < .6
                 bearing = detection['bearing'] if seen else 0.
                 distance = detection['distance'] if seen else math.inf
+            if returning and self.edition=='2027' and self.gate is not None and seen:
+                predicted=(x+.32*math.cos(yaw)+distance*math.cos(yaw+bearing),
+                           y+.32*math.sin(yaw)+distance*math.sin(yaw+bearing))
+                if math.dist(predicted,self.gate)>1.5:seen=False
             passing = self.state in ('PASS_OUT', 'PASS_BACK')
             if passing:
                 # Hold the last visual heading through the near-field blind zone.
@@ -133,6 +139,7 @@ class QualificationController:
                     offset = .32 if self.mode == 'vision' else 0.
                     self.target = (x + offset*math.cos(yaw) + distance*math.cos(angle),
                                    y + offset*math.sin(yaw) + distance*math.sin(angle), angle)
+                    if not returning:self.gate=self.target[:2]
                     self.change('PASS_BACK' if returning else 'PASS_OUT', t)
             else:
                 if self.lost_since is None:
@@ -140,7 +147,11 @@ class QualificationController:
                 if t-self.lost_since > 8:
                     self.change('ABORT', t, 'gate_lost')
                 else:
-                    yaw_rate = .18*math.cos((t-self.lost_since)*.7)
+                    if returning and self.edition=='2027' and self.gate is not None:
+                        angle=math.atan2(self.gate[1]-y,self.gate[0]-x)
+                        yaw_rate=clamp(wrap(angle-yaw)*1.6,.3)/self.speed_scale
+                        if math.dist((x,y),self.gate)<2.1:vx=-.15/self.speed_scale
+                    else:yaw_rate = .18*math.cos((t-self.lost_since)*.7)
         if self.state == 'ABORT':
             return (0., 0., 0., 0.)
         command=tuple(self.speed_scale*v for v in (vx, vy, vz, yaw_rate))

@@ -1,6 +1,8 @@
 # Arsip sumber dari pengguna
 
-Sumber teknis simulator tersedia terpisah: [arsip gambar rulebook 2026](rulebook-images/README.md) dan [arsip usulan rulebook 2027](rulebook-2027-proposal/README.md). Status versi dan koreksi urutan misi tercatat dalam [tinjauan rulebook](../../plan/14-tinjauan-rulebook-dan-rencana-arena.md). PDF di bawah adalah sumber riset tambahan, bukan pengganti aturan penyelenggara.
+**Pembaruan 26 Oktober 2026:** [arsip rulebook 2027 terbit, versi 2027.2.1](rulebook-2027-published/README.md) dan [telaah perubahan](../../plan/21-update-rulebook-2027.md) kini tersedia. Arsip usulan dan 2026 tetap dipertahankan sebagai pembanding historis.
+
+Profil simulator aktif memakai [arsip terbit 2027](rulebook-2027-published/README.md); migrasi tercatat pada [laporan 24](../../plan/24-migrasi-dan-uji-arena-2027.md). Pembanding historis tersedia terpisah: [arsip gambar rulebook 2026](rulebook-images/README.md) dan [arsip usulan rulebook 2027](rulebook-2027-proposal/README.md). Status versi dan koreksi urutan misi tercatat dalam [tinjauan rulebook](../../plan/14-tinjauan-rulebook-dan-rencana-arena.md). PDF di bawah adalah sumber riset tambahan, bukan pengganti aturan penyelenggara.
 
 Diterima dan ditelaah: 1 Oktober 2026. Salinan PDF identik dengan berkas yang diberikan; checksum SHA-256 dan nama asal tercatat dalam [manifest.json](manifest.json).
 

@@ -12,6 +12,8 @@ def vehicle_frame(snapshot, relay_age):
         frame['heartbeat_age'] += relay_age
         if frame['heartbeat_age'] >= 3 and frame['status'] == 'connected':
             frame['status'] = 'stale'
+    if frame['status'] != 'connected' and 'propulsion' in frame:
+        frame['propulsion']['mapping_status']='unavailable'
     for field in frame['fields'].values():
         field['age'] += relay_age
         field['stale'] = field['stale'] or field['age'] > 3 or frame['status'] != 'connected'
