@@ -1,5 +1,7 @@
 # Simulasi SAUVC — ROS 2 Humble + Gazebo Fortress
 
+Panduan perintah kualifikasi, ARENA dan kedua POV: [Cara running simulator](CARA-RUNNING.md).
+
 Workspace SAUVC terpisah dalam repositori AUV. Package `sauvc_sim` menyediakan **Qualification Arena(s)** dan **The Arena / finals**, AUV latihan berbentuk kotak, dua kamera, odometri, dan perintah gerak ROS 2. Tidak memerlukan model dari internet atau workspace KKI.
 
 **Profil default: SAUVC 2027.2.1**, diperiksa dari [rulebook resmi](https://sauvc.org/rulebook/) pada 26 Oktober 2026. Launch, generator arena dan pemeriksa misi memakai `edition:=2027` / `--edition 2027`. Edisi 2026 hanya tersedia sebagai regresi eksplisit. Migrasi dan bukti runtime: [laporan 24](../plan/24-migrasi-dan-uji-arena-2027.md); sumber terkunci: [arsip 2027](../doc/sources/rulebook-2027-published/README.md). Bagian bukti bertanggal sebelum migrasi adalah hasil historis 2026. Penerimaan terbaru: 98 tes unit, tiga jalur kualifikasi, dua misi ARENA dengan bonus Square, uji fisika dan 19 sudut kamera lulus. Uji perturbasi lulus 97/98; blur 3 piksel pada flare biru jauh masih gagal.

@@ -1,5 +1,7 @@
 # AUV2027 — HydroShips
 
+Panduan perintah kualifikasi, ARENA dan kedua POV: [Cara running simulator](ros2_ws/CARA-RUNNING.md).
+
 Repositori persiapan AUV tim HydroShips: aplikasi onboard Jetson–Pixhawk, simulasi SAUVC dengan ROS 2/Gazebo, rancangan mekanik, serta laporan pengujian.
 
 | Folder | Isi |
