@@ -1,11 +1,12 @@
 """Camera-only perception topics; a missing camera clears its last detections."""
 import json
+from array import array
 import signal
 import time
 
 import rclpy
 from rclpy.node import Node
-from rclpy.qos import qos_profile_sensor_data
+from rclpy.qos import qos_profile_sensor_data, QoSProfile, ReliabilityPolicy
 from rclpy.signals import SignalHandlerOptions
 from sensor_msgs.msg import Image, CameraInfo
 from std_msgs.msg import String
@@ -24,19 +25,22 @@ class Perception(Node):
         if self.arena not in ('qualification', 'finals'):
             raise ValueError('unknown arena')
         self.last_received = {}
+        self.last_overlay = {}
         self.publishers_by_camera = {}
         self.annotated = {}
         self.info = {}
         self.trackers = {c:Tracker() for c in ('front','bottom')}
+        # Live images must replace queued frames when the desktop is busy.
+        image_qos = QoSProfile(depth=1, reliability=ReliabilityPolicy.BEST_EFFORT)
         for camera in ('front', 'bottom'):
             self.publishers_by_camera[camera] = self.create_publisher(
-                String, '/sauvc/perception/'+camera, 10)
+                String, '/sauvc/perception/'+camera, 1)
             self.annotated[camera] = self.create_publisher(
-                Image, '/sauvc/perception/'+camera+'/image_annotated', qos_profile_sensor_data)
+                Image, '/sauvc/perception/'+camera+'/image_annotated', image_qos)
             self.info[camera] = self.create_publisher(
                 CameraInfo, f'/sauvc/camera_{camera}/camera_info', qos_profile_sensor_data)
             self.create_subscription(Image, f'/sauvc/camera_{camera}/image_raw',
-                                     lambda msg, c=camera: self.image(msg, c), qos_profile_sensor_data)
+                                     lambda msg, c=camera: self.image(msg, c), image_qos)
         self.create_timer(.2, self.expire)
 
     def publish(self, camera, result):
@@ -67,7 +71,10 @@ class Perception(Node):
                       frame_id=msg.header.frame_id, width=msg.width, height=msg.height,
                       processing_ms=(time.monotonic()-start)*1000)
         self.publish(camera, result)
-        if self.annotated[camera].get_subscription_count():
+        # Detection keeps every input frame; optional POV rendering is capped at 5 Hz.
+        if (self.annotated[camera].get_subscription_count() and
+                start-self.last_overlay.get(camera, float('-inf')) >= .2):
+            self.last_overlay[camera] = start
             pixels = annotate(msg.data, msg.width, msg.height, msg.step, msg.encoding,
                               result['detections']) if result['valid_image'] else None
             if pixels is None:
@@ -75,12 +82,12 @@ class Perception(Node):
             else:
                 self.annotated[camera].publish(Image(
                     header=msg.header, width=msg.width, height=msg.height,
-                    encoding='rgb8', step=msg.width*3, data=pixels))
+                    encoding='rgb8', step=msg.width*3, data=array('B', pixels)))
 
     def unavailable(self, camera, message):
         if self.annotated[camera].get_subscription_count():
             msg = Image(width=640, height=480, encoding='rgb8', step=640*3,
-                        data=unavailable_image(message))
+                        data=array('B', unavailable_image(message)))
             msg.header.stamp = self.get_clock().now().to_msg()
             self.annotated[camera].publish(msg)
 

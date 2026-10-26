@@ -23,7 +23,7 @@ Repositori persiapan AUV tim HydroShips: aplikasi onboard Jetson–Pixhawk, simu
 | ARENA blue drum | Navigation dahulu → flare sesuai urutan → drop blue drum → Surfacing Square → stop |
 | ARENA pinger/pickup | TDOA virtual → drop red drum berpinger → seluruh badan keluar target zone → pickup bola yang sama → retensi sampai akhir |
 | Penilaian 2027 | Timer sejak thrust, poin tugas, penalti kontak, bonus surface dan bonus Square; bonus inspeksi fisik tidak dimasukkan |
-| Bukti penerimaan | 96 tes unit, tiga jalur kualifikasi, dua misi ARENA, uji fisika dan 19 sudut kamera lulus; ketahanan sintetis 97/98, satu kasus blur belum lulus |
+| Bukti penerimaan | 98 tes unit, tiga jalur kualifikasi, dua misi ARENA, uji fisika dan 19 sudut kamera lulus; ketahanan sintetis 97/98, satu kasus blur belum lulus |
 
 **ARENA masih memakai gerak ideal dan odometri ground truth.** Model gaya dan estimator sensor digunakan pada kualifikasi. Pinger adalah model geometrik TDOA, servo pelepas memakai respons ideal, dan pickup memakai latch fixed setelah kontak. Hasil ini belum membuktikan performa AUV fisik atau ketahanan pada seluruh kondisi kolam.
 

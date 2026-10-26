@@ -94,7 +94,7 @@ class Runtime(Node):
             if self.mission == 'finals':
                 for camera in ('front','bottom'):
                     self.create_subscription(String,'/sauvc/perception/'+camera,
-                        lambda m,c=camera: self.perception_status(m,c),10)
+                        lambda m,c=camera: self.perception_status(m,c),1)
         else:
             self.create_subscription(Twist, '/sauvc/cmd_vel', self.actual_command, 10)
             self.create_subscription(String, '/sauvc/guard/fault', self.guard_fault, STATUS_QOS)
@@ -227,6 +227,12 @@ class Runtime(Node):
             if 'command' in self.received:
                 stale = self.stale(required + ['command'], now)
                 if stale:
+                    if stale in ('front','bottom') and not self.terminal:
+                        age=now-self.received.get(stale,now)
+                        lag=self.t-self.camera_stamps.get(stale,self.t)
+                        self.get_logger().warning(
+                            f'{stale} camera: last fresh frame {age:.3f}s ago; '
+                            f'image stamp trails simulation by {lag:.3f}s')
                     self.trip('stale_' + stale)
                 if not self.terminal and self.judgement.get('phase') != 'FAILED':
                     scale = self.speed_scale if self.mission != 'finals' else 3.

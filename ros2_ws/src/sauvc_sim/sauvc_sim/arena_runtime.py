@@ -81,7 +81,7 @@ class ArenaRuntime(Node):
             if self.extended:self.create_subscription(String,'/sauvc/acoustics',self.ping,10)
             for camera in ('front','bottom'):
                 self.create_subscription(String,'/sauvc/perception/'+camera,
-                                         lambda m,c=camera:self.perception(m,c),10)
+                                         lambda m,c=camera:self.perception(m,c),1)
         self.create_timer(.05,self.tick)
 
     def actual_command(self,msg):

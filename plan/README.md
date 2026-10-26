@@ -47,3 +47,5 @@ Urutan kerja yang diusulkan: **identifikasi perangkat → BlueOS dan komunikasi 
 [23 — Sinkronisasi 7 thruster](23-sinkronisasi-7-thruster.md): profil bersama 4 horizontal + 3 vertikal, allocator/plant tujuh kanal, panel HydroShips dan relay ROS; asumsi geometri tetap terpisah dari mixer hardware yang belum terverifikasi.
 
 [24 — Migrasi dan uji arena 2027](24-migrasi-dan-uji-arena-2027.md): profil default 2027.2.1, geometri baru, target-zone exit, Surfacing Square dan penerimaan runtime.
+
+[25 — Perbaikan POV dan stale kamera](25-perbaikan-pov-dan-stale-camera.md): antrean frame terbaru, batas FPS anotasi dan verifikasi guard kamera.

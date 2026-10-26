@@ -2,7 +2,7 @@
 
 Workspace SAUVC terpisah dalam repositori AUV. Package `sauvc_sim` menyediakan **Qualification Arena(s)** dan **The Arena / finals**, AUV latihan berbentuk kotak, dua kamera, odometri, dan perintah gerak ROS 2. Tidak memerlukan model dari internet atau workspace KKI.
 
-**Profil default: SAUVC 2027.2.1**, diperiksa dari [rulebook resmi](https://sauvc.org/rulebook/) pada 26 Oktober 2026. Launch, generator arena dan pemeriksa misi memakai `edition:=2027` / `--edition 2027`. Edisi 2026 hanya tersedia sebagai regresi eksplisit. Migrasi dan bukti runtime: [laporan 24](../plan/24-migrasi-dan-uji-arena-2027.md); sumber terkunci: [arsip 2027](../doc/sources/rulebook-2027-published/README.md). Bagian bukti bertanggal sebelum migrasi adalah hasil historis 2026. Penerimaan terbaru: 96 tes unit, tiga jalur kualifikasi, dua misi ARENA dengan bonus Square, uji fisika dan 19 sudut kamera lulus. Uji perturbasi lulus 97/98; blur 3 piksel pada flare biru jauh masih gagal.
+**Profil default: SAUVC 2027.2.1**, diperiksa dari [rulebook resmi](https://sauvc.org/rulebook/) pada 26 Oktober 2026. Launch, generator arena dan pemeriksa misi memakai `edition:=2027` / `--edition 2027`. Edisi 2026 hanya tersedia sebagai regresi eksplisit. Migrasi dan bukti runtime: [laporan 24](../plan/24-migrasi-dan-uji-arena-2027.md); sumber terkunci: [arsip 2027](../doc/sources/rulebook-2027-published/README.md). Bagian bukti bertanggal sebelum migrasi adalah hasil historis 2026. Penerimaan terbaru: 98 tes unit, tiga jalur kualifikasi, dua misi ARENA dengan bonus Square, uji fisika dan 19 sudut kamera lulus. Uji perturbasi lulus 97/98; blur 3 piksel pada flare biru jauh masih gagal.
 
 ## Menjalankan
 
@@ -232,7 +232,7 @@ python3 -m pip --python .venv-ros310/bin/python install --ignore-installed PyQt5
 
 Wrapper `tools/ros.sh` juga mengarahkan executable turunan `#!/usr/bin/env python3` ke interpreter ROS. Perintah viewer tetap dapat dipanggil ketika virtualenv HydroShips sedang aktif.
 
-Gambar berlabel tersedia pada `/sauvc/perception/front/image_annotated` dan `/sauvc/perception/bottom/image_annotated` (`sensor_msgs/msg/Image`, RGB8). Kotak magenta menunjukkan bbox, tanda silang putih menunjukkan pusat, dan teks menunjukkan kelas objek. Gambar mempertahankan timestamp/frame ID kamera sumber; label digambar dengan huruf kapital. Topic kamera asli tetap menjadi masukan detektor. Anotasi hanya dikerjakan ketika ada subscriber gambar, memakai NumPy tanpa dependensi imaging tambahan.
+Gambar berlabel tersedia pada `/sauvc/perception/front/image_annotated` dan `/sauvc/perception/bottom/image_annotated` (`sensor_msgs/msg/Image`, RGB8). Kotak magenta menunjukkan bbox, tanda silang putih menunjukkan pusat, dan teks menunjukkan kelas objek. POV berlabel dibatasi maksimal 5 FPS wall clock agar beban viewer tidak mengambil waktu deteksi; input kamera/deteksi tetap 10 Hz simulasi. Antrean gambar hanya menyimpan frame terbaru, dan hasil deteksi tidak menunggu viewer. Gambar mempertahankan timestamp/frame ID kamera sumber; label digambar dengan huruf kapital. Topic kamera asli tetap menjadi masukan detektor. Anotasi hanya dikerjakan ketika ada subscriber gambar, memakai NumPy tanpa dependensi imaging tambahan.
 
 Jika kamera macet >1 s atau citra invalid, gambar berlabel diganti panel hitam bertuliskan `CAMERA STALE - NO DETECTIONS` atau `INVALID CAMERA IMAGE`; panel status berukuran 640×480 dan memakai timestamp node, bukan frame kamera. Pemeriksaan `fresh`/`valid_image` pada JSON tetap wajib untuk konsumen navigasi.
 
