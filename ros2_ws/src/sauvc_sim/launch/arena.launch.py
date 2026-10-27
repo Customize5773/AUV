@@ -1,4 +1,4 @@
-"""Launch one SAUVC arena, an ideal AUV, and the ROS transport bridge."""
+"""Launch one SAUVC arena, a simulated AUV, and the ROS transport bridge."""
 from pathlib import Path
 import tempfile
 
@@ -23,9 +23,9 @@ def start(context):
     mode = LaunchConfiguration('mode').perform(context)
     perception = LaunchConfiguration('perception').perform(context) == 'true'
     vehicle_model=LaunchConfiguration('vehicle_model').perform(context)
-    physical=vehicle_model=='dynamic' or (vehicle_model=='auto' and arena=='qualification' and autonomous and mode=='vision')
-    if physical and (arena!='qualification' or mode!='vision'):
-        raise ValueError('dynamic vehicle currently requires qualification vision mode')
+    physical=vehicle_model=='dynamic' or (vehicle_model=='auto' and autonomous and mode=='vision')
+    if physical and mode!='vision':
+        raise ValueError('dynamic vehicle requires vision mode')
     if autonomous and ((mode == 'vision' and not cameras) or
                        (arena == 'finals' and (not cameras or not perception or mode != 'vision'))):
         raise ValueError('visual autonomous requires cameras; finals also requires perception and vision mode')
@@ -60,7 +60,7 @@ def start(context):
     if physical:
         for executable in ('state_estimator','propulsion'):
             actions.append(Node(package='sauvc_sim',executable=executable,parameters=[dict(
-                lane=lane,edition=edition,lateral_offset=float(LaunchConfiguration('lateral_offset').perform(context)))],
+                lane=lane,arena=arena,edition=edition,lateral_offset=float(LaunchConfiguration('lateral_offset').perform(context)))],
                 output='screen',on_exit=Shutdown()))
     if autonomous:
         params = {'lane': lane,'edition':edition, 'mode': mode,
@@ -70,7 +70,7 @@ def start(context):
                   'fault': LaunchConfiguration('fault').perform(context)}
         executables=('qualification_referee','command_guard','qualification')
         if arena == 'finals':
-            params={'mission':'finals','edition':edition,'output':LaunchConfiguration('output').perform(context),
+            params={'mission':'finals','physical':physical,'edition':edition,'output':LaunchConfiguration('output').perform(context),
                     'flare_order':LaunchConfiguration('flare_order').perform(context),
                     'extended':LaunchConfiguration('extended').perform(context)=='true',
                     'fault':LaunchConfiguration('fault').perform(context)}

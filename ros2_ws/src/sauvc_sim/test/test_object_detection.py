@@ -20,6 +20,35 @@ class ObjectsTest(unittest.TestCase):
                 a[y:y+8,x:x+4] = colour
         return a
 
+    def test_blurred_single_pixel_blue_pole_survives_without_blue_background_false_positive(self):
+        image=np.full((240,320,3),150,dtype=np.uint8)
+        image[60:160,160:161]=(20,69,142)
+        blurred=(sum(np.roll(image.astype(float),i,axis=1) for i in (-1,0,1))/3).astype(np.uint8)
+        objects=self.detect(blurred)['detections']
+        pole=next(o for o in objects if o['label']=='blue_flare')
+        self.assertEqual(pole['bbox'][1:4:2],[60,160])
+        background=np.full_like(image,(100,130,170))
+        self.assertEqual(self.detect(background)['detections'],[])
+        background[60:160,100:150]=(20,69,142)
+        self.assertNotIn('blue_flare',[o['label'] for o in self.detect(background)['detections']])
+
+    def test_square_markers_do_not_become_flares_and_separate_flare_remains(self):
+        image=self.frame()
+        image[30:70,40:43]=(5,45,210);image[30:70,240:243]=(5,45,210)
+        image[45:70,80:82]=(5,45,210);image[45:70,200:202]=(5,45,210)
+        image[110:220,150:153]=(5,45,210)
+        objects=self.detect(image)['detections']
+        self.assertEqual(sum(o['label']=='surfacing_square' for o in objects),1)
+        flares=[o for o in objects if o['label']=='blue_flare']
+        self.assertEqual(len(flares),1)
+        self.assertEqual(flares[0]['bbox'],[150,110,153,220])
+
+    def test_blurred_cropped_blue_pole_is_not_promoted_to_a_complete_target(self):
+        image=np.full((240,320,3),150,dtype=np.uint8)
+        image[:100,160:161]=(20,69,142)
+        blurred=(sum(np.roll(image.astype(float),i,axis=1) for i in (-1,0,1))/3).astype(np.uint8)
+        self.assertNotIn('blue_flare',[o['label'] for o in self.detect(blurred)['detections']])
+
     def test_navigation_gate_needs_both_striped_posts(self):
         a = self.gate()
         d = self.detect(a)['detections']

@@ -4,7 +4,7 @@ Panduan perintah kualifikasi, ARENA dan kedua POV: [Cara running simulator](CARA
 
 Workspace SAUVC terpisah dalam repositori AUV. Package `sauvc_sim` menyediakan **Qualification Arena(s)** dan **The Arena / finals**, AUV latihan berbentuk kotak, dua kamera, odometri, dan perintah gerak ROS 2. Tidak memerlukan model dari internet atau workspace KKI.
 
-**Profil default: SAUVC 2027.2.1**, diperiksa dari [rulebook resmi](https://sauvc.org/rulebook/) pada 26 Oktober 2026. Launch, generator arena dan pemeriksa misi memakai `edition:=2027` / `--edition 2027`. Edisi 2026 hanya tersedia sebagai regresi eksplisit. Migrasi dan bukti runtime: [laporan 24](../plan/24-migrasi-dan-uji-arena-2027.md); sumber terkunci: [arsip 2027](../doc/sources/rulebook-2027-published/README.md). Bagian bukti bertanggal sebelum migrasi adalah hasil historis 2026. Penerimaan terbaru: 98 tes unit, tiga jalur kualifikasi, dua misi ARENA dengan bonus Square, uji fisika dan 19 sudut kamera lulus. Uji perturbasi lulus 97/98; blur 3 piksel pada flare biru jauh masih gagal.
+**Profil default: SAUVC 2027.2.1**, diperiksa dari [rulebook resmi](https://sauvc.org/rulebook/) pada 26 Oktober 2026. Launch, generator arena dan pemeriksa misi memakai `edition:=2027` / `--edition 2027`. Edisi 2026 hanya tersedia sebagai regresi eksplisit. Migrasi dan bukti runtime: [laporan 24](../plan/24-migrasi-dan-uji-arena-2027.md); sumber terkunci: [arsip 2027](../doc/sources/rulebook-2027-published/README.md). Bagian bukti bertanggal sebelum migrasi adalah hasil historis 2026. Penerimaan dinamis terbaru: 107 tes unit, blue drum/pinger–pickup dengan GUI dan dua POV, bonus Square, empat injeksi gangguan serta tiga jalur kualifikasi lulus; lihat [laporan 27](../plan/27-kalibrasi-dvl-dan-penerimaan-gui.md). Karakterisasi gaya dan 19 sudut kamera tersedia pada penerimaan sebelumnya. Uji perturbasi lulus 97/98; blur 3 piksel pada flare biru jauh masih gagal.
 
 ## Menjalankan
 
@@ -63,7 +63,8 @@ Ketebalan tiang gerbang 5 cm, ketebalan drum 2 cm, posisi properti, massa dan uk
 | --- | --- | --- |
 | `/clock` | `rosgraph_msgs/msg/Clock` | Waktu simulasi |
 | `/sauvc/cmd_vel` | `geometry_msgs/msg/Twist` | Perintah kecepatan badan |
-| `/sauvc/odom` | `nav_msgs/msg/Odometry` | Odometri ground truth 3D, 30 Hz |
+| `/sauvc/odom` | `nav_msgs/msg/Odometry` | Ground truth 3D untuk referee/logger, 30 Hz |
+| `/sauvc/state/odom` | `nav_msgs/msg/Odometry` | Estimasi sensor untuk kendali dinamis kualifikasi/ARENA |
 | `/sauvc/camera_front/image_raw` | `sensor_msgs/msg/Image` | Kamera depan |
 | `/sauvc/camera_bottom/image_raw` | `sensor_msgs/msg/Image` | Kamera bawah |
 
@@ -85,7 +86,7 @@ bash tools/ros.sh topic pub --once /sauvc/cmd_vel geometry_msgs/msg/Twist '{}'
 bash tools/ros.sh topic echo /sauvc/odom --once
 ```
 
-Pada model `ideal`, plugin kecepatan mempertahankan perintah terakhir; kirim Twist kosong untuk berhenti. Gravitasi badan dimatikan dan `/sauvc/odom` adalah ground truth. Model ini dipertahankan untuk pembanding dan ARENA. Kualifikasi autonomous visual sekarang memakai model `dynamic` secara default melalui `vehicle_model:=auto`; model tersebut memakai gaya thruster dan estimasi sensor seperti bagian berikut.
+Pada model `ideal`, plugin kecepatan mempertahankan perintah terakhir; kirim Twist kosong untuk berhenti. Gravitasi badan dimatikan dan `/sauvc/odom` adalah ground truth. Model ini dipertahankan untuk latihan manual dan pembanding eksplisit. Kualifikasi serta ARENA autonomous visual memakai model `dynamic` secara default melalui `vehicle_model:=auto`; model tersebut memakai gaya thruster dan estimasi sensor seperti bagian berikut.
 
 ## Pemeriksaan
 
@@ -104,12 +105,12 @@ bash tools/ros.sh python tools/check_sim.py --arena finals --output evidence/fin
 
 Lima tes geometri memeriksa kedalaman permukaan collision, lebar bersih gerbang, zona/dimensi properti, drum terbuka, dan visual tanpa collision. Pemeriksaan runtime menunggu clock/odom/kamera, mengirim perintah menyelam/maju/berputar/berhenti, lalu menyimpan JSON, log dan frame PPM. Tanpa dukungan rendering dapat memakai `--no-cameras`, tetapi hasil tersebut tidak membuktikan kamera berfungsi.
 
-**Batas model:** dinamika thruster/drag/buoyancy tersedia untuk kualifikasi, dengan koefisien latihan yang belum diukur pada kendaraan fisik. ARENA masih memakai model ideal. Pinger TDOA virtual dan pickup berbasis kontak/latch tersedia. Integrasi executor fisik HydroShips belum divalidasi. Hasil simulator tidak membuktikan kesiapan kendaraan fisik.
+**Batas model:** dinamika tujuh thruster/drag/buoyancy tersedia untuk kualifikasi dan ARENA autonomous visual, dengan koefisien latihan yang belum diukur pada kendaraan fisik. Controller memakai estimasi sensor; ground truth dipisahkan ke referee/logger. Pinger TDOA virtual dan pickup berbasis kontak/latch tersedia. Integrasi executor fisik HydroShips belum divalidasi. Hasil simulator tidak membuktikan kesiapan kendaraan fisik.
 
 
 ## Kualifikasi autonomous
 
-`vehicle_model:=auto` memilih model **dinamis** untuk kualifikasi autonomous `vision`; ARENA dan latihan manual tetap ideal. `vehicle_model:=ideal` memilih pembanding lama secara eksplisit. `speed_scale` tetap menerima `(0,8]`, tetapi model dinamis membatasi target kecepatan sesuai profil gaya yang diuji: surge 0,9 m/s, sway 0,6 m/s, heave 0,3 m/s dan yaw 0,7 rad/s. Akselerasi/pengereman berlangsung melalui gaya dan inersia. Tabel berikut khusus profil **ideal** lama, bukan kemampuan thruster fisik atau model dinamis:
+`vehicle_model:=auto` memilih model **dinamis** untuk kualifikasi dan ARENA autonomous `vision`; latihan manual tetap ideal secara default. `vehicle_model:=ideal` memilih pembanding lama secara eksplisit. `speed_scale` tetap menerima `(0,8]`, tetapi model dinamis membatasi target kecepatan sesuai profil gaya yang diuji: surge 0,9 m/s, sway 0,6 m/s, heave 0,3 m/s dan yaw 0,7 rad/s. Akselerasi/pengereman berlangsung melalui gaya dan inersia. Tabel berikut khusus profil **ideal** lama, bukan kemampuan thruster fisik atau model dinamis:
 
 | Gerak | Profil awal (1×) | Default cepat (8×) |
 | --- | --- | --- |
@@ -178,7 +179,7 @@ bash tools/ros.sh python tools/check_contacts.py
 
 Hasil implementasi dan batas pembuktiannya tercatat pada [laporan kualifikasi](../plan/15-hasil-kualifikasi-autonomous.md). Ringkasan lokal [verification.json](evidence/qualification-autonomous/verification.json) memuat 19 pemeriksaan runtime, termasuk enam misi visual nominal serta enam uji gangguan/pembekuan controller.
 
-## Model gaya dan estimasi sensor kualifikasi
+## Model gaya dan estimasi sensor
 
 `vehicle_model:=dynamic` mengaktifkan gravitasi dan plugin gaya `VehicleDynamics`, serta menghapus `VelocityControl`. Tujuh thruster abstrak (T1–T4 horizontal, T5–T7 vertikal) menghasilkan wrench melalui posisi/arah masing-masing. Gaya mengikuti `F=Fmax*u*abs(u)` dengan batas ±20 N horizontal/±40 N vertikal dan respons orde satu τ=0,15 s. Pengendali kecepatan mengalokasikan wrench menjadi tujuh input `u` dan mengerem melalui thrust balik. Pose atau kecepatan aktual tidak di-set langsung.
 
@@ -192,9 +193,13 @@ Drag translasi/rotasi mengikuti `-D*v-Q*v*abs(v)`. Buoyancy memakai `rho*g*V_sub
 | `/sauvc/thrusters` | `std_msgs/String`, enam nilai ternormalisasi −1…1 dipisah spasi; hanya `propulsion` yang menulis pada autonomous |
 | `/sauvc/dynamics/telemetry` | Gaya thruster aktual (N), buoyancy dan timeout; untuk pencatatan pengujian |
 | `/sauvc/qualification/status` | Hanya phase/reason/passed dari referee; tanpa koordinat atau event pose untuk controller dinamis |
+| `/sauvc/arena/status` | Status tugas/kegagalan ARENA tanpa koordinat ground truth untuk controller/guard dinamis |
+| `/sauvc/arena/result` | Laporan rinci referee ARENA hanya untuk pencatat/pemeriksa pada model dinamis |
 | `/sauvc/odom` dan `/sauvc/qualification/result` | Ground truth dan laporan rinci hanya untuk referee/logger pada model dinamis |
 
 Estimator mengintegrasikan gyro dan mengoreksi heading dari magnetometer, memakai accelerometer saat hampir diam, memprediksi kedalaman dari DVL lalu mengoreksinya dengan tekanan. XY merupakan dead reckoning DVL dengan orientasi terestimasi dan prior deployment pada garis start; tidak ada GPS/pose world yang disuntikkan ke estimator. Covariance adalah perkiraan diagnostik, bukan EKF terkalibrasi; drift tidak dikoreksi secara global. Sensor virtual ini tidak membuktikan bahwa DVL/IMU/depth sensor fisik sudah tersedia atau terpasang.
+
+Bias DVL horizontal dikalibrasi dari ≥20 sampel preflight ketika kendaraan ditahan diam horizontal. Kalibrasi dibekukan saat DIVE/perintah gerak; tidak memakai ground truth. Health memuat `dvl_bias_xy_mps`, `dvl_bias_samples` dan `dvl_calibrating`. Sampel tidak cukup berarti koreksi tidak diterapkan. Prosedur ini belum valid untuk kendaraan hanyut tanpa rujukan diam; lihat [laporan 27](../plan/27-kalibrasi-dvl-dan-penerimaan-gui.md).
 
 Tidak ada fallback ground truth ketika instrumen hilang. Pada `STOP`/`DONE`/`ABORT`, propulsion mengunci status disarm dan mengirim tujuh nol; lag thrust, drag dan buoyancy tetap berlaku sehingga gerak tidak berhenti seketika. Watchdog plant memutus target thrust jika perintah aktuator macet >0,5 s wall clock. Saat controller dibekukan tetapi estimator/propulsion masih sehat, pengawas mengirim target kecepatan nol untuk pengereman/hover. Referee mengesahkan stop dari pose fisika yang stabil; sukses surface juga memerlukan seluruh gaya thruster kembali mendekati nol pada alat uji.
 
@@ -272,6 +277,8 @@ Untuk Navigation, controller mengoreksi posisi gate memakai dua sinar tiang dan 
 Flare dengan tinggi citra <30 px tetap dapat diberi label, tetapi tidak dipakai untuk estimasi jarak. Controller memasangkan hasil kamera dengan interpolasi pose pada timestamp gambar (buffer sekitar 8 s, toleransi 50 ms di batas buffer), bukan pose saat callback diterima. Landmark statis baru memerlukan tiga estimasi posisi yang konsisten; pembaruan yang melompat >0,75 m ditolak. Jika satu warna terpecah menjadi beberapa komponen, kandidat yang paling sesuai dengan landmark dipilih, sehingga fragmen tidak menggeser target yang sudah diketahui.
 
 ## ARENA autonomous dari kamera
+
+**Model default ARENA kini dinamis**, memakai plant tujuh thruster dan estimator tekanan/IMU/magnetometer/DVL seperti kualifikasi. Controller/guard membaca `/sauvc/state/odom` dan `/sauvc/arena/status`, tanpa posisi ground truth. Referee dan logger membaca `/sauvc/odom`/`/sauvc/arena/result`. Pilih `vehicle_model:=ideal` hanya untuk membandingkan bukti lama. Detail, drift dan bukti penerimaan: [laporan 26](../plan/26-arena-dinamika-dan-estimasi-sensor.md).
 
 ```bash
 cd /home/rasya/AUV/ros2_ws

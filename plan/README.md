@@ -49,3 +49,7 @@ Urutan kerja yang diusulkan: **identifikasi perangkat → BlueOS dan komunikasi 
 [24 — Migrasi dan uji arena 2027](24-migrasi-dan-uji-arena-2027.md): profil default 2027.2.1, geometri baru, target-zone exit, Surfacing Square dan penerimaan runtime.
 
 [25 — Perbaikan POV dan stale kamera](25-perbaikan-pov-dan-stale-camera.md): antrean frame terbaru, batas FPS anotasi dan verifikasi guard kamera.
+
+[26 — ARENA dinamis dan estimasi sensor](26-arena-dinamika-dan-estimasi-sensor.md): plant tujuh thruster bersama kualifikasi, kendali tanpa pose ground truth dan penerimaan ulang.
+
+[27 — Kalibrasi DVL dan penerimaan GUI/POV](27-kalibrasi-dvl-dan-penerimaan-gui.md): bias preflight tanpa ground truth, kedua misi GUI, tiga jalur kualifikasi dan batas referensi galat tetap.

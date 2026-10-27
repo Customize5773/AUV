@@ -36,9 +36,11 @@ class ArenaRuntime(Node):
         valid_order(self.order)
         self.declare_parameter('edition','2027')
         self.edition=self.get_parameter('edition').value
+        self.declare_parameter('physical',False)
+        self.physical=self.get_parameter('physical').value
         self.declare_parameter('extended',False)
         self.extended=self.get_parameter('extended').value
-        self.ctrl=ArenaController(extended=self.extended,edition=self.edition)
+        self.ctrl=ArenaController(extended=self.extended,edition=self.edition,physical=self.physical)
         self.acoustic=AcousticTracker(bounds=(0.,25.,-8.,42.) if self.edition=='2027' else (0.,25.,0.,16.))
         if referee:
             self.declare_parameter('scene_variant',0)
@@ -46,7 +48,7 @@ class ArenaRuntime(Node):
             self.declare_parameter('pinger_drum',0)
             self.judge=ArenaJudge(self.order,self.get_parameter('scene_variant').value,
                                   self.get_parameter('blue_drum').value,self.extended,
-                                  self.get_parameter('pinger_drum').value,edition=self.edition)
+                                  self.get_parameter('pinger_drum').value,edition=self.edition,physical=self.physical)
         self.pose=None
         self.attitude=(0.,0.)
         self.t=0.
@@ -54,6 +56,7 @@ class ArenaRuntime(Node):
         self.received={}
         self.contacts=[]
         self.zero=True
+        self.command_zero=True;self.force_zero=True
         self.judgement={}
         self.ready_since=None
         self.start_wall=time.monotonic()
@@ -63,20 +66,23 @@ class ArenaRuntime(Node):
         self.pose_history=PoseHistory()
         self.state_pub=self.create_publisher(String,'/sauvc/arena/state',STATUS_QOS)
         self.report=self.create_publisher(String,'/sauvc/arena/result',STATUS_QOS)
+        self.status_pub=self.create_publisher(String,'/sauvc/arena/status',STATUS_QOS) if referee and self.physical else None
         self.order_pub=self.create_publisher(String,'/sauvc/arena/flare_order',STATUS_QOS)
         self.cmd=self.create_publisher(Twist,'/sauvc/mission/cmd_vel',10) if not referee else None
         self.grip=self.create_publisher(Bool,'/sauvc/payload/grip',10) if not referee else None
         self.payload=self.create_publisher(Bool,'/sauvc/payload/release',10) if not referee else None
         self.create_subscription(Clock,'/clock',self.clock,qos_profile_sensor_data)
-        self.create_subscription(Odometry,'/sauvc/odom',self.odom,qos_profile_sensor_data)
+        self.create_subscription(Odometry,'/sauvc/state/odom' if self.physical and not referee else '/sauvc/odom',self.odom,qos_profile_sensor_data)
+        if self.physical and not referee:self.create_subscription(String,'/sauvc/state/health',self.estimate_health,10)
         self.create_subscription(Contacts,'/sauvc/contacts',self.contact,qos_profile_sensor_data)
         self.create_subscription(String,'/sauvc/guard/fault',self.guard_fault,STATUS_QOS)
         if referee:
             self.create_subscription(Twist,'/sauvc/cmd_vel',self.actual_command,10)
+            if self.physical:self.create_subscription(String,'/sauvc/dynamics/telemetry',self.dynamics,10)
             self.create_subscription(String,'/sauvc/arena/physics',self.physics,10)
             self.create_subscription(String,'/sauvc/arena/state',self.controller_state,STATUS_QOS)
         else:
-            self.create_subscription(String,'/sauvc/arena/result',self.result,STATUS_QOS)
+            self.create_subscription(String,'/sauvc/arena/status' if self.physical else '/sauvc/arena/result',self.result,STATUS_QOS)
             self.create_subscription(String,'/sauvc/arena/flare_order',self.order_received,STATUS_QOS)
             if self.extended:self.create_subscription(String,'/sauvc/acoustics',self.ping,10)
             for camera in ('front','bottom'):
@@ -85,8 +91,22 @@ class ArenaRuntime(Node):
         self.create_timer(.05,self.tick)
 
     def actual_command(self,msg):
-        self.zero=all(abs(v)<1e-6 for v in values(msg))
-        self.judge.thrust(self.t,not self.zero)
+        self.command_zero=all(abs(v)<1e-6 for v in values(msg))
+        self.zero=self.command_zero and self.force_zero
+        if not self.physical:self.judge.thrust(self.t,not self.zero)
+
+    def dynamics(self,msg):
+        packet=json.loads(msg.data)
+        forces=packet['force_n']
+        self.force_zero=all(abs(f)<.05 for f in forces)
+        self.zero=self.command_zero and self.force_zero
+        self.judge.thrust(packet['time'],any(abs(f)>.05 for f in forces))
+
+    def estimate_health(self,msg):
+        packet=json.loads(msg.data)
+        if packet.get('valid'):self.received['estimate_health']=time.monotonic()
+        elif self.ctrl.started is not None and self.ctrl.state not in ('DONE','ABORT'):
+            self.ctrl.change('ABORT',self.t,packet.get('reason','invalid_estimate'))
 
     def drop(self,key):
         return self.fault==key+'_loss' and self.first_clock is not None and self.t-self.first_clock>12
@@ -184,12 +204,14 @@ class ArenaRuntime(Node):
     def tick(self):
         now=time.monotonic()
         required=['clock','odom','contacts']+(['physics'] if self.referee else ['referee','front','bottom'])
+        if self.physical and not self.referee:required.append('estimate_health')
         stale=next((k for k in required if now-self.received.get(k,0)>2),None)
         if self.referee:
             if self.judge.phase not in ('START','COMPLETE','FAILED') and stale:
                 self.judge.fail('stale_'+stale,self.t)
             result=self.judge.result()
             self.report.publish(String(data=json.dumps(result)))
+            if self.status_pub:self.status_pub.publish(String(data=json.dumps({key:result[key] for key in ('phase','reason','navigation_passed','fallen_flares','payload_in_blue','payload_acquired','payload_grasped','reacquisition_crossed','payload_retrieved','target_zone_exited','passed')})))
             if self.judge.navigation: self.order_pub.publish(String(data=self.order))
             if result['passed'] or result['phase']=='FAILED': self.save('-referee',result)
             return
@@ -207,7 +229,7 @@ class ArenaRuntime(Node):
         velocity=ctrl.command(self.pose,self.t,self.judgement) if self.pose else (0.,0.,0.,0.)
         cmd=Twist()
         cmd.linear.x,cmd.linear.y,cmd.linear.z,cmd.angular.z=velocity
-        if (self.extended or self.edition=='2027') and ctrl.state not in ('ABORT','DONE','STOP'):
+        if not self.physical and (self.extended or self.edition=='2027') and ctrl.state not in ('ABORT','DONE','STOP'):
             cmd.angular.x,cmd.angular.y=level_rates(*self.attitude)
         self.cmd.publish(cmd)
         self.grip.publish(Bool(data=ctrl.grip))
@@ -218,6 +240,7 @@ class ArenaRuntime(Node):
             self.get_logger().info(ctrl.state+': '+ctrl.reason);self.logged=ctrl.state
         if ctrl.state in ('DONE','ABORT'):
             self.save('-controller',dict(state=ctrl.state,reason=ctrl.reason,history=ctrl.history,
+                                        state_source='pressure_gyro_magnetometer_dvl' if self.physical else 'ground_truth',
                                         targets=ctrl.targets,order=ctrl.order,release_sent=self.release_sent,
                                         acoustic_target=ctrl.acoustic_target,acoustic_rays=len(self.acoustic.rays),
                                         extended=self.extended,grip_requested=ctrl.grip))

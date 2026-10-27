@@ -25,9 +25,9 @@ Repositori persiapan AUV tim HydroShips: aplikasi onboard Jetson–Pixhawk, simu
 | ARENA blue drum | Navigation dahulu → flare sesuai urutan → drop blue drum → Surfacing Square → stop |
 | ARENA pinger/pickup | TDOA virtual → drop red drum berpinger → seluruh badan keluar target zone → pickup bola yang sama → retensi sampai akhir |
 | Penilaian 2027 | Timer sejak thrust, poin tugas, penalti kontak, bonus surface dan bonus Square; bonus inspeksi fisik tidak dimasukkan |
-| Bukti penerimaan | 98 tes unit, tiga jalur kualifikasi, dua misi ARENA, uji fisika dan 19 sudut kamera lulus; ketahanan sintetis 97/98, satu kasus blur belum lulus |
+| Bukti penerimaan terbaru | 107 tes unit, dua ARENA dinamis dengan GUI/POV, tiga jalur kualifikasi dan empat injeksi gangguan lulus; karakterisasi gaya/19 sudut kamera tersedia pada penerimaan sebelumnya; perturbasi 97/98 |
 
-**ARENA masih memakai gerak ideal dan odometri ground truth.** Model gaya dan estimator sensor digunakan pada kualifikasi. Pinger adalah model geometrik TDOA, servo pelepas memakai respons ideal, dan pickup memakai latch fixed setelah kontak. Hasil ini belum membuktikan performa AUV fisik atau ketahanan pada seluruh kondisi kolam.
+**ARENA dan kualifikasi autonomous visual kini memakai model gaya tujuh thruster dan estimator sensor virtual secara default.** Ground truth digunakan oleh referee/pencatat; profil ideal tersedia sebagai pembanding eksplisit. [Laporan 26](plan/26-arena-dinamika-dan-estimasi-sensor.md) mencatat penerimaan awal dinamis; [laporan 27](plan/27-kalibrasi-dvl-dan-penerimaan-gui.md) memuat kalibrasi DVL dan dua misi penuh dengan Gazebo serta kedua POV. Pinger adalah model geometrik TDOA, servo pelepas memakai respons ideal, dan pickup memakai latch fixed setelah kontak. Hasil ini belum membuktikan performa AUV fisik atau ketahanan pada seluruh kondisi kolam.
 
 ## Menjalankan simulasi
 
@@ -57,6 +57,8 @@ Jalankan satu mode setiap kali; hentikan mode sebelumnya sebelum membuka mode la
 | [17 — Persepsi dan ARENA](plan/17-hasil-arena-autonomous.md) | Ketahanan deteksi, perbaikan gate dan misi blue drum |
 | [18 — Dinamika dan estimasi sensor](plan/18-dinamika-dan-estimasi-sensor.md) | Model gaya, instrumen virtual dan pengujian gangguan |
 | [19 — Penilaian dan rancangan servo](plan/19-penilaian-arena-dan-rancangan-servo.md) | Perhitungan skor, perbedaan interpretasi contoh aturan dan konsep dropper |
+| [27 — Kalibrasi DVL dan GUI](plan/27-kalibrasi-dvl-dan-penerimaan-gui.md) | Koreksi bias preflight, penerimaan Gazebo + dua POV, dan batas akurasi |
+| [26 — ARENA dinamis dan estimator](plan/26-arena-dinamika-dan-estimasi-sensor.md) | Model gaya bersama kualifikasi, isolasi ground truth dan penerimaan ulang |
 | [24 — Migrasi dan uji 2027](plan/24-migrasi-dan-uji-arena-2027.md) | Profil default 2027, hasil runtime dan batas pembuktian |
 | [20 — Pinger, pickup dan servo simulator](plan/20-pinger-pickup-dan-servo-simulator.md) | Mekanisme tambahan, dua fixture penerimaan dan batas model |
 

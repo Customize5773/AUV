@@ -8,7 +8,8 @@ from sauvc_sim.arena_scoring import ArenaScore
 
 
 class ArenaJudge:
-    def __init__(self, order='B-R-Y', scene_variant=0, blue_drum=1, extended=False, pinger_drum=0,edition='2026'):
+    def __init__(self, order='B-R-Y', scene_variant=0, blue_drum=1, extended=False, pinger_drum=0,edition='2026',physical=False):
+        self.physical=physical
         self.edition=edition
         self.square_contact=False
         self.square_inside=False
@@ -119,7 +120,7 @@ class ArenaJudge:
         if self.phase=='START':
             if hi>1.4 and zh>=-.02:
                 self.fail('left_start_before_submerged',t);return
-            if zh<-.02:
+            if zh<-.02 and (not self.physical or self.score.started is not None):
                 self.phase='RUNNING';self.event('UNDERWATER',t)
         elif zh>=0:
             self.score.finish(t,'surface',square=self.square_inside and not self.square_contact)

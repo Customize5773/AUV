@@ -17,7 +17,9 @@ def valid_order(value):
 
 
 class ArenaController:
-    def __init__(self, extended=False,edition='2026'):
+    def __init__(self, extended=False,edition='2026',physical=False):
+        self.physical=physical
+        self.cruise_depth=-.3 if physical else -.12
         self.edition=edition
         self.flare_depth=-1.45 if edition=='2027' else -1.
         self.state = 'WAIT'
@@ -200,10 +202,10 @@ class ArenaController:
                     self.scan.extend([[scan_x,scan_y] for scan_y in ys])
                 self.goal=self.scan.pop(0)
                 self.change('SCAN_DRUMS',t)
-            return self.go(pose,self.goal,.7,depth=-.12)
+            return self.go(pose,self.goal,.7,depth=self.cruise_depth)
         if self.state == 'SCAN_DRUMS':
             if self.extended and self.acoustic_target is not None:
-                self.goal=[*self.acoustic_target, -.12]
+                self.goal=[*self.acoustic_target, self.cruise_depth]
                 self.change('ALIGN_DRUM',t)
                 return zero
             if not self.extended and 'blue_drum' in self.targets:
@@ -215,12 +217,12 @@ class ArenaController:
                     self.change('ABORT',t,'blue_drum_not_found')
                     return zero
                 self.goal=self.scan.pop(0)
-            return self.go(pose,self.goal,.15,depth=-.12)
+            return self.go(pose,self.goal,.15,depth=self.cruise_depth)
         if self.state == 'ALIGN_DRUM':
             if self.extended:
                 if t-self.acoustic_time>.5:
                     self.change('ABORT',t,'stale_acoustics');return zero
-                self.goal=[*self.acoustic_target,-.12]
+                self.goal=[*self.acoustic_target,self.cruise_depth]
             else:self.goal=list(self.targets.get('blue_drum',self.goal))
             # Payload is 20 cm forward of the body origin, clear of the bottom lens.
             dx,dy=self.goal[0]-(x+.2*math.cos(yaw)),self.goal[1]-(y+.2*math.sin(yaw))
@@ -235,7 +237,7 @@ class ArenaController:
             vx,vy=dx*.8,dy*.8
             return (max(-.2,min(.2,vx*math.cos(yaw)+vy*math.sin(yaw))),
                     max(-.2,min(.2,-vx*math.sin(yaw)+vy*math.cos(yaw))),
-                    max(-.2,min(.2,(-.12-z)*1.5)),0.)
+                    max(-.2,min(.2,(self.cruise_depth-z)*1.5)),0.)
         if self.state == 'WAIT_PAYLOAD':
             if judgement.get('payload_acquired' if self.extended else 'payload_in_blue'):
                 if self.extended:
@@ -287,7 +289,7 @@ class ArenaController:
         if self.state=='TO_PICKUP':
             if math.dist(pose[:2],self.goal[:2])<.4:
                 self.aligned_since=None;self.change('ALIGN_PICKUP',t)
-            return self.go(pose,self.goal,.65,depth=-.12)
+            return self.go(pose,self.goal,.65,depth=self.cruise_depth)
         if self.state in ('ALIGN_PICKUP','DESCEND_PICKUP','LIFT_PICKUP'):
             dx,dy=self.goal[0]-(x-.2*math.cos(yaw)),self.goal[1]-(y-.2*math.sin(yaw))
             if self.state=='ALIGN_PICKUP' and math.hypot(dx,dy)<.012:
@@ -298,9 +300,9 @@ class ArenaController:
                     self.change('LIFT_PICKUP',t)
                 elif t-self.since>15:
                     self.change('ABORT',t,'pickup_not_proven');return zero
-            if self.state=='LIFT_PICKUP' and z>-.3:
+            if self.state=='LIFT_PICKUP' and z>(self.cruise_depth-.06 if self.physical else -.3):
                 self.change('TO_SQUARE' if self.edition=='2027' else 'SURFACE',t);return zero
-            depth=-.12 if self.state in ('ALIGN_PICKUP','LIFT_PICKUP') else (-2. if self.edition=='2027' else floor_z(self.goal[0]))+.49
+            depth=self.cruise_depth if self.state in ('ALIGN_PICKUP','LIFT_PICKUP') else (-2. if self.edition=='2027' else floor_z(self.goal[0]))+.49
             return (max(-.12,min(.12,(dx*math.cos(yaw)+dy*math.sin(yaw))*.8)),
                     max(-.12,min(.12,(-dx*math.sin(yaw)+dy*math.cos(yaw))*.8)),
                     max(-.12,min(.12,(depth-z)*1.5)),0.)

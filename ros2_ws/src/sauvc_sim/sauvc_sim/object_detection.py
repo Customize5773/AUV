@@ -99,6 +99,22 @@ def detect_objects(data, width, height, step, encoding='rgb8', camera='front', a
             detections.append(candidate('qualification_gate', gate['bbox'], width, height,
                                         distance_estimate_m=gate['distance'], span_px=gate['span']))
     elif camera == 'front':
+        # A one-pixel blue pole loses saturation under blur; recover only narrow,
+        # tall local blue contrast, retaining the strict mask for other shapes.
+        r,g,b=(rgb[:,:,i].astype(float) for i in range(3))
+        blue_score=b-(r+g)/2
+        contrast=np.zeros_like(blue_score)
+        contrast[:,4:-4]=blue_score[:,4:-4]-(blue_score[:,:-8]+blue_score[:,8:])/2
+        faint=(contrast>12)&(b>r*1.3)&(b>g*1.15)
+        padded=np.pad(faint,((1,1),(0,0)))
+        dilated=padded[:-2]|padded[1:-1]|padded[2:]
+        padded=np.pad(dilated,((1,1),(0,0)))
+        faint=padded[:-2]&padded[1:-1]&padded[2:]
+        for part in components(faint):
+            l,t,r,b=part['bbox'];h,w=b-t,r-l
+            if (t>1 and b<height-1 and l>4 and r<width-4 and
+                    h>=30 and w<=5 and h/w>=8 and part['area_px']/(h*w)>.45):
+                masks['blue'][t:b,l:r]|=faint[t:b,l:r]
         parts = {colour: components(mask, 2 if colour in ('red','green') else 8)
                  for colour, mask in masks.items()}
         pairs = []
@@ -119,14 +135,26 @@ def detect_objects(data, width, height, step, encoding='rgb8', camera='front', a
                 span_px=span, stripe_count=[red['stripes'],green['stripes']]))
         bars=[p for p in parts['blue'] if p['bbox'][3]-p['bbox'][1]>=15 and
               (p['bbox'][3]-p['bbox'][1])/max(1,p['bbox'][2]-p['bbox'][0])>=4]
-        bars=sorted(bars,key=lambda p:p['bbox'][3]-p['bbox'][1],reverse=True)
-        if len(bars)>=2:
-            a,b=bars[0]['bbox'],bars[1]['bbox']
-            ha,hb=a[3]-a[1],b[3]-b[1];span=abs((a[0]+a[2]-b[0]-b[2])/2)
-            if min(ha,hb)>.8*max(ha,hb) and span>2*max(ha,hb):
-                detections.append(candidate('surfacing_square',[min(a[0],b[0]),min(a[1],b[1]),max(a[2],b[2]),max(a[3],b[3])],width,height,span_px=span))
+        square_pairs=[];square_parts=set()
+        for i,first in enumerate(bars):
+            for second in bars[i+1:]:
+                a,b=first['bbox'],second['bbox']
+                ha,hb=a[3]-a[1],b[3]-b[1];span=abs((a[0]+a[2]-b[0]-b[2])/2)
+                overlap=min(a[3],b[3])-max(a[1],b[1])
+                if min(ha,hb)>.8*max(ha,hb) and span>2*max(ha,hb) and overlap>.6*min(ha,hb):
+                    square_pairs.append((ha+hb,first,second,span))
+        if square_pairs:
+            _,first,second,span=max(square_pairs,key=lambda p:p[0])
+            a,b=first['bbox'],second['bbox'];marker_height=max(a[3]-a[1],b[3]-b[1])
+            box=[min(a[0],b[0]),min(a[1],b[1]),max(a[2],b[2]),max(a[3],b[3])]
+            for part in bars:
+                l,t,r,b=part['bbox']
+                if box[0]<=(l+r)/2<=box[2] and box[1]-marker_height*.25<=t<=box[3] and b<=box[3]+marker_height:
+                    square_parts.add(id(part))
+            detections.append(candidate('surfacing_square',box,width,height,span_px=span))
         for colour in ('orange','blue','red','yellow'):
             for part in parts[colour]:
+                if colour=='blue' and id(part) in square_parts:continue
                 l,t,r,b = part['bbox']
                 if b-t >= 15 and (b-t)/(r-l) >= 5 and part['area_px']/((r-l)*(b-t)) > .45:
                     detections.append(candidate(colour+'_flare', part['bbox'], width, height,

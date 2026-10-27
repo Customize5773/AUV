@@ -10,10 +10,14 @@ def wrap(a): return math.atan2(math.sin(a),math.cos(a))
 
 
 class StateEstimator:
-    def __init__(self, lane=1, lateral_offset=0., density=1000., gravity=9.81,edition='2026'):
+    def __init__(self, lane=1, lateral_offset=0., density=1000., gravity=9.81,edition='2026',arena='qualification',calibrate_dvl=False):
         from sauvc_sim.rules2027 import LANES
         self.y=(LANES[lane-1] if edition=='2027' else (4. if lane==1 else 12.))+lateral_offset
         self.x=None
+        if arena=='finals':
+            # Surveyed deployment mark only; subsequent motion comes from sensors.
+            self.x,self.y=(34.,.7) if edition=='2027' else (.7,8.)
+        elif arena!='qualification':raise ValueError('invalid arena')
         self.z=0.
         self.roll=self.pitch=self.yaw=0.
         self.velocity=[0.,0.,0.]
@@ -24,6 +28,12 @@ class StateEstimator:
         self.instruments={}
         self.reason='waiting_sensors'
         self.xy_variance=0.
+        self.calibrating=calibrate_dvl
+        self.dvl_bias=[0.,0.]
+        self.bias_samples=0
+
+    def finish_calibration(self):
+        self.calibrating=False
 
     def update(self, packet):
         t=packet['time']
@@ -51,8 +61,16 @@ class StateEstimator:
         if missing or packet.get('actuator_timeout'):
             self.reason='stale_'+(missing or 'actuator');self.last=t;return False
         if 'dvl' in packet:
+            # The vehicle is held horizontally stationary at the deployment mark.
+            # Vertical heave is allowed; never learn bias after mission activation.
+            if (self.calibrating and math.hypot(*packet['dvl'][:2])<.02 and
+                    math.sqrt(sum(v*v for v in self.instruments['gyro']))<.03):
+                self.bias_samples+=1
+                self.dvl_bias=[b+(m-b)/self.bias_samples for b,m in zip(self.dvl_bias,packet['dvl'])]
+            measured=[v-(self.dvl_bias[i] if i<2 and self.bias_samples>=20 else 0.)
+                      for i,v in enumerate(packet['dvl'])]
             a=1. if self.last is None else 1-math.exp(-.05/.08)
-            self.velocity=[v+a*(m-v) for v,m in zip(self.velocity,packet['dvl'])]
+            self.velocity=[v+a*(m-v) for v,m in zip(self.velocity,measured)]
         wx,wy,wz=self.instruments['gyro']
         cr,sr,cp=math.cos(self.roll),math.sin(self.roll),max(.2,math.cos(self.pitch))
         self.roll=wrap(self.roll+dt*(wx+math.tan(self.pitch)*(sr*wy+cr*wz)))

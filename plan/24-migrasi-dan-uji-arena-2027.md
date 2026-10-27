@@ -1,5 +1,8 @@
 # 24 — Migrasi dan uji arena SAUVC 2027
 
+> Pembaruan 28 Oktober: ARENA autonomous kini memakai dinamika dan estimator sensor; lihat [laporan 26](26-arena-dinamika-dan-estimasi-sensor.md). Status ideal/ground truth di bawah adalah snapshot penerimaan migrasi sebelumnya.
+
+
 Tanggal: 26 Oktober 2026. Acuan aktif: [rulebook resmi SAUVC 2027.2.1](https://sauvc.org/rulebook/), diperiksa kembali langsung pada sesi ini; [arsip source/diagram](../doc/sources/rulebook-2027-published/README.md). Menggantikan status “simulator masih baseline 2026” pada laporan 21/23. Bukti lama tetap diberi edisi lama.
 
 ## Perubahan yang diterapkan

@@ -118,4 +118,20 @@ Pesan ini berarti hasil kamera valid dengan timestamp baru tidak diterima selama
 
 POV berlabel dibatasi maksimal **5 FPS wall clock** untuk mengurangi beban tampilan; kamera tetap dikonfigurasi **10 Hz simulasi**. Batas pengaman kamera tetap 2 detik. Detail perbaikan dan keterbatasan: [laporan 25](../plan/25-perbaikan-pov-dan-stale-camera.md).
 
-Panduan ini untuk simulator. ARENA masih memakai gerak ideal dan odometri ground truth; perintah di atas tidak menjalankan output thruster/servo hardware. Detail teknis: [README workspace](README.md).
+Panduan ini untuk simulator. Kualifikasi dan ARENA autonomous visual memakai model gaya tujuh thruster serta estimator sensor secara default; ground truth hanya untuk referee/pencatat. Gunakan `vehicle_model:=ideal` untuk pembanding historis. Detail: [laporan 26](../plan/26-arena-dinamika-dan-estimasi-sensor.md); perintah di atas tidak menjalankan output thruster/servo hardware. Detail teknis: [README workspace](README.md).
+
+
+## 7. Verifikasi otomatis dengan Gazebo dan kedua POV
+
+Perintah ini menjalankan misi penuh, menyimpan bukti, lalu menutup simulator dan viewer setelah pengujian. Pilih folder output baru agar bukti sebelumnya tetap tersimpan. Hentikan launch lain pada domain/partition yang sama dahulu.
+
+```bash
+cd /home/rasya/AUV/ros2_ws
+export ROS_DOMAIN_ID=222
+export IGN_PARTITION=sauvc_gui_verification
+bash tools/ros.sh python tools/check_arena.py --vehicle-model dynamic --gui --pov --output evidence/gui-verification/blue.json
+```
+
+Untuk pinger/pickup, tambahkan `--extended --scene-variant 1 --blue-drum 3 --pinger-drum 4 --order Y-B-R` dan gunakan output berbeda. `--pov` memerlukan `--gui`; viewer yang keluar selama run menggagalkan verifikasi tampilan.
+
+Estimator melakukan kalibrasi bias DVL horizontal pada preflight. Kendaraan simulator diam horizontal saat penempatan; setelah DIVE atau perintah gerak, estimasi bias dibekukan. Sampel tidak cukup berarti koreksi tidak diterapkan. Prosedur ini belum diuji pada AUV fisik yang bergerak atau terbawa arus. Rincian penerimaan dan batas: [laporan 27](../plan/27-kalibrasi-dvl-dan-penerimaan-gui.md).

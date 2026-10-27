@@ -18,6 +18,58 @@ class DynamicsTest(unittest.TestCase):
         self.assertIsNotNone(world.find("plugin[@name='sauvc::VehicleDynamics']"))
         self.assertEqual(world.findtext('gravity'),'0 0 -9.81')
 
+    def test_arena_uses_same_seven_force_plant_at_surveyed_start(self):
+        world=ET.fromstring(build_world('finals',physical=True,extended=True)).find('world')
+        model=world.find("model[@name='sauvc_auv']")
+        self.assertEqual(model.findtext('link/gravity'),'true')
+        self.assertIsNone(model.find("plugin[@name='ignition::gazebo::systems::VelocityControl']"))
+        plant=world.find("plugin[@name='sauvc::VehicleDynamics']")
+        self.assertEqual(len(plant.findtext('thruster_axes').split()),21)
+        self.assertAlmostEqual(float(model.findtext('pose').split()[5]),math.pi/2,places=7)
+
+    def test_arena_estimator_uses_surveyed_xy_and_measured_heading(self):
+        est=StateEstimator(edition='2027',arena='finals')
+        for i in range(501):self.assertTrue(est.update(EstimationTest().packet(i*.02,math.pi/2)))
+        self.assertAlmostEqual(est.x,34.,delta=.01)
+        self.assertAlmostEqual(est.y,5.7,delta=.01)
+        self.assertAlmostEqual(est.z,-.6,delta=.002)
+        self.assertAlmostEqual(est.yaw,math.pi/2,delta=.002)
+
+    def test_propulsion_waits_for_mission_and_disarms_at_stop(self):
+        from types import SimpleNamespace
+        from sauvc_sim.physical_runtime import PhysicalRuntime
+        node=SimpleNamespace(role='propulsion',active=False,disarmed=False)
+        PhysicalRuntime.state(node,SimpleNamespace(data='WAIT'))
+        self.assertFalse(node.active)
+        PhysicalRuntime.state(node,SimpleNamespace(data='DIVE'))
+        self.assertTrue(node.active)
+        PhysicalRuntime.state(node,SimpleNamespace(data='STOP'))
+        self.assertTrue(node.disarmed)
+
+    def test_arena_passive_preflight_heave_does_not_start_attempt(self):
+        from sauvc_sim.arena_referee import ArenaJudge
+        judge=ArenaJudge(edition='2027',physical=True)
+        judge.update((.7,8.,-.05,0.),0.)
+        judge.update((.7,8.,-.15,0.),.5)
+        judge.update((.7,8.,-.05,0.),1.)
+        self.assertEqual(judge.phase,'START')
+        self.assertIsNone(judge.score.started)
+        judge.thrust(2.,True);judge.update((.7,8.,-.2,0.),2.1)
+        self.assertEqual(judge.phase,'RUNNING')
+        judge.update((.7,8.,-.05,0.),3.)
+        self.assertEqual(judge.reason,'premature_surface')
+
+    def test_manual_nonzero_command_arms_but_zero_preflight_does_not(self):
+        from types import SimpleNamespace
+        from geometry_msgs.msg import Twist
+        from sauvc_sim.physical_runtime import PhysicalRuntime
+        node=SimpleNamespace(role='propulsion',active=False)
+        PhysicalRuntime.command(node,Twist())
+        self.assertFalse(node.active)
+        cmd=Twist();cmd.linear.z=-.2
+        PhysicalRuntime.command(node,cmd)
+        self.assertTrue(node.active)
+
     def test_allocation_axes_limits_and_reverse_braking(self):
         ctrl=PropulsionController()
         self.assertEqual(allocation().shape,(6,7))
@@ -46,6 +98,53 @@ class EstimationTest(unittest.TestCase):
         return dict(time=t,gyro=[0.,0.,.001],accel=[0.,0.,9.81],
                     mag=[20*math.cos(yaw),-20*math.sin(yaw),-45.],
                     dvl=[velocity,0.,0.],pressure_pa=101325+1000*9.81*.6)
+
+    def test_stationary_preflight_bias_is_frozen_before_motion(self):
+        est=StateEstimator(calibrate_dvl=True)
+        for i in range(60):
+            packet=self.packet(i*.05,velocity=0.);packet['dvl']=[.004,-.003,.12]
+            self.assertTrue(est.update(packet))
+        self.assertEqual(est.bias_samples,60)
+        np.testing.assert_allclose(est.dvl_bias,[.004,-.003])
+        self.assertAlmostEqual(est.velocity[2],.12,places=6)
+        est.finish_calibration();at_start=est.pose()
+        for i in range(60,4060):
+            packet=self.packet(i*.05,velocity=0.);packet['dvl']=[.004,-.003,0.]
+            self.assertTrue(est.update(packet))
+        self.assertLess(math.dist(est.pose()[:2],at_start[:2]),.002)
+        self.assertEqual(est.bias_samples,60)
+        moving=self.packet(203.,velocity=.4);moving['dvl']=[.404,-.003,0.]
+        self.assertTrue(est.update(moving))
+        np.testing.assert_allclose(est.dvl_bias,[.004,-.003])
+        self.assertGreater(est.velocity[0],.1)
+
+    def test_bias_does_not_learn_obvious_motion_or_short_preflight(self):
+        est=StateEstimator(calibrate_dvl=True)
+        for i in range(30):self.assertTrue(est.update(self.packet(i*.05)))
+        self.assertEqual(est.bias_samples,0)
+        self.assertAlmostEqual(est.velocity[0],.5)
+        for i in range(30,35):
+            packet=self.packet(i*.05,velocity=.005);est.update(packet)
+        self.assertEqual(est.bias_samples,5)
+        est.finish_calibration()
+        for i in range(35,60):
+            packet=self.packet(i*.05,velocity=.005);est.update(packet)
+        self.assertEqual(est.bias_samples,5)
+        self.assertAlmostEqual(est.velocity[0],.005,delta=.0001)
+
+    def test_mission_activation_latches_bias_calibration_off(self):
+        from types import SimpleNamespace
+        from geometry_msgs.msg import Twist
+        from sauvc_sim.physical_runtime import PhysicalRuntime
+        node=SimpleNamespace(role='state_estimator',active=False,estimator=StateEstimator(calibrate_dvl=True))
+        PhysicalRuntime.state(node,SimpleNamespace(data='WAIT'))
+        self.assertTrue(node.estimator.calibrating)
+        PhysicalRuntime.state(node,SimpleNamespace(data='DIVE'))
+        PhysicalRuntime.state(node,SimpleNamespace(data='WAIT'))
+        self.assertFalse(node.estimator.calibrating)
+        manual=SimpleNamespace(role='state_estimator',active=False,estimator=StateEstimator(calibrate_dvl=True))
+        cmd=Twist();cmd.linear.z=-.1;PhysicalRuntime.command(manual,cmd)
+        self.assertFalse(manual.estimator.calibrating)
 
     def test_dead_reckoning_pressure_and_magnetic_heading(self):
         est=StateEstimator()
