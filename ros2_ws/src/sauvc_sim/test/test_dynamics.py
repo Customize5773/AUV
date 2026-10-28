@@ -94,6 +94,16 @@ class DynamicsTest(unittest.TestCase):
 
 
 class EstimationTest(unittest.TestCase):
+    def test_transient_position_does_not_integrate_feedback_filter_lag(self):
+        est=StateEstimator()
+        for i in range(51):
+            packet=self.packet(i*.01,velocity=0. if i<5 else 1.)
+            if i%5:packet.pop('dvl')
+            self.assertTrue(est.update(packet))
+        self.assertAlmostEqual(est.x-.3,.45,delta=.02)
+        self.assertLess(est.velocity[0],1.)
+        self.assertEqual(est.integration_velocity[0],1.)
+
     def packet(self,t,yaw=0.,velocity=.5):
         return dict(time=t,gyro=[0.,0.,.001],accel=[0.,0.,9.81],
                     mag=[20*math.cos(yaw),-20*math.sin(yaw),-45.],

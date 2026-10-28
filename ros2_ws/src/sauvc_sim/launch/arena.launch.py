@@ -11,6 +11,7 @@ from launch_ros.actions import Node
 
 from sauvc_sim.arena import build_world
 from sauvc_sim.qualification import MAX_SPEED_SCALE
+from sauvc_sim.conditions import load_conditions
 
 
 def start(context):
@@ -24,6 +25,7 @@ def start(context):
     perception = LaunchConfiguration('perception').perform(context) == 'true'
     vehicle_model=LaunchConfiguration('vehicle_model').perform(context)
     physical=vehicle_model=='dynamic' or (vehicle_model=='auto' and autonomous and mode=='vision')
+    conditions=load_conditions(LaunchConfiguration('conditions_file').perform(context))
     if physical and mode!='vision':
         raise ValueError('dynamic vehicle requires vision mode')
     if autonomous and ((mode == 'vision' and not cameras) or
@@ -38,7 +40,7 @@ def start(context):
                                 int(LaunchConfiguration('blue_drum').perform(context)),physical,
                                 LaunchConfiguration('fault').perform(context),
                                 LaunchConfiguration('extended').perform(context)=='true',
-                                int(LaunchConfiguration('pinger_drum').perform(context)),edition))
+                                int(LaunchConfiguration('pinger_drum').perform(context)),edition,conditions))
     actions = [
         RegisterEventHandler(OnShutdown(on_shutdown=[
             OpaqueFunction(function=lambda context: directory.cleanup()),
@@ -60,7 +62,8 @@ def start(context):
     if physical:
         for executable in ('state_estimator','propulsion'):
             actions.append(Node(package='sauvc_sim',executable=executable,parameters=[dict(
-                lane=lane,arena=arena,edition=edition,lateral_offset=float(LaunchConfiguration('lateral_offset').perform(context)))],
+                lane=lane,arena=arena,edition=edition,lateral_offset=float(LaunchConfiguration('lateral_offset').perform(context)),
+                prior_error_x=float(conditions['prior_error'][0]),prior_error_y=float(conditions['prior_error'][1]))],
                 output='screen',on_exit=Shutdown()))
     if autonomous:
         params = {'lane': lane,'edition':edition, 'mode': mode,
@@ -101,6 +104,7 @@ def generate_launch_description():
         DeclareLaunchArgument('lateral_offset', default_value='0.0'),
         DeclareLaunchArgument('yaw', default_value='0.0'),
         DeclareLaunchArgument('output', default_value=''),
+        DeclareLaunchArgument('conditions_file',default_value=''),
         DeclareLaunchArgument('extended',default_value='false',choices=['true','false']),
         DeclareLaunchArgument('pinger_drum',default_value='0',choices=['0','1','2','3','4']),
         DeclareLaunchArgument('flare_order', default_value='B-R-Y'),

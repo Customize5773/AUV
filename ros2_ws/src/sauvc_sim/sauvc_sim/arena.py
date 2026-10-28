@@ -227,7 +227,11 @@ def auv(world, arena, cameras, lane=1, lateral_offset=0.0, yaw=0.0, physical=Fal
 
 
 def build_world(arena, cameras=True, lane=1, lateral_offset=0.0, yaw=0.0,
-                scene_variant=0, blue_drum=1, physical=False, fault='none', extended=False, pinger_drum=0, edition='2027'):
+                scene_variant=0, blue_drum=1, physical=False, fault='none', extended=False, pinger_drum=0, edition='2027', test_conditions=None):
+    from sauvc_sim.conditions import conditions
+    test_conditions=conditions(test_conditions)
+    if not physical and any(test_conditions['current']+list(test_conditions['prior_error'])):
+        raise ValueError('current and prior error require a dynamic vehicle')
     if arena not in ('qualification', 'finals'):
         raise ValueError('arena must be qualification or finals')
     if edition not in ('2026','2027'):raise ValueError('unknown rulebook edition')
@@ -251,12 +255,13 @@ def build_world(arena, cameras=True, lane=1, lateral_offset=0.0, yaw=0.0,
     if cameras:
         tag(plugin(world, 'sensors', 'Sensors'), 'render_engine', 'ogre2')
     scene = tag(world, 'scene')
-    tag(scene, 'ambient', '0.65 0.7 0.75 1')
+    light_scale=test_conditions['light_scale']
+    tag(scene, 'ambient', numbers([v*light_scale for v in (.65,.7,.75)]+[1]))
     tag(scene, 'background', '0.12 0.22 0.32 1')
     tag(scene, 'grid', 'false')
     light = tag(world, 'light', name='pool_light', type='directional')
     tag(light, 'pose', '12 8 10 0 0 0')
-    tag(light, 'diffuse', '0.9 0.9 0.9 1')
+    tag(light, 'diffuse', numbers([.9*light_scale]*3+[1]))
     tag(light, 'direction', '0.1 0.2 -1')
     attenuation = tag(light, 'attenuation')
     tag(attenuation, 'range', 100)
@@ -288,6 +293,10 @@ def build_world(arena, cameras=True, lane=1, lateral_offset=0.0, yaw=0.0,
         pool(world)
         props(world, arena,scene_variant,blue_drum)
     auv(world, arena, cameras, lane, lateral_offset, yaw,physical,fault)
+    if physical:
+        plant=world.find("plugin[@name='sauvc::VehicleDynamics']")
+        plant.find('seed').text=str(test_conditions['seed'])
+        plant.find('current').text=numbers(test_conditions['current'])
     if edition=='2027':
         from sauvc_sim.rules2027 import LANES
         vehicle=world.find("model[@name='sauvc_auv']")

@@ -22,9 +22,11 @@ class PhysicalRuntime(Node):
         self.measured=[0.]*4;self.z=0.;self.cmd_time=0.;self.disarmed=False;self.active=False
         self.declare_parameter('arena','qualification');self.arena=self.get_parameter('arena').value
         self.declare_parameter('edition','2027');self.declare_parameter('lane',1);self.declare_parameter('lateral_offset',0.)
+        self.declare_parameter('prior_error_x',0.);self.declare_parameter('prior_error_y',0.)
         if role=='state_estimator':
             self.estimator=StateEstimator(self.get_parameter('lane').value,
-                    self.get_parameter('lateral_offset').value,self.cfg['density'],self.cfg['gravity'],edition=self.get_parameter('edition').value,arena=self.arena,calibrate_dvl=True)
+                    self.get_parameter('lateral_offset').value,self.cfg['density'],self.cfg['gravity'],edition=self.get_parameter('edition').value,arena=self.arena,calibrate_dvl=True,
+                    prior_error=(self.get_parameter('prior_error_x').value,self.get_parameter('prior_error_y').value))
             self.odom=self.create_publisher(Odometry,'/sauvc/state/odom',qos_profile_sensor_data)
             self.health=self.create_publisher(String,'/sauvc/state/health',10)
             self.create_subscription(String,'/sauvc/sensors',self.sensor,10)

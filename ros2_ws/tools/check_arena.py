@@ -14,6 +14,7 @@ from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
 from std_msgs.msg import String
 from sauvc_sim.runtime import STATUS_QOS
+from sauvc_sim.conditions import load_conditions
 
 
 def stop_viewers(viewers):
@@ -41,6 +42,7 @@ def main():
     parser.add_argument('--pov',action='store_true',help='Open and verify both annotated camera viewers (requires --gui)')
     parser.add_argument('--edition',choices=['2026','2027'],default='2027')
     parser.add_argument('--output',type=Path,required=True)
+    parser.add_argument('--conditions',type=Path,help='JSON: sensor seed, world current, initial XY prior error, light scale')
     parser.add_argument('--extended',action='store_true')
     parser.add_argument('--pinger-drum',type=int,choices=[0,1,2,3,4],default=0)
     parser.add_argument('--order',default='B-R-Y')
@@ -48,6 +50,7 @@ def main():
     parser.add_argument('--blue-drum',type=int,choices=[1,2,3,4],default=1)
     parser.add_argument('--fault',default='none',choices=['none','camera_loss','command_loss','odom_loss','contact_loss','clock_loss','imu_loss','pressure_loss','dvl_loss','actuator_loss'])
     args=parser.parse_args();args.output.parent.mkdir(parents=True,exist_ok=True)
+    test_conditions=load_conditions(args.conditions)
     if args.pov and not args.gui:parser.error('--pov requires --gui')
     rclpy.init();node=rclpy.create_node('arena_check')
     observed={'state':'','result':{},'trajectory':[],'physics':[],'commands':[],'estimates':[],'sensors':[],'dynamics':[],'health':[]}
@@ -62,7 +65,7 @@ def main():
     def physics(m): observed['physics'].append(json.loads(m.data))
     def odom(m):
         p,q=m.pose.pose.position,m.pose.pose.orientation
-        observed['trajectory'].append([m.header.stamp.sec+m.header.stamp.nanosec*1e-9,p.x,p.y,p.z,2*math.atan2(q.z,q.w)])
+        observed['trajectory'].append([m.header.stamp.sec+m.header.stamp.nanosec*1e-9,p.x,p.y,p.z,math.atan2(2*(q.w*q.z+q.x*q.y),1-2*(q.y*q.y+q.z*q.z))])
     def command(m): observed['commands'].append([time.monotonic(),m.linear.x,m.linear.y,m.linear.z,m.angular.z])
     def perception(m):
         packet=json.loads(m.data)
@@ -81,20 +84,21 @@ def main():
         node.create_subscription(String,'/sauvc/perception/'+camera,perception,10)
     def estimate(m):
         p,q=m.pose.pose.position,m.pose.pose.orientation
-        observed['estimates'].append([m.header.stamp.sec+m.header.stamp.nanosec*1e-9,p.x,p.y,p.z,2*math.atan2(q.z,q.w)])
+        observed['estimates'].append([m.header.stamp.sec+m.header.stamp.nanosec*1e-9,p.x,p.y,p.z,math.atan2(2*(q.w*q.z+q.x*q.y),1-2*(q.y*q.y+q.z*q.z))])
     node.create_subscription(Odometry,'/sauvc/state/odom',estimate,qos_profile_sensor_data)
     node.create_subscription(String,'/sauvc/state/health',lambda m:observed['health'].append(json.loads(m.data)),10)
     node.create_subscription(String,'/sauvc/sensors',lambda m:observed['sensors'].append(json.loads(m.data)),10)
     node.create_subscription(String,'/sauvc/dynamics/telemetry',lambda m:observed['dynamics'].append(json.loads(m.data)),10)
     report={'vehicle_model':args.vehicle_model,'passed':False,'edition':args.edition,'order':args.order,'fault':args.fault,
             'scene_variant':args.scene_variant,'blue_drum':args.blue_drum,
-            'extended':args.extended,'pinger_drum':args.pinger_drum}
+            'extended':args.extended,'pinger_drum':args.pinger_drum,'conditions':test_conditions}
     viewers=[];viewer_logs=[]
     with args.output.with_suffix('.log').open('w') as log:
         process=subprocess.Popen(['bash','tools/ros.sh','launch','sauvc_sim','arena.launch.py',
             'arena:=finals',f'vehicle_model:={args.vehicle_model}',f'edition:={args.edition}','autonomous:=true',f'headless:={str(not args.gui).lower()}',f'flare_order:={args.order}',
             f'scene_variant:={args.scene_variant}',f'blue_drum:={args.blue_drum}',
             f'extended:={str(args.extended).lower()}',f'pinger_drum:={args.pinger_drum}',
+            f'conditions_file:={args.conditions.resolve() if args.conditions else ""}',
             f'fault:={args.fault}',f'output:={args.output.with_suffix("")}'],
             stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
         try:

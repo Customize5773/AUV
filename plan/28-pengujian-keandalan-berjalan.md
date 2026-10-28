@@ -1,5 +1,7 @@
 # 28 — Pengujian keandalan: dijeda
 
+> Snapshot saat jeda 28 Oktober. Pekerjaan sudah dilanjutkan; perbaikan dan penerimaan ulang 28–29 Oktober tersedia pada [laporan 29](29-validasi-flare-dan-penerimaan-ulang.md). Status WIP di bawah adalah riwayat sebelum perbaikan.
+
 Status: **dijeda atas permintaan pengguna, “rehat dulu”**. Pengujian tidak dilanjutkan otomatis. Laporan 27 tetap snapshot penerimaan sebelum perubahan persepsi sesi ini.
 
 ## Pekerjaan tersimpan

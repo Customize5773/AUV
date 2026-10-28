@@ -17,6 +17,7 @@ from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
 from std_msgs.msg import String
 from sauvc_sim.qualification import MAX_SPEED_SCALE
+from sauvc_sim.conditions import load_conditions
 
 
 def estimation_errors(truth,estimates):
@@ -52,7 +53,9 @@ def main():
     parser.add_argument('--gui', action='store_true')
     parser.add_argument('--edition',choices=['2026','2027'],default='2027')
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--conditions',type=Path,help='JSON: sensor seed, world current, initial XY prior error, light scale')
     args = parser.parse_args()
+    test_conditions=load_conditions(args.conditions)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     rclpy.init()
     node = rclpy.create_node('qualification_check')
@@ -83,7 +86,7 @@ def main():
         node.create_subscription(String,'/sauvc/dynamics/telemetry',lambda m:observed['dynamics'].append(json.loads(m.data)),10)]
     report = {'passed': False, 'mode': args.mode, 'lane': args.lane,
               'speed_scale': args.speed_scale,
-              'vehicle_model':args.vehicle_model,
+              'vehicle_model':args.vehicle_model,'conditions':test_conditions,
               'lateral_offset': args.lateral_offset, 'yaw': args.yaw, 'fault': args.fault,
               'rulebook': '2027.2.1' if args.edition=='2027' else '2026 v6.1.0', 'checked_on': datetime.now(ZoneInfo('Asia/Jakarta')).date().isoformat()}
     frozen_pid = None
@@ -91,6 +94,7 @@ def main():
         process = subprocess.Popen(['bash', 'tools/ros.sh', 'launch', 'sauvc_sim', 'arena.launch.py',
             'autonomous:=true',f'edition:={args.edition}', f'mode:={args.mode}', f'lane:={args.lane}',
             f'vehicle_model:={args.vehicle_model}',
+            f'conditions_file:={args.conditions.resolve() if args.conditions else ""}',
             f'speed_scale:={args.speed_scale}',
             f'lateral_offset:={args.lateral_offset}', f'yaw:={args.yaw}',
             f'headless:={str(not args.gui).lower()}', f'output:={args.output.with_suffix("")}',
@@ -118,7 +122,7 @@ def main():
                 if terminal_since is not None and time.monotonic()-terminal_since > 2:
                     stable=len(observed['trajectory'])>20 and math.dist(
                         observed['trajectory'][-1][1:4],observed['trajectory'][-20][1:4])<.01
-                    if not (args.fault and observed['sensors']) or stable or time.monotonic()-terminal_since>40:
+                    if not observed['sensors'] or stable or time.monotonic()-terminal_since>40:
                         break
                 if process.poll() is not None:
                     raise RuntimeError('launch exited before completion')

@@ -134,4 +134,16 @@ bash tools/ros.sh python tools/check_arena.py --vehicle-model dynamic --gui --po
 
 Untuk pinger/pickup, tambahkan `--extended --scene-variant 1 --blue-drum 3 --pinger-drum 4 --order Y-B-R` dan gunakan output berbeda. `--pov` memerlukan `--gui`; viewer yang keluar selama run menggagalkan verifikasi tampilan.
 
-Estimator melakukan kalibrasi bias DVL horizontal pada preflight. Kendaraan simulator diam horizontal saat penempatan; setelah DIVE atau perintah gerak, estimasi bias dibekukan. Sampel tidak cukup berarti koreksi tidak diterapkan. Prosedur ini belum diuji pada AUV fisik yang bergerak atau terbawa arus. Rincian penerimaan dan batas: [laporan 27](../plan/27-kalibrasi-dvl-dan-penerimaan-gui.md).
+Estimator melakukan kalibrasi bias DVL horizontal pada preflight dengan asumsi kendaraan ditahan diam; setelah DIVE atau perintah gerak, estimasi bias dibekukan. Sampel tidak cukup berarti koreksi tidak diterapkan. Spawn simulator tidak memiliki penahan mekanik: arus sejak preflight dapat membuat gerakan kendaraan ikut dipelajari sebagai bias. Rincian penerimaan awal: [laporan 27](../plan/27-kalibrasi-dvl-dan-penerimaan-gui.md); pengujian arus: [laporan 30](../plan/30-pengujian-keandalan-berulang.md). Prosedur belum divalidasi pada AUV fisik.
+
+## 8. Pengujian keandalan berulang tanpa jendela
+
+Matriks terdiri dari 12 kualifikasi dan enam ARENA, dengan variasi seed sensor, prior posisi, pencahayaan dan arus. Runner menjalankan kasus satu per satu pada domain 230/partition `sauvc_reliability_matrix`. Hentikan simulator lain yang memakai pasangan tersebut; jangan mengubah source selama batch.
+
+```bash
+cd /home/rasya/AUV/ros2_ws
+bash tools/ros.sh build --symlink-install
+bash tools/ros.sh python tools/check_reliability.py --output evidence/reliability-run-01
+```
+
+Folder output wajib baru. `summary.json` menyimpan seluruh hasil, termasuk kegagalan; exit code 1 berarti ada kasus yang tidak diterima. Gunakan `--suite qualification`, `--suite arena`, atau `--case q-prior-91` untuk membatasi pengujian. Ctrl+C menghentikan harness aktif dan mencatat kasus terputus. Hasil dan batas pembuktian ada pada [laporan 30](../plan/30-pengujian-keandalan-berulang.md).

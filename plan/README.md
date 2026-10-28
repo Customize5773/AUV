@@ -53,3 +53,9 @@ Urutan kerja yang diusulkan: **identifikasi perangkat → BlueOS dan komunikasi 
 [26 — ARENA dinamis dan estimasi sensor](26-arena-dinamika-dan-estimasi-sensor.md): plant tujuh thruster bersama kualifikasi, kendali tanpa pose ground truth dan penerimaan ulang.
 
 [27 — Kalibrasi DVL dan penerimaan GUI/POV](27-kalibrasi-dvl-dan-penerimaan-gui.md): bias preflight tanpa ground truth, kedua misi GUI, tiga jalur kualifikasi dan batas referensi galat tetap.
+
+[28 — Snapshot jeda pengujian keandalan](28-pengujian-keandalan-berjalan.md): enam kualifikasi lulus, regresi flare dan titik lanjut yang disimpan saat rehat.
+
+[29 — Validasi flare dan penerimaan ulang](29-validasi-flare-dan-penerimaan-ulang.md): perbaikan geometri landmark, akustik hampir vertikal dan retensi dengan orientasi penuh; 113 tes unit, 98/98 uji label dan bukti lulus lima fixture ARENA dinamis.
+
+[30 — Pengujian keandalan berulang](30-pengujian-keandalan-berulang.md): 18 run dengan variasi seed, prior, cahaya dan arus; 14 diterima, empat kasus arus gagal diam/akurasi; satu pengulangan tambahan prior gagal akurasi. Integrasi DVL diperbaiki dan 120 tes unit lulus.

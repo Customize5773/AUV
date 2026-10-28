@@ -10,7 +10,9 @@ def wrap(a): return math.atan2(math.sin(a),math.cos(a))
 
 
 class StateEstimator:
-    def __init__(self, lane=1, lateral_offset=0., density=1000., gravity=9.81,edition='2026',arena='qualification',calibrate_dvl=False):
+    def __init__(self, lane=1, lateral_offset=0., density=1000., gravity=9.81,edition='2026',arena='qualification',calibrate_dvl=False,prior_error=(0.,0.)):
+        if len(prior_error)!=2 or not all(math.isfinite(v) for v in prior_error):raise ValueError('invalid initial XY prior error')
+        self.prior_error=prior_error
         from sauvc_sim.rules2027 import LANES
         self.y=(LANES[lane-1] if edition=='2027' else (4. if lane==1 else 12.))+lateral_offset
         self.x=None
@@ -18,9 +20,12 @@ class StateEstimator:
             # Surveyed deployment mark only; subsequent motion comes from sensors.
             self.x,self.y=(34.,.7) if edition=='2027' else (.7,8.)
         elif arena!='qualification':raise ValueError('invalid arena')
+        self.y+=prior_error[1]
+        if self.x is not None:self.x+=prior_error[0]
         self.z=0.
         self.roll=self.pitch=self.yaw=0.
         self.velocity=[0.,0.,0.]
+        self.integration_velocity=[0.,0.,0.]
         self.yaw_rate=0.
         self.density,self.gravity=density,gravity
         self.last=None
@@ -69,6 +74,8 @@ class StateEstimator:
                 self.dvl_bias=[b+(m-b)/self.bias_samples for b,m in zip(self.dvl_bias,packet['dvl'])]
             measured=[v-(self.dvl_bias[i] if i<2 and self.bias_samples>=20 else 0.)
                       for i,v in enumerate(packet['dvl'])]
+            # Integrating the feedback low-pass filter adds a speed-dependent position lag.
+            self.integration_velocity=list(measured)
             a=1. if self.last is None else 1-math.exp(-.05/.08)
             self.velocity=[v+a*(m-v) for v,m in zip(self.velocity,measured)]
         wx,wy,wz=self.instruments['gyro']
@@ -90,8 +97,8 @@ class StateEstimator:
         self.yaw=wrap(self.yaw+a*wrap(heading-self.yaw))
         if self.x is None:
             # Hull touches the known starting wall; heading is measured by AHRS.
-            self.x=.3*abs(math.cos(self.yaw))+.2*abs(math.sin(self.yaw))
-        vx,vy,vz=self.velocity
+            self.x=.3*abs(math.cos(self.yaw))+.2*abs(math.sin(self.yaw))+self.prior_error[0]
+        vx,vy,vz=self.integration_velocity
         # Rotate DVL FLU velocity by the estimated full attitude.
         bx,by,bz=vx,cr*vy-sr*vz,sr*vy+cr*vz
         bx,bz=cp*bx+sp*bz,-sp*bx+cp*bz
