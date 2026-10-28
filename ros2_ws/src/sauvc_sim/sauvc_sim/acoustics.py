@@ -19,7 +19,10 @@ class AcousticTracker:
         self.last=t
         dx=(delays[1]-delays[0])*1500/.2
         dy=(delays[3]-delays[2])*1500/.2
-        if math.hypot(dx,dy)<.1:return None
+        # Near vertical incidence has no reliable horizontal bearing. Keep an
+        # established nearby target on fresh valid pings, without adding a ray.
+        if math.hypot(dx,dy)<.1:
+            return self.target if self.target and math.dist(pose[:2],self.target)<.3 else None
         bearing=math.atan2(dy,dx)+pose[3]
         if self.rays and math.dist(pose[:2],self.rays[-1][:2])<.3:return self.target
         self.rays.append((pose[0],pose[1],bearing));self.rays=self.rays[-120:]

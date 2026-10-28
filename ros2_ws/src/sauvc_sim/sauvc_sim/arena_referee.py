@@ -204,7 +204,12 @@ class ArenaJudge:
             self.payload_acquired=self.score.acquisition is not None
         if self.extended and self.previous is not None:
             pose=self.previous;yaw=pose[-1]
-            point=(pose[0]-.2*math.cos(yaw),pose[1]-.2*math.sin(yaw),pose[2]-.45)
+            roll,pitch=pose[3:5] if len(pose)==6 else (0.,0.)
+            # The capture tool tilts with the body, including after disarm.
+            bx,by,bz=-.2,.45*math.sin(roll),-.45*math.cos(roll)
+            bx,bz=bx*math.cos(pitch)+bz*math.sin(pitch),-bx*math.sin(pitch)+bz*math.cos(pitch)
+            point=(pose[0]+bx*math.cos(yaw)-by*math.sin(yaw),
+                   pose[1]+bx*math.sin(yaw)+by*math.cos(yaw),pose[2]+bz)
             attached=bool(data.get('payload_attached')) and math.dist((x,y,z),point)<.075
             self.payload_grasped=attached and self.score.retrieval_crossing
             if self.payload_grasped:

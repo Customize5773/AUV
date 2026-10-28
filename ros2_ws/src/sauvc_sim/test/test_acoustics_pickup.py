@@ -16,6 +16,41 @@ def ping(t,pose,source=(24.,9.5,-1.08)):
 
 
 class AcousticPickupTest(unittest.TestCase):
+    def test_retention_rotates_capture_point_without_relaxing_distance(self):
+        j=ArenaJudge(extended=True,edition='2027')
+        j.navigation=True;j.score.started=0
+        j.score.award('navigation',1)
+        j.score.award('payload',2,ball_id='payload')
+        j.score.award('acquisition',3,ball_id='payload',drum=1)
+        j.score.award('target_zone_exit',4)
+        j.previous=(22.,19.,-.3,0.,.2,0.)
+        point=[22.-.2*math.cos(.2)-.45*math.sin(.2),19.,-.3+.2*math.sin(.2)-.45*math.cos(.2)]
+        def frame(t,attached=True,offset=0.):
+            return dict(time=t,payload_attached=attached,balls={'payload':dict(position=[point[0]+offset,*point[1:]],released=True)})
+        j.physics(frame(5));j.physics(frame(5.6))
+        self.assertTrue(j.payload_retrieved)
+        j.physics(frame(6,offset=.08))
+        self.assertFalse(j.payload_retrieved)
+        j.physics(frame(7));j.physics(frame(7.6))
+        self.assertTrue(j.payload_retrieved)
+        j.physics(frame(8,attached=False))
+        self.assertFalse(j.payload_retrieved)
+
+    def test_vertical_ping_keeps_only_an_established_nearby_target(self):
+        a=AcousticTracker()
+        for i in range(50):
+            pose=(.7+i*.3,8-i*.025,-.65,.2)
+            a.update(ping(i,pose),pose)
+        target=list(a.target);rays=list(a.rays)
+        pose=(24.,9.5,-.3,0.)
+        self.assertEqual(a.update(ping(51,pose),pose),target)
+        self.assertEqual(a.rays,rays)
+        self.assertIsNone(a.update(ping(51,pose),pose))
+        bad=ping(52,pose);bad['frequency_hz']=0
+        self.assertIsNone(a.update(bad,pose))
+        self.assertIsNone(a.update(dict(time=53,frequency_hz=45000,tdoa_s=[0]*4),(1.,8.,-.3,0.)))
+        self.assertIsNone(AcousticTracker().update(ping(0,pose),pose))
+
     def test_source_triangulation_without_source_coordinates(self):
         a=AcousticTracker()
         for i in range(50):

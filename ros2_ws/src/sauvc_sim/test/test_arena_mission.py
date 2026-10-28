@@ -6,6 +6,20 @@ from sauvc_sim.camera_geometry import CameraModel
 
 
 class ArenaMissionTest(unittest.TestCase):
+    def test_surface_marker_cannot_lock_blue_flare_landmark(self):
+        ctrl=ArenaController(edition='2027',physical=True)
+        obj=dict(label='blue_flare',confirmed=True,position_body_m=[5.,0.,.15],
+                 bbox=[100,100,102,180])
+        packet=dict(fresh=True,valid_image=True,detections=[obj])
+        for z in (.15,-.2123):
+            obj['position_body_m'][2]=z
+            for _ in range(5):ctrl.observe(packet,(10.,8.,-.3,0.))
+        self.assertNotIn('blue_flare',ctrl.targets)
+        self.assertNotIn('blue_flare',ctrl.pending)
+        obj['position_body_m']=[6.5,13.,-1.3]
+        for _ in range(3):ctrl.observe(packet,(10.,8.,-.3,0.))
+        self.assertEqual(ctrl.targets['blue_flare'],[16.5,21.,-1.6])
+
     def test_gate_mapping_corrects_short_oblique_range_before_crossing(self):
         model=CameraModel()
         pose=(10.,7.3,-1.,.3)

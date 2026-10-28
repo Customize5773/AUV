@@ -3,6 +3,7 @@ import math
 from sauvc_sim.camera_geometry import CameraModel, to_world
 from sauvc_sim.referee import wrap
 from sauvc_sim.arena import floor_z
+from sauvc_sim.rules2027 import floor_z as floor2027
 
 
 def level_rates(roll,pitch):
@@ -66,6 +67,11 @@ class ArenaController:
                 if body is None: continue
             point = to_world(body,pose)
             if label=='surfacing_square':point[0]+=math.copysign(1.,math.cos(pose[3]))
+            if label.endswith('_flare') and label != 'orange_flare':
+                # A 0.8 m pole stands on the configured pool floor. Surface
+                # markers and fragmented poles cannot supply its metric height.
+                floor=floor2027(42-point[1]) if self.edition=='2027' else floor_z(point[0])
+                if abs(point[2]-(floor+.4))>.25:continue
             if label.endswith('_flare') and label != 'orange_flare' and obj['position_body_m'][0] < 1:
                 continue
             if not all(math.isfinite(v) for v in point) or not (0<point[0]<25 and (-8<point[1]<42 if self.edition=='2027' else 0<point[1]<16)):
