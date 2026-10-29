@@ -65,10 +65,14 @@ class StateEstimator:
         missing=next((k for k in ('gyro','accel','mag','dvl','pressure_pa') if t-self.seen.get(k,-1e6)>.25),None)
         if missing or packet.get('actuator_timeout'):
             self.reason='stale_'+(missing or 'actuator');self.last=t;return False
+        if 'deployment_held' in packet and type(packet['deployment_held']) is not bool:
+            raise ValueError('invalid deployment restraint state')
+        if packet.get('deployment_held') is False and self.bias_samples:
+            self.finish_calibration()
         if 'dvl' in packet:
-            # The vehicle is held horizontally stationary at the deployment mark.
+            # Only an independent restraint signal establishes a stationary reference.
             # Vertical heave is allowed; never learn bias after mission activation.
-            if (self.calibrating and math.hypot(*packet['dvl'][:2])<.02 and
+            if (self.calibrating and packet.get('deployment_held') is True and math.hypot(*packet['dvl'][:2])<.02 and
                     math.sqrt(sum(v*v for v in self.instruments['gyro']))<.03):
                 self.bias_samples+=1
                 self.dvl_bias=[b+(m-b)/self.bias_samples for b,m in zip(self.dvl_bias,packet['dvl'])]

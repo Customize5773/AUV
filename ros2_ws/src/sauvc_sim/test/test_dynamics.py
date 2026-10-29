@@ -112,7 +112,7 @@ class EstimationTest(unittest.TestCase):
     def test_stationary_preflight_bias_is_frozen_before_motion(self):
         est=StateEstimator(calibrate_dvl=True)
         for i in range(60):
-            packet=self.packet(i*.05,velocity=0.);packet['dvl']=[.004,-.003,.12]
+            packet=self.packet(i*.05,velocity=0.);packet['dvl']=[.004,-.003,.12];packet['deployment_held']=True
             self.assertTrue(est.update(packet))
         self.assertEqual(est.bias_samples,60)
         np.testing.assert_allclose(est.dvl_bias,[.004,-.003])
@@ -134,13 +134,33 @@ class EstimationTest(unittest.TestCase):
         self.assertEqual(est.bias_samples,0)
         self.assertAlmostEqual(est.velocity[0],.5)
         for i in range(30,35):
-            packet=self.packet(i*.05,velocity=.005);est.update(packet)
+            packet=self.packet(i*.05,velocity=.005);packet['deployment_held']=True;est.update(packet)
         self.assertEqual(est.bias_samples,5)
         est.finish_calibration()
         for i in range(35,60):
-            packet=self.packet(i*.05,velocity=.005);est.update(packet)
+            packet=self.packet(i*.05,velocity=.005);packet['deployment_held']=True;est.update(packet)
         self.assertEqual(est.bias_samples,5)
         self.assertAlmostEqual(est.velocity[0],.005,delta=.0001)
+
+    def test_slow_current_cannot_be_learned_without_restraint(self):
+        est=StateEstimator(calibrate_dvl=True)
+        for i in range(60):
+            packet=self.packet(i*.05,velocity=.012)
+            if i%2:packet['deployment_held']=False
+            est.update(packet)
+        self.assertEqual(est.bias_samples,0)
+        self.assertAlmostEqual(est.integration_velocity[0],.012)
+        for i in range(60,90):
+            packet=self.packet(i*.05,velocity=.001);packet['deployment_held']=True
+            est.update(packet)
+        self.assertEqual(est.bias_samples,30)
+        packet=self.packet(4.5,velocity=.012);packet['deployment_held']=False
+        est.update(packet)
+        self.assertFalse(est.calibrating)
+        self.assertAlmostEqual(est.integration_velocity[0],.011)
+        packet=self.packet(4.55,velocity=.012);packet['deployment_held']=True
+        est.update(packet)
+        self.assertEqual(est.bias_samples,30)
 
     def test_mission_activation_latches_bias_calibration_off(self):
         from types import SimpleNamespace

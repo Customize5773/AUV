@@ -2,6 +2,8 @@
 
 Panduan perintah kualifikasi, ARENA dan kedua POV: [Cara running simulator](ros2_ws/CARA-RUNNING.md).
 
+Peta kode dan panduan Graphify: [Graphify untuk repo AUV](doc/GRAPHIFY.md).
+
 Repositori persiapan AUV tim HydroShips: aplikasi onboard Jetson–Pixhawk, simulasi SAUVC dengan ROS 2/Gazebo, rancangan mekanik, serta laporan pengujian.
 
 | Folder | Isi |
@@ -25,11 +27,13 @@ Repositori persiapan AUV tim HydroShips: aplikasi onboard Jetson–Pixhawk, simu
 | ARENA blue drum | Navigation dahulu → flare sesuai urutan → drop blue drum → Surfacing Square → stop |
 | ARENA pinger/pickup | TDOA virtual → drop red drum berpinger → seluruh badan keluar target zone → pickup bola yang sama → retensi sampai akhir |
 | Penilaian 2027 | Timer sejak thrust, poin tugas, penalti kontak, bonus surface dan bonus Square; bonus inspeksi fisik tidak dimasukkan |
-| Bukti pengujian terbaru | 120 tes unit lulus; matriks 18 run menyelesaikan seluruh tugas, 14 diterima dan empat kasus arus gagal diam/akurasi. Satu pengulangan tambahan prior gagal akurasi. GUI/POV serta injeksi gangguan tetap bukti laporan 27; 98/98 uji label adalah bukti sebelumnya |
+| Bukti pengujian terbaru | 121 tes unit; perbaikan DVL diuji pada empat kasus arus + satu nominal: 5/5 misi dan akurasi lulus, 2/5 penerimaan keseluruhan lulus; tiga kualifikasi arus masih gagal diam akhir |
 
 **ARENA dan kualifikasi autonomous visual kini memakai model gaya tujuh thruster dan estimator sensor virtual secara default.** Ground truth digunakan oleh referee/pencatat; profil ideal tersedia sebagai pembanding eksplisit. [Laporan 26](plan/26-arena-dinamika-dan-estimasi-sensor.md) mencatat penerimaan awal dinamis; [laporan 27](plan/27-kalibrasi-dvl-dan-penerimaan-gui.md) memuat kalibrasi DVL dan dua misi penuh dengan Gazebo serta kedua POV. Pinger adalah model geometrik TDOA, servo pelepas memakai respons ideal, dan pickup memakai latch fixed setelah kontak. Hasil ini belum membuktikan performa AUV fisik atau ketahanan pada seluruh kondisi kolam.
 
-[Laporan 30](plan/30-pengujian-keandalan-berulang.md) mencatat matriks terbaru: variasi seed sensor, prior posisi, cahaya 70% dan arus 0,02 m/s. Sembilan dari 12 kualifikasi dan lima dari enam ARENA memenuhi seluruh kriteria; semua 18 misi selesai dengan shutdown bersih. Estimator diperbaiki agar filter kecepatan kontrol tidak menambah lag posisi. Empat kasus arus tetap gagal: drift preflight ikut dipelajari sebagai bias DVL dan kendaraan bergerak setelah motor mati. Satu pengulangan tambahan prior posisi gagal akurasi pada 0,2010 m, sehingga total 14 dari 19 run diterima. Ini pengujian headless terbatas, belum bukti keandalan semua kondisi. Perbaikan flare/akustik/retensi sebelumnya tetap tercatat pada [laporan 29](plan/29-validasi-flare-dan-penerimaan-ulang.md).
+[Laporan 31](plan/31-kalibrasi-dvl-dalam-arus.md) memperbaiki kalibrasi DVL dalam arus melalui penahan fisik virtual selama preflight dan konfirmasi penahan sebelum mempelajari bias. Penahan dilepas saat thrust pertama. Galat ARENA berarus turun dari 1,0594 menjadi 0,0651 m; ketiga kualifikasi berarus kini lulus akurasi. Ini prosedur penempatan tertahan, belum kalibrasi bebas hanyut. Station keeping dan prior posisi tidak diubah.
+
+[Laporan 30](plan/30-pengujian-keandalan-berulang.md) mencatat matriks sebelum perbaikan penahan preflight: variasi seed sensor, prior posisi, cahaya 70% dan arus 0,02 m/s. Sembilan dari 12 kualifikasi dan lima dari enam ARENA memenuhi seluruh kriteria; semua 18 misi selesai dengan shutdown bersih. Estimator diperbaiki agar filter kecepatan kontrol tidak menambah lag posisi. Pada versi tersebut, empat kasus arus gagal: drift preflight ikut dipelajari sebagai bias DVL dan kendaraan bergerak setelah motor mati. Satu pengulangan tambahan prior posisi gagal akurasi pada 0,2010 m, sehingga total 14 dari 19 run diterima. Ini pengujian headless terbatas, belum bukti keandalan semua kondisi. Perbaikan flare/akustik/retensi sebelumnya tetap tercatat pada [laporan 29](plan/29-validasi-flare-dan-penerimaan-ulang.md).
 
 ## Menjalankan simulasi
 
@@ -59,6 +63,7 @@ Jalankan satu mode setiap kali; hentikan mode sebelumnya sebelum membuka mode la
 | [17 — Persepsi dan ARENA](plan/17-hasil-arena-autonomous.md) | Ketahanan deteksi, perbaikan gate dan misi blue drum |
 | [18 — Dinamika dan estimasi sensor](plan/18-dinamika-dan-estimasi-sensor.md) | Model gaya, instrumen virtual dan pengujian gangguan |
 | [19 — Penilaian dan rancangan servo](plan/19-penilaian-arena-dan-rancangan-servo.md) | Perhitungan skor, perbedaan interpretasi contoh aturan dan konsep dropper |
+| [31 — Kalibrasi DVL dalam arus](plan/31-kalibrasi-dvl-dalam-arus.md) | Penahan preflight, konfirmasi kalibrasi dan akurasi lima run |
 | [30 — Pengujian keandalan berulang](plan/30-pengujian-keandalan-berulang.md) | 18 run + satu pengulangan, 14 diterima; perbaikan integrasi DVL, batas prior dan kegagalan dalam arus |
 | [29 — Validasi flare dan penerimaan ulang](plan/29-validasi-flare-dan-penerimaan-ulang.md) | Landmark, akustik hampir vertikal, retensi saat miring dan penerimaan lima fixture |
 | [27 — Kalibrasi DVL dan GUI](plan/27-kalibrasi-dvl-dan-penerimaan-gui.md) | Koreksi bias preflight, penerimaan Gazebo + dua POV, dan batas akurasi |

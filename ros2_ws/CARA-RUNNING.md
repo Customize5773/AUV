@@ -134,7 +134,7 @@ bash tools/ros.sh python tools/check_arena.py --vehicle-model dynamic --gui --po
 
 Untuk pinger/pickup, tambahkan `--extended --scene-variant 1 --blue-drum 3 --pinger-drum 4 --order Y-B-R` dan gunakan output berbeda. `--pov` memerlukan `--gui`; viewer yang keluar selama run menggagalkan verifikasi tampilan.
 
-Estimator melakukan kalibrasi bias DVL horizontal pada preflight dengan asumsi kendaraan ditahan diam; setelah DIVE atau perintah gerak, estimasi bias dibekukan. Sampel tidak cukup berarti koreksi tidak diterapkan. Spawn simulator tidak memiliki penahan mekanik: arus sejak preflight dapat membuat gerakan kendaraan ikut dipelajari sebagai bias. Rincian penerimaan awal: [laporan 27](../plan/27-kalibrasi-dvl-dan-penerimaan-gui.md); pengujian arus: [laporan 30](../plan/30-pengujian-keandalan-berulang.md). Prosedur belum divalidasi pada AUV fisik.
+Model dinamis kini memakai penahan fisik virtual saat preflight. Kalibrasi bias DVL horizontal memerlukan sinyal `deployment_held=true`; penahan dilepas pada thrust pertama dan tidak dipasang kembali saat stop. Setelah DIVE, perintah gerak atau pelepasan penahan, estimasi bias dibekukan. Sampel tidak cukup berarti koreksi tidak diterapkan. Ini memodelkan kendaraan yang benar-benar ditahan saat penempatan, bukan kalibrasi saat bebas hanyut. Perintah launch tetap sama. Rincian: [laporan 31](../plan/31-kalibrasi-dvl-dalam-arus.md). Prosedur serta konfirmasi penahan belum divalidasi pada AUV fisik.
 
 ## 8. Pengujian keandalan berulang tanpa jendela
 

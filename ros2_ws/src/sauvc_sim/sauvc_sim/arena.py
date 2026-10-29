@@ -304,6 +304,10 @@ def build_world(arena, cameras=True, lane=1, lateral_offset=0.0, yaw=0.0,
         pose=(start_x,LANES[lane-1]+lateral_offset,-.05,0,0,yaw) if arena=='qualification' else (34.,.7,-.05,0,0,math.pi/2)
         vehicle.find('pose').text=numbers(pose)
         view.find('camera_pose').text='25 -30 36 0 0.7 1.5707963'
+    if physical:
+        # No collision geometry: this fixed support models the operator holding the AUV before thrust.
+        pose=tuple(map(float,world.find("model[@name='sauvc_auv']/pose").text.split()))
+        model(world,'sauvc_deployment_anchor',pose)
     if extended:
         model(world,'pinger_source',(24,(12.5,9.5,6.5,3.5)[pinger_drum-1],floor_z(24)+.15,0,0,0))
         if edition=='2027':

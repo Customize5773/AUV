@@ -59,3 +59,5 @@ Urutan kerja yang diusulkan: **identifikasi perangkat → BlueOS dan komunikasi 
 [29 — Validasi flare dan penerimaan ulang](29-validasi-flare-dan-penerimaan-ulang.md): perbaikan geometri landmark, akustik hampir vertikal dan retensi dengan orientasi penuh; 113 tes unit, 98/98 uji label dan bukti lulus lima fixture ARENA dinamis.
 
 [30 — Pengujian keandalan berulang](30-pengujian-keandalan-berulang.md): 18 run dengan variasi seed, prior, cahaya dan arus; 14 diterima, empat kasus arus gagal diam/akurasi; satu pengulangan tambahan prior gagal akurasi. Integrasi DVL diperbaiki dan 120 tes unit lulus.
+
+[31 — Kalibrasi DVL dalam arus](31-kalibrasi-dvl-dalam-arus.md): penahan preflight virtual dan konfirmasi kalibrasi; 121 tes unit, empat kasus arus + satu nominal lulus akurasi. Tiga kualifikasi berarus tetap gagal diam akhir.

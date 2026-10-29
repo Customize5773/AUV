@@ -2,6 +2,8 @@
 
 29 Oktober 2026. Melanjutkan [penerimaan laporan 29](29-validasi-flare-dan-penerimaan-ulang.md). **Pengujian selesai: matriks 18 kasus menyelesaikan seluruh tugas misi, 14 memenuhi seluruh kriteria penerimaan dan empat kasus arus ditolak. Satu pengulangan tambahan kasus prior posisi menyelesaikan misi tetapi gagal akurasi.** Tujuan tahap ini mengukur batas keberhasilan, bukan menyimpulkan keandalan kolam nyata dari satu fixture yang lulus.
 
+Tindak lanjut khusus kalibrasi DVL: [laporan 31](31-kalibrasi-dvl-dalam-arus.md). Hasil di bawah tetap bukti sebelum penahan preflight; tidak ditimpa oleh pengujian baru.
+
 ## Matriks yang ditetapkan
 
 `tools/check_reliability.py` menjalankan satu simulator setiap kali pada ROS domain 230 dan partition `sauvc_reliability_matrix`. Setiap run menyimpan kondisi JSON, command, hasil lengkap, controller/referee dan log. Folder output harus baru. Hash source diperiksa sebelum setiap run; perubahan source menghentikan batch agar hasil versi berbeda tidak tercampur.

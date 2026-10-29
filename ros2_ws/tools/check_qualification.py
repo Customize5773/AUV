@@ -151,7 +151,7 @@ def main():
                 forbidden={'sauvc_qualification','sauvc_propulsion','sauvc_state_estimator','sauvc_command_guard'}
                 report['sensor_only_control']=not bool(forbidden&set(truth_subscribers))
                 report['referee_pose_isolated']=not bool(forbidden&set(report['result_subscribers']))
-                allowed={'time','actuator_timeout','gyro','accel','mag','dvl','pressure_pa'}
+                allowed={'time','deployment_held','actuator_timeout','gyro','accel','mag','dvl','pressure_pa'}
                 report['sensor_contract_valid']=all(set(p)<=allowed for p in observed['sensors'])
                 report['passed']=report['passed'] and report['sensor_only_control'] and bool(observed['estimates'])
                 report['passed']=report['passed'] and report['sensor_contract_valid']

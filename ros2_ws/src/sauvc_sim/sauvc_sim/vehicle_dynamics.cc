@@ -4,6 +4,7 @@
 #include <ignition/gazebo/Link.hh>
 #include <ignition/gazebo/Util.hh>
 #include <ignition/gazebo/components/Model.hh>
+#include <ignition/gazebo/components/DetachableJoint.hh>
 #include <ignition/gazebo/components/Name.hh>
 #include <ignition/plugin/Register.hh>
 #include <ignition/transport/Node.hh>
@@ -23,7 +24,8 @@ class VehicleDynamics : public System, public ISystemConfigure,
                         public ISystemPreUpdate, public ISystemPostUpdate {
   ignition::transport::Node node;
   ignition::transport::Node::Publisher sensors,telemetry;
-  Entity model{kNullEntity},link{kNullEntity};
+  Entity model{kNullEntity},link{kNullEntity},anchor{kNullEntity},restraint{kNullEntity};
+  bool released=false;
   std::mutex mutex;
   std::array<double,7> requested{},forces{};
   std::array<V,7> positions{},axes{};
@@ -72,6 +74,17 @@ public:
       });
     }
     if (info.paused || link==kNullEntity) return;
+    if (anchor==kNullEntity) {
+      ecm.Each<components::Model,components::Name>([&](const Entity &e,const components::Model *,const components::Name *n) {
+        if (n->Data()=="sauvc_deployment_anchor") { anchor=Model(e).CanonicalLink(ecm);return false; }
+        return true;
+      });
+    }
+    // Simulated operator restraint provides an independent stationary calibration reference.
+    if (!released && restraint==kNullEntity && anchor!=kNullEntity) {
+      restraint=ecm.CreateEntity();
+      ecm.CreateComponent(restraint,components::DetachableJoint({anchor,link,"fixed"}));
+    }
     now=std::chrono::duration<double>(info.simTime).count();
     double dt=std::chrono::duration<double>(info.dt).count();
     if (dt<=0) return;
@@ -85,6 +98,12 @@ public:
       timed_out=received && (std::chrono::duration<double>(std::chrono::steady_clock::now()-last_command).count()>.5 || (fault=="actuator_loss" && now>12));
       if (received && !timed_out) u=requested;
     }
+    if (!released && std::any_of(u.begin(),u.end(),[](double x) { return std::abs(x)>1e-6; })) {
+      released=true;
+      if (restraint!=kNullEntity) { ecm.RequestRemoveEntity(restraint);restraint=kNullEntity; }
+    }
+    // The support balances external loads; queued wrenches on a fixed body can accumulate until release.
+    if (restraint!=kNullEntity) return;
     V force{},torque{};
     for (size_t i=0;i<7;++i) {
       double target=(i<4?hmax:vmax)*u[i]*std::abs(u[i]);
@@ -118,6 +137,7 @@ public:
     V dvl=pose.Rot().RotateVectorReverse(*vel);
     std::ostringstream out;out.precision(12);
     out<<"{\"time\":"<<t<<",\"actuator_timeout\":"<<(timed_out?"true":"false");
+    out<<",\"deployment_held\":"<<(restraint!=kNullEntity && ecm.Component<components::DetachableJoint>(restraint)?"true":"false");
     auto vector=[&](const char *key,V v,double sigma) {
       out<<",\""<<key<<"\":["<<v.X()+noise(sigma)<<','<<v.Y()+noise(sigma)<<','<<v.Z()+noise(sigma)<<']';
     };

@@ -143,7 +143,7 @@ def main():
                 consumers={s.node_name for s in node.get_subscriptions_info_by_topic('/sauvc/arena/result')}
                 report['referee_pose_isolated']=not bool({'sauvc_arena','sauvc_propulsion','sauvc_state_estimator','sauvc_command_guard'}&consumers)
                 report['sensor_only_control']=not bool({'sauvc_arena','sauvc_propulsion','sauvc_state_estimator','sauvc_command_guard'}&set(truth))
-                report['sensor_contract_valid']=bool(observed['sensors']) and all(set(p)<={'time','actuator_timeout','gyro','accel','mag','dvl','pressure_pa'} for p in observed['sensors'])
+                report['sensor_contract_valid']=bool(observed['sensors']) and all(set(p)<={'time','deployment_held','actuator_timeout','gyro','accel','mag','dvl','pressure_pa'} for p in observed['sensors'])
                 report['estimation_error']=estimation_errors(observed['trajectory'],observed['estimates'])
                 report['estimation_error']['qualification_reference_passed']=report['estimation_error'].pop('passed')
                 report['estimation_error']['reference_limits']={'max_xy_m':.2,'max_depth_m':.03,'max_yaw_rad':.03}
