@@ -38,7 +38,7 @@ class DynamicsTest(unittest.TestCase):
     def test_propulsion_waits_for_mission_and_disarms_at_stop(self):
         from types import SimpleNamespace
         from sauvc_sim.physical_runtime import PhysicalRuntime
-        node=SimpleNamespace(role='propulsion',active=False,disarmed=False)
+        node=SimpleNamespace(role='propulsion',active=False,disarmed=False,surface_hold=False)
         PhysicalRuntime.state(node,SimpleNamespace(data='WAIT'))
         self.assertFalse(node.active)
         PhysicalRuntime.state(node,SimpleNamespace(data='DIVE'))

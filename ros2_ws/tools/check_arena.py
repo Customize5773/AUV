@@ -42,6 +42,7 @@ def main():
     parser.add_argument('--pov',action='store_true',help='Open and verify both annotated camera viewers (requires --gui)')
     parser.add_argument('--edition',choices=['2026','2027'],default='2027')
     parser.add_argument('--output',type=Path,required=True)
+    parser.add_argument('--surface-hold',action='store_true')
     parser.add_argument('--conditions',type=Path,help='JSON: sensor seed, world current, initial XY prior error, light scale')
     parser.add_argument('--extended',action='store_true')
     parser.add_argument('--pinger-drum',type=int,choices=[0,1,2,3,4],default=0)
@@ -50,10 +51,11 @@ def main():
     parser.add_argument('--blue-drum',type=int,choices=[1,2,3,4],default=1)
     parser.add_argument('--fault',default='none',choices=['none','camera_loss','command_loss','odom_loss','contact_loss','clock_loss','imu_loss','pressure_loss','dvl_loss','actuator_loss'])
     args=parser.parse_args();args.output.parent.mkdir(parents=True,exist_ok=True)
+    if args.surface_hold and (args.vehicle_model=='ideal' or args.fault not in ('','none')):parser.error('surface hold test requires dynamic vehicle and no early fault')
     test_conditions=load_conditions(args.conditions)
     if args.pov and not args.gui:parser.error('--pov requires --gui')
     rclpy.init();node=rclpy.create_node('arena_check')
-    observed={'state':'','result':{},'trajectory':[],'physics':[],'commands':[],'estimates':[],'sensors':[],'dynamics':[],'health':[]}
+    observed={'state':'','result':{},'trajectory':[],'physics':[],'commands':[],'estimates':[],'sensors':[],'dynamics':[],'health':[],'hold_status':[]}
     tracks={}
     acoustic={'samples':0,'contract_valid':True}
     def ping(m):
@@ -89,15 +91,17 @@ def main():
     node.create_subscription(String,'/sauvc/state/health',lambda m:observed['health'].append(json.loads(m.data)),10)
     node.create_subscription(String,'/sauvc/sensors',lambda m:observed['sensors'].append(json.loads(m.data)),10)
     node.create_subscription(String,'/sauvc/dynamics/telemetry',lambda m:observed['dynamics'].append(json.loads(m.data)),10)
+    node.create_subscription(String,'/sauvc/surface_hold/status',lambda m:observed['hold_status'].append(json.loads(m.data)),10)
     report={'vehicle_model':args.vehicle_model,'passed':False,'edition':args.edition,'order':args.order,'fault':args.fault,
             'scene_variant':args.scene_variant,'blue_drum':args.blue_drum,
-            'extended':args.extended,'pinger_drum':args.pinger_drum,'conditions':test_conditions}
+            'extended':args.extended,'pinger_drum':args.pinger_drum,'conditions':test_conditions,'surface_hold':args.surface_hold}
     viewers=[];viewer_logs=[]
     with args.output.with_suffix('.log').open('w') as log:
         process=subprocess.Popen(['bash','tools/ros.sh','launch','sauvc_sim','arena.launch.py',
             'arena:=finals',f'vehicle_model:={args.vehicle_model}',f'edition:={args.edition}','autonomous:=true',f'headless:={str(not args.gui).lower()}',f'flare_order:={args.order}',
             f'scene_variant:={args.scene_variant}',f'blue_drum:={args.blue_drum}',
             f'extended:={str(args.extended).lower()}',f'pinger_drum:={args.pinger_drum}',
+            f'surface_hold:={str(args.surface_hold).lower()}',
             f'conditions_file:={args.conditions.resolve() if args.conditions else ""}',
             f'fault:={args.fault}',f'output:={args.output.with_suffix("")}'],
             stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
@@ -121,6 +125,7 @@ def main():
                 terminal=last_state in ('DONE','ABORT') or observed['result'].get('phase')=='FAILED'
                 if terminal and terminal_since is None: terminal_since=time.monotonic()
                 if terminal_since is not None and time.monotonic()-terminal_since>2:
+                    if args.surface_hold and last_state=='DONE' and time.monotonic()-terminal_since<35:continue
                     stable=len(observed['trajectory'])>20 and math.dist(observed['trajectory'][-1][1:4],observed['trajectory'][-20][1:4])<.01
                     if args.vehicle_model=='ideal' or stable or time.monotonic()-terminal_since>40:break
                 if process.poll() is not None: raise RuntimeError('launch exited before completion')
@@ -161,6 +166,10 @@ def main():
                     for c in ('front','bottom')}
                 report['pov_verified']=all(report['pov_subscribers'].values()) and all(v.poll() is None for v in viewers)
                 report['passed']=report['passed'] and report['pov_verified']
+            if args.surface_hold and success:
+                from surface_hold_check import verify_hold
+                report['hold_verification']=verify_hold(node,observed)
+                report['passed']=report['passed'] and report['hold_verification']['passed']
         except Exception as exc: report['error']=str(exc)
         finally:
             if process.poll() is None:
@@ -188,7 +197,7 @@ def main():
     log_text=args.output.with_suffix('.log').read_text()
     report['shutdown_clean']=not report.get('shutdown_forced') and not any(s in log_text for s in ('Traceback','process has died','Errno::ESRCH'))
     report['passed']=report['passed'] and report['shutdown_clean']
-    if args.vehicle_model!='ideal':report['passed']=report['passed'] and all(report.get(k,False) for k in ('sensor_only_control','referee_pose_isolated','sensor_contract_valid','estimated_state_available','dvl_calibration_valid','seven_thrusters','thrusters_zero'))
+    if args.vehicle_model!='ideal':report['passed']=report['passed'] and all(report.get(k,False) for k in ('sensor_only_control','referee_pose_isolated','sensor_contract_valid','estimated_state_available','dvl_calibration_valid','seven_thrusters')) and (args.surface_hold or report.get('thrusters_zero',False))
     report['tracking']=tracks
     if args.fault=='none':
         required={'navigation_gate','orange_flare','blue_flare','red_flare','yellow_flare'} | (set() if args.extended else {'blue_drum'})
@@ -205,7 +214,7 @@ def main():
         report['passed']=report['passed'] and report['surfacing_square_verified']
     report.update(observed)
     args.output.write_text(json.dumps(report,indent=2)+'\n')
-    print(json.dumps({k:v for k,v in report.items() if k not in ('trajectory','commands','physics','estimates','sensors','dynamics','health')},indent=2))
+    print(json.dumps({k:v for k,v in report.items() if k not in ('trajectory','commands','physics','estimates','sensors','dynamics','health','hold_status')},indent=2))
     raise SystemExit(0 if report['passed'] else 1)
 
 

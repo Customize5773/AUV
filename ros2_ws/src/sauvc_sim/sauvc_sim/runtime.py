@@ -62,6 +62,7 @@ class Runtime(Node):
         self.judgement = {}
         self.zero = True
         self.terminal = False
+        self.fault_latched = False
         self.logged_state = None
         self.command = Twist()
         self.controller = QualificationController(self.mode, lane, self.speed_scale,self.physical,edition=self.edition)
@@ -195,7 +196,8 @@ class Runtime(Node):
         self.received['command'] = time.monotonic()
 
     def trip(self, reason):
-        if not self.terminal:
+        if not self.fault_latched:
+            self.fault_latched=True
             self.get_logger().error(reason)
             self.fault_pub.publish(String(data=reason))
         self.terminal = True

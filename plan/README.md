@@ -61,3 +61,5 @@ Urutan kerja yang diusulkan: **identifikasi perangkat → BlueOS dan komunikasi 
 [30 — Pengujian keandalan berulang](30-pengujian-keandalan-berulang.md): 18 run dengan variasi seed, prior, cahaya dan arus; 14 diterima, empat kasus arus gagal diam/akurasi; satu pengulangan tambahan prior gagal akurasi. Integrasi DVL diperbaiki dan 120 tes unit lulus.
 
 [31 — Kalibrasi DVL dalam arus](31-kalibrasi-dvl-dalam-arus.md): penahan preflight virtual dan konfirmasi kalibrasi; 121 tes unit, empat kasus arus + satu nominal lulus akurasi. Tiga kualifikasi berarus tetap gagal diam akhir.
+
+[32 — Surface hold dan koreksi prior](32-surface-hold-dan-koreksi-prior.md): hold opt-in setelah surface, disarm terkunci saat fault, koreksi visual gate survei dan inisialisasi sensor parsial; 130 tes unit, 8 kualifikasi + rerun ARENA lulus.

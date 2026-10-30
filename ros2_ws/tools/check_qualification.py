@@ -53,15 +53,17 @@ def main():
     parser.add_argument('--gui', action='store_true')
     parser.add_argument('--edition',choices=['2026','2027'],default='2027')
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--surface-hold',action='store_true')
     parser.add_argument('--conditions',type=Path,help='JSON: sensor seed, world current, initial XY prior error, light scale')
     args = parser.parse_args()
+    if args.surface_hold and (args.vehicle_model=='ideal' or args.fault not in ('','none')):parser.error('surface hold test requires dynamic vehicle and no early fault')
     test_conditions=load_conditions(args.conditions)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     rclpy.init()
     node = rclpy.create_node('qualification_check')
     qos = QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL)
     observed = {'state': '', 'result': {}, 'trajectory': [], 'commands': [],'estimates':[],
-                'sensors':[],'dynamics':[]}
+                'sensors':[],'dynamics':[],'health':[],'hold_status':[]}
     def result(msg):
         observed['result'] = json.loads(msg.data)
     def state(msg):
@@ -84,9 +86,11 @@ def main():
     subscriptions += [node.create_subscription(Odometry,'/sauvc/state/odom',estimate,qos_profile_sensor_data),
         node.create_subscription(String,'/sauvc/sensors',lambda m:observed['sensors'].append(json.loads(m.data)),10),
         node.create_subscription(String,'/sauvc/dynamics/telemetry',lambda m:observed['dynamics'].append(json.loads(m.data)),10)]
+    node.create_subscription(String,'/sauvc/state/health',lambda m:observed['health'].append(json.loads(m.data)),10)
+    node.create_subscription(String,'/sauvc/surface_hold/status',lambda m:observed['hold_status'].append(json.loads(m.data)),10)
     report = {'passed': False, 'mode': args.mode, 'lane': args.lane,
               'speed_scale': args.speed_scale,
-              'vehicle_model':args.vehicle_model,'conditions':test_conditions,
+              'vehicle_model':args.vehicle_model,'conditions':test_conditions,'surface_hold':args.surface_hold,
               'lateral_offset': args.lateral_offset, 'yaw': args.yaw, 'fault': args.fault,
               'rulebook': '2027.2.1' if args.edition=='2027' else '2026 v6.1.0', 'checked_on': datetime.now(ZoneInfo('Asia/Jakarta')).date().isoformat()}
     frozen_pid = None
@@ -94,6 +98,7 @@ def main():
         process = subprocess.Popen(['bash', 'tools/ros.sh', 'launch', 'sauvc_sim', 'arena.launch.py',
             'autonomous:=true',f'edition:={args.edition}', f'mode:={args.mode}', f'lane:={args.lane}',
             f'vehicle_model:={args.vehicle_model}',
+            f'surface_hold:={str(args.surface_hold).lower()}',
             f'conditions_file:={args.conditions.resolve() if args.conditions else ""}',
             f'speed_scale:={args.speed_scale}',
             f'lateral_offset:={args.lateral_offset}', f'yaw:={args.yaw}',
@@ -120,6 +125,7 @@ def main():
                 if terminal and terminal_since is None:
                     terminal_since = time.monotonic()
                 if terminal_since is not None and time.monotonic()-terminal_since > 2:
+                    if args.surface_hold and observed['state']=='DONE' and time.monotonic()-terminal_since<35:continue
                     stable=len(observed['trajectory'])>20 and math.dist(
                         observed['trajectory'][-1][1:4],observed['trajectory'][-20][1:4])<.01
                     if not observed['sensors'] or stable or time.monotonic()-terminal_since>40:
@@ -159,9 +165,13 @@ def main():
                 if not args.fault:
                     report['thrusters_zero']=bool(observed['dynamics']) and all(
                         abs(f)<.05 for row in observed['dynamics'][-20:] for f in row['force_n'])
-                    report['passed']=report['passed'] and report['thrusters_zero']
+                    report['passed']=report['passed'] and (args.surface_hold or report['thrusters_zero'])
                     report['estimation_error']=estimation_errors(observed['trajectory'],observed['estimates'])
                     report['passed']=report['passed'] and report['estimation_error']['passed']
+            if args.surface_hold and mission_passed:
+                from surface_hold_check import verify_hold
+                report['hold_verification']=verify_hold(node,observed)
+                report['passed']=report['passed'] and report['hold_verification']['passed']
         except Exception as exc:
             report['error'] = str(exc)
         finally:
@@ -206,7 +216,7 @@ def main():
         marker in log_text for marker in ('Traceback', 'Errno::ESRCH', 'process has died'))
     report['passed'] = report['passed'] and report['shutdown_clean']
     args.output.write_text(json.dumps(report, indent=2)+'\n')
-    print(json.dumps({k: v for k, v in report.items() if k not in ('trajectory', 'commands','estimates','sensors','dynamics')}, indent=2))
+    print(json.dumps({k: v for k, v in report.items() if k not in ('trajectory', 'commands','estimates','sensors','dynamics','health','hold_status')}, indent=2))
     raise SystemExit(0 if report['passed'] else 1)
 
 if __name__ == '__main__':

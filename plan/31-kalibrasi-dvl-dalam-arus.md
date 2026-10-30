@@ -51,3 +51,5 @@ bash tools/ros.sh python tools/check_reliability.py --case a-current --output ev
 ```
 
 Kasus lain yang diuji: `q-current-7`, `q-current-42`, `q-current-91`, dan `q-nominal-7`. Exit code 1 pada tiga kualifikasi arus mencerminkan kegagalan diam akhir, bukan kegagalan akurasi DVL pada hasil versi ini.
+
+Kelanjutan untuk hold aktif dalam arus dan toleransi prior posisi dicatat terpisah pada [laporan 32](32-surface-hold-dan-koreksi-prior.md). Hasil lima run di atas tetap menjadi bukti versi ini, tanpa mengubah kegagalan motor-off menjadi keberhasilan hold.

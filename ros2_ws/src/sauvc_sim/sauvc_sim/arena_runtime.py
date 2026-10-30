@@ -38,6 +38,8 @@ class ArenaRuntime(Node):
         self.edition=self.get_parameter('edition').value
         self.declare_parameter('physical',False)
         self.physical=self.get_parameter('physical').value
+        self.declare_parameter('surface_hold',False)
+        self.surface_hold=self.get_parameter('surface_hold').value
         self.declare_parameter('extended',False)
         self.extended=self.get_parameter('extended').value
         self.ctrl=ArenaController(extended=self.extended,edition=self.edition,physical=self.physical)
@@ -92,14 +94,14 @@ class ArenaRuntime(Node):
 
     def actual_command(self,msg):
         self.command_zero=all(abs(v)<1e-6 for v in values(msg))
-        self.zero=self.command_zero and self.force_zero
+        self.zero=self.command_zero and (self.force_zero or self.surface_hold)
         if not self.physical:self.judge.thrust(self.t,not self.zero)
 
     def dynamics(self,msg):
         packet=json.loads(msg.data)
         forces=packet['force_n']
         self.force_zero=all(abs(f)<.05 for f in forces)
-        self.zero=self.command_zero and self.force_zero
+        self.zero=self.command_zero and (self.force_zero or self.surface_hold)
         self.judge.thrust(packet['time'],any(abs(f)>.05 for f in forces))
 
     def estimate_health(self,msg):
@@ -210,6 +212,7 @@ class ArenaRuntime(Node):
             if self.judge.phase not in ('START','COMPLETE','FAILED') and stale:
                 self.judge.fail('stale_'+stale,self.t)
             result=self.judge.result()
+            result['stop_mode']='surface_hold' if self.surface_hold else 'motor_off'
             self.report.publish(String(data=json.dumps(result)))
             if self.status_pub:self.status_pub.publish(String(data=json.dumps({key:result[key] for key in ('phase','reason','navigation_passed','fallen_flares','payload_in_blue','payload_acquired','payload_grasped','reacquisition_crossed','payload_retrieved','target_zone_exited','passed')})))
             if self.judge.navigation: self.order_pub.publish(String(data=self.order))

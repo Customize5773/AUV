@@ -147,3 +147,17 @@ bash tools/ros.sh python tools/check_reliability.py --output evidence/reliabilit
 ```
 
 Folder output wajib baru. `summary.json` menyimpan seluruh hasil, termasuk kegagalan; exit code 1 berarti ada kasus yang tidak diterima. Gunakan `--suite qualification`, `--suite arena`, atau `--case q-prior-91` untuk membatasi pengujian. Ctrl+C menghentikan harness aktif dan mencatat kasus terputus. Hasil dan batas pembuktian ada pada [laporan 30](../plan/30-pengujian-keandalan-berulang.md).
+
+
+## Menahan posisi setelah surface dalam arus
+
+Tambahkan `surface_hold:=true` pada launch autonomous dinamis, misalnya:
+
+```bash
+cd /home/rasya/AUV/ros2_ws
+bash tools/ros.sh launch sauvc_sim arena.launch.py autonomous:=true surface_hold:=true
+```
+
+Untuk ARENA, tambahkan `arena:=finals`. Jalankan satu simulator setiap kali. Perintah POV di atas tetap berlaku.
+
+Default `surface_hold:=false` mematikan motor setelah surface. Dalam mode hold, DONE berarti misi selesai tetapi thruster tetap aktif mempertahankan estimasi posisi, kedalaman dan heading saat mulai STOP. Pantau dengan `bash tools/ros.sh topic echo /sauvc/surface_hold/status`. Fault/abort atau feedback kedaluwarsa mengunci disarm dan gaya nol; pemulihan stream tidak otomatis melanjutkan hold. Ctrl+C menutup simulasi. Kriteria, hasil uji dan batasnya ada pada [laporan 32](../plan/32-surface-hold-dan-koreksi-prior.md).

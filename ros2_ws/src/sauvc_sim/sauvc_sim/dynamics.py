@@ -42,7 +42,7 @@ class PropulsionController:
         self.max_force=np.array([self.cfg['horizontal_thrust']]*4+[self.cfg['vertical_thrust']]*3)
         self.integral=np.zeros(4)
 
-    def command(self, desired, measured, z, dt, armed=True):
+    def command(self, desired, measured, z, dt, armed=True, station_keeping=False):
         if not armed:
             self.integral[:]=0
             return [0.]*self.matrix.shape[1]
@@ -51,7 +51,7 @@ class PropulsionController:
         target=np.clip(desired,[-.9,-.6,-.3,-.7],[.9,.6,.3,.7])
         error=target-np.asarray(measured)
         self.integral=np.clip(self.integral+error*dt,-.8,.8)
-        self.integral[np.abs(target)<.01]=0.  # Brake to zero without residual integral thrust.
+        if not station_keeping:self.integral[np.abs(target)<.01]=0.  # Brake to zero without residual integral thrust.
         linear=np.array(self.cfg['linear_drag']+[self.cfg['angular_linear_drag'][2]])
         quad=np.array(self.cfg['quadratic_drag']+[self.cfg['angular_quadratic_drag'][2]])
         wrench=np.array([50.,50.,80.,3.])*error+np.array([8.,8.,12.,.5])*self.integral

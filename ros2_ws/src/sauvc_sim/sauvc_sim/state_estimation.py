@@ -1,7 +1,8 @@
 """Pressure + gyro/magnetometer AHRS + bottom-track DVL dead reckoning.
 
 Inputs are noisy sensor measurements, never pose/orientation ground truth.
-The deployment mark supplies the initial XY prior; drift is not globally corrected.
+The deployment mark supplies the initial XY prior; a surveyed qualification gate
+can correct translation during the outbound camera approach.
 """
 import math
 
@@ -13,8 +14,15 @@ class StateEstimator:
     def __init__(self, lane=1, lateral_offset=0., density=1000., gravity=9.81,edition='2026',arena='qualification',calibrate_dvl=False,prior_error=(0.,0.)):
         if len(prior_error)!=2 or not all(math.isfinite(v) for v in prior_error):raise ValueError('invalid initial XY prior error')
         self.prior_error=prior_error
+        self.arena=arena
+        self.gate_y=None
+        self.gate_stamp=-1.
+        self.gate_innovation=None
+        self.gate_confirmations=0
+        self.gate_corrections=0
         from sauvc_sim.rules2027 import LANES
         self.y=(LANES[lane-1] if edition=='2027' else (4. if lane==1 else 12.))+lateral_offset
+        self.gate_y=self.y-lateral_offset
         self.x=None
         if arena=='finals':
             # Surveyed deployment mark only; subsequent motion comes from sensors.
@@ -29,6 +37,7 @@ class StateEstimator:
         self.yaw_rate=0.
         self.density,self.gravity=density,gravity
         self.last=None
+        self.initialized=False
         self.seen={}
         self.instruments={}
         self.reason='waiting_sensors'
@@ -80,7 +89,7 @@ class StateEstimator:
                       for i,v in enumerate(packet['dvl'])]
             # Integrating the feedback low-pass filter adds a speed-dependent position lag.
             self.integration_velocity=list(measured)
-            a=1. if self.last is None else 1-math.exp(-.05/.08)
+            a=1. if not self.initialized else 1-math.exp(-.05/.08)
             self.velocity=[v+a*(m-v) for v,m in zip(self.velocity,measured)]
         wx,wy,wz=self.instruments['gyro']
         cr,sr,cp=math.cos(self.roll),math.sin(self.roll),max(.2,math.cos(self.pitch))
@@ -90,14 +99,14 @@ class StateEstimator:
         self.yaw=wrap(self.yaw+self.yaw_rate*dt)
         ax,ay,az=self.instruments['accel']
         stationary=math.sqrt(sum(v*v for v in self.velocity))<.05 and math.sqrt(wx*wx+wy*wy+wz*wz)<.05
-        if self.last is None or stationary:
-            a=1. if self.last is None else 1-math.exp(-dt/2.)
+        if not self.initialized or stationary:
+            a=1. if not self.initialized else 1-math.exp(-dt/2.)
             self.roll+=a*wrap(math.atan2(ay,az)-self.roll)
             self.pitch+=a*(math.atan2(-ax,math.hypot(ay,az))-self.pitch)
         mx,my,mz=self.instruments['mag']
         cr,sr,cp,sp=math.cos(self.roll),math.sin(self.roll),math.cos(self.pitch),math.sin(self.pitch)
         heading=math.atan2(-(cr*my-sr*mz),cp*mx+sp*(sr*my+cr*mz))
-        a=1. if self.last is None else 1-math.exp(-dt/.4)
+        a=1. if not self.initialized else 1-math.exp(-dt/.4)
         self.yaw=wrap(self.yaw+a*wrap(heading-self.yaw))
         if self.x is None:
             # Hull touches the known starting wall; heading is measured by AHRS.
@@ -109,12 +118,39 @@ class StateEstimator:
         self.x+=dt*(bx*math.cos(self.yaw)-by*math.sin(self.yaw))
         self.y+=dt*(bx*math.sin(self.yaw)+by*math.cos(self.yaw))
         self.z+=dt*bz
-        if 'pressure_pa' in packet:
-            depth=-(packet['pressure_pa']-101325.)/(self.density*self.gravity)
-            a=1. if self.last is None else 1-math.exp(-.05/.12)
+        if 'pressure_pa' in packet or not self.initialized:
+            depth=-(self.instruments['pressure_pa']-101325.)/(self.density*self.gravity)
+            a=1. if not self.initialized else 1-math.exp(-.05/.12)
             self.z+=a*(depth-self.z)
         self.xy_variance+=dt*(.003**2+.001**2*t)
+        self.initialized=True
         self.last=t;self.reason=''
+        return True
+
+    def observe_gate(self, detection, stamp):
+        """Translation fix from a surveyed qualification gate, with camera-age compensation."""
+        if self.arena!='qualification' or self.last is None or not math.isfinite(stamp) or stamp<=self.gate_stamp:return False
+        self.gate_stamp=stamp
+        age=self.last-stamp
+        if detection is None or not 0<=age<=.12:
+            self.gate_confirmations=0;return False
+        distance,bearing=detection['distance'],detection['bearing']
+        if not (math.isfinite(distance) and math.isfinite(bearing) and 1.8<distance<4.
+                and abs(bearing)<.15 and abs(self.yaw)<.25 and abs(self.roll)<.06 and abs(self.pitch)<.06):
+            self.gate_confirmations=0;return False
+        c,s=math.cos(self.yaw),math.sin(self.yaw)
+        vx,vy=self.integration_velocity[:2]
+        dx=.32+distance;dy=distance*math.tan(bearing)
+        projected=(self.x-age*(c*vx-s*vy)+c*dx-s*dy,
+                   self.y-age*(s*vx+c*vy)+s*dx+c*dy)
+        innovation=(10.-projected[0],self.gate_y-projected[1])
+        if math.hypot(*innovation)>.6:
+            self.gate_confirmations=0;return False
+        if self.gate_innovation is None or math.dist(innovation,self.gate_innovation)>.15:self.gate_confirmations=0
+        self.gate_innovation=innovation;self.gate_confirmations+=1
+        if self.gate_confirmations<3:return False
+        self.x+=.2*innovation[0];self.y+=.2*innovation[1]
+        self.gate_corrections+=1
         return True
 
     def pose(self): return (self.x,self.y,self.z,self.yaw)

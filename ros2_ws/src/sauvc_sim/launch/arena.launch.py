@@ -25,6 +25,8 @@ def start(context):
     perception = LaunchConfiguration('perception').perform(context) == 'true'
     vehicle_model=LaunchConfiguration('vehicle_model').perform(context)
     physical=vehicle_model=='dynamic' or (vehicle_model=='auto' and autonomous and mode=='vision')
+    surface_hold=LaunchConfiguration('surface_hold').perform(context)=='true'
+    if surface_hold and not (physical and autonomous):raise ValueError('surface_hold requires dynamic autonomous mode')
     conditions=load_conditions(LaunchConfiguration('conditions_file').perform(context))
     if physical and mode!='vision':
         raise ValueError('dynamic vehicle requires vision mode')
@@ -62,7 +64,7 @@ def start(context):
     if physical:
         for executable in ('state_estimator','propulsion'):
             actions.append(Node(package='sauvc_sim',executable=executable,parameters=[dict(
-                lane=lane,arena=arena,edition=edition,lateral_offset=float(LaunchConfiguration('lateral_offset').perform(context)),
+                lane=lane,arena=arena,edition=edition,surface_hold=surface_hold,lateral_offset=float(LaunchConfiguration('lateral_offset').perform(context)),
                 prior_error_x=float(conditions['prior_error'][0]),prior_error_y=float(conditions['prior_error'][1]))],
                 output='screen',on_exit=Shutdown()))
     if autonomous:
@@ -81,7 +83,7 @@ def start(context):
         for executable in executables:
             node_params=dict(params)
             if executable=='arena_referee':
-                node_params.update(scene_variant=int(LaunchConfiguration('scene_variant').perform(context)),
+                node_params.update(surface_hold=surface_hold,scene_variant=int(LaunchConfiguration('scene_variant').perform(context)),
                                    blue_drum=int(LaunchConfiguration('blue_drum').perform(context)),
                                    pinger_drum=int(LaunchConfiguration('pinger_drum').perform(context)))
             actions.append(Node(package='sauvc_sim', executable=executable,
@@ -104,6 +106,7 @@ def generate_launch_description():
         DeclareLaunchArgument('lateral_offset', default_value='0.0'),
         DeclareLaunchArgument('yaw', default_value='0.0'),
         DeclareLaunchArgument('output', default_value=''),
+        DeclareLaunchArgument('surface_hold',default_value='false',choices=['true','false']),
         DeclareLaunchArgument('conditions_file',default_value=''),
         DeclareLaunchArgument('extended',default_value='false',choices=['true','false']),
         DeclareLaunchArgument('pinger_drum',default_value='0',choices=['0','1','2','3','4']),
