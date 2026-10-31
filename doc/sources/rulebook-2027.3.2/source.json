@@ -1,0 +1,12 @@
+{
+  "checked_on": "2026-11-01",
+  "version": "2027.3.2",
+  "commit": "b7194b4c3efa542fd19b1efa15bc6ddc8f9ebbb1",
+  "commit_date": "2026-10-30T11:06:59Z",
+  "url": "https://github.com/sauvc/rulebook/blob/b7194b4c3efa542fd19b1efa15bc6ddc8f9ebbb1/rulebook.md",
+  "public_page": "https://sauvc.org/rulebook/",
+  "method": "GitHub connector fetch at pinned commit; public page header verified with web",
+  "source_sha256": "a42bb55bdf19c2055ea0c543ea0ddd2341c5c0daa4f3be405c51f8df5511cfff",
+  "git_blob_sha": "4e14a3cd4ebc295e951cd60d003b8adccdf44fcb",
+  "bytes": 41511
+}

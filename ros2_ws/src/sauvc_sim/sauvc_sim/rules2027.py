@@ -1,11 +1,11 @@
-"""2027.2.1 dimensions and documented practice coordinates, not measured pool positions.
+"""2027.3.2 dimensions and documented practice coordinates, not measured pool positions.
 
 World X spans 50 m, Y spans 25 m. ARENA mission coordinates use U=Y,
 V=42-X, so its gate normal is U while qualification stays along world X.
 """
 import math
 
-VERSION='2027.2.1'
+VERSION='2027.3.2'
 LANES=(3.5,12.5,22.)
 GATE_U=12.7
 DRUM_U=22.

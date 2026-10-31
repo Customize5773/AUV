@@ -1,4 +1,6 @@
+from sauvc_sim.fault_schedule import FaultSchedule
 """ROS adapters for qualification, independent judging and command timeout."""
+from sauvc_sim.rules2027 import VERSION
 import json
 import math
 from pathlib import Path
@@ -69,6 +71,7 @@ class Runtime(Node):
         self.judge = QualificationJudge(lane,self.physical,edition=self.edition)
         self.started_wall = time.monotonic()
         self.ready_since = None
+        self.calibration_ready = False
         self.report = self.create_publisher(String, '/sauvc/qualification/result', STATUS_QOS)
         self.feedback_pub=self.create_publisher(String,'/sauvc/qualification/status',STATUS_QOS) if self.physical and role=='referee' else None
         self.state_pub = self.create_publisher(String, '/sauvc/qualification/state', STATUS_QOS)
@@ -100,11 +103,14 @@ class Runtime(Node):
             self.create_subscription(Twist, '/sauvc/cmd_vel', self.actual_command, 10)
             self.create_subscription(String, '/sauvc/guard/fault', self.guard_fault, STATUS_QOS)
             self.create_subscription(String, '/sauvc/qualification/state', self.state, STATUS_QOS)
+        self.fault_schedule=FaultSchedule(self.fault,12 if self.mission=='finals' else 8,self.get_logger().info)
+        self.create_subscription(Twist,'/sauvc/mission/cmd_vel',
+            lambda msg:self.fault_schedule.observe(msg,self.t),10)
         self.create_timer(.05, self.tick)
 
     def clock(self, msg):
         value = msg.clock.sec + msg.clock.nanosec*1e-9
-        if self.fault == 'clock_loss' and self.first_clock is not None and value-self.first_clock > 8:
+        if self.fault_schedule.drop('clock',value):
             return
         if value > self.t:
             self.received['clock'] = time.monotonic()
@@ -153,6 +159,7 @@ class Runtime(Node):
 
     def estimate_health(self,msg):
         packet=json.loads(msg.data)
+        self.calibration_ready=packet.get('valid') is True and packet.get('dvl_calibration_ready') is True
         if packet.get('valid'):self.received['estimate_health']=time.monotonic()
         elif self.role=='command_guard' and 'command' in self.received:
             self.trip(packet.get('reason','invalid_estimate'))
@@ -169,8 +176,7 @@ class Runtime(Node):
             self.received[camera] = time.monotonic()
 
     def drop(self, key):
-        return (self.fault == key + '_loss' and self.first_clock is not None
-                and self.t-self.first_clock > 8)
+        return self.fault_schedule.drop(key,self.t)
 
     def guard_fault(self, msg):
         if self.role == 'referee':
@@ -255,13 +261,14 @@ class Runtime(Node):
                 self.feedback_pub.publish(String(data=json.dumps({k:result[k] for k in ('phase','reason','passed')})))
             if result['passed'] or result['phase'] == 'FAILED':
                 self.save('-referee', dict(result, contacts=self.contact_events,
-                                          rulebook='2027.2.1' if self.edition=='2027' else '2026 v6.1.0'))
+                                          rulebook=VERSION if self.edition=='2027' else '2026 v6.1.0'))
         else:
             ctrl = self.controller
             if ctrl.started is None:
                 # Require a steady stream before arming; Ogre can stall physics during startup.
                 steady = ready and self.first_clock is not None and self.t-self.first_clock >= 1
                 steady = steady and all(now-self.received[k] < .5 for k in required)
+                if self.physical:steady = steady and self.calibration_ready
                 if not steady:
                     self.ready_since = None
                 elif self.ready_since is None:
@@ -279,7 +286,7 @@ class Runtime(Node):
                 ctrl.change('ABORT', self.t, 'stale_' + stale)
                 self.velocity_pub.publish(Twist())
             elif now-self.started_wall > 45 and ctrl.started is None:
-                ctrl.change('ABORT', self.t, 'startup_missing_data')
+                ctrl.change('ABORT', self.t, 'dvl_calibration_not_ready' if self.physical and 'estimate_health' in self.received and not self.calibration_ready else 'startup_missing_data')
             self.state_pub.publish(String(data=ctrl.state))
             if ctrl.state in ('DONE', 'ABORT'):
                 self.velocity_pub.publish(Twist())

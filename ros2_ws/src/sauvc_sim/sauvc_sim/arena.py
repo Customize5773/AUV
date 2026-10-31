@@ -1,6 +1,6 @@
 """Procedural primitive geometry; metres, z=0 at the water surface.
 
-Reference: https://sauvc.org/rulebook/ (default 2027.2.1; explicit 2026 legacy profile).
+Reference: https://sauvc.org/rulebook/ (default 2027.3.2; explicit 2026 legacy profile).
 Prop positions are fixed training choices within the diagram's zones.
 """
 

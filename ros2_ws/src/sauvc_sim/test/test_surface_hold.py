@@ -117,3 +117,35 @@ def test_arena_stop_distinguishes_active_hold_from_motor_off():
         assert node.zero==hold
         ArenaRuntime.dynamics(node,SimpleNamespace(data=json.dumps(dict(time=2.,force_n=[0.]*7))))
         assert node.zero and node.force_zero
+
+
+def test_gate_camera_waits_for_sensor_time_without_losing_confirmations(monkeypatch):
+    import sauvc_sim.physical_runtime as runtime
+    monkeypatch.setattr(runtime,'detect_gate',lambda *args:dict(distance=2.68,bearing=0.))
+    e=StateEstimator(edition='2027');e.x=7.1;e.y=3.4
+    node=SimpleNamespace(estimator=e,valid=True,mission_state='ALIGN',pending_gate=None,gate_deferred_frames=0)
+    node.apply_pending_gate=lambda:PhysicalRuntime.apply_pending_gate(node)
+    for i in range(3):
+        stamp=1.+i*.1;e.last=stamp-.01
+        msg=SimpleNamespace(header=SimpleNamespace(stamp=SimpleNamespace(sec=1,nanosec=i*100000000)),data=b'',width=0,height=0,step=0,encoding='rgb8')
+        PhysicalRuntime.gate_image(node,msg)
+        assert e.gate_confirmations==i and node.pending_gate is not None
+        PhysicalRuntime.gate_image(node,msg)
+        assert node.gate_deferred_frames==i+1
+        e.last=stamp+.01;node.apply_pending_gate()
+        assert node.pending_gate is None and e.gate_confirmations==i+1
+        node.apply_pending_gate()
+        assert e.gate_confirmations==i+1
+    assert e.gate_corrections==1 and node.gate_deferred_frames==3
+    assert math.dist((e.x,e.y),(7.,3.5))<math.sqrt(.02)
+
+
+def test_pending_gate_rejects_stale_observation_and_phase_change():
+    e=StateEstimator(edition='2027');e.x=7.1;e.y=3.4;e.last=2.
+    node=SimpleNamespace(estimator=e,valid=True,mission_state='ALIGN',pending_gate=(dict(distance=2.68,bearing=0.),1.))
+    assert not PhysicalRuntime.apply_pending_gate(node)
+    assert node.pending_gate is None and e.gate_corrections==0
+    node.pending_gate=(dict(distance=2.68,bearing=0.),2.1)
+    node.mission_state='PASS_OUT'
+    assert not PhysicalRuntime.apply_pending_gate(node)
+    assert node.pending_gate is None and e.gate_corrections==0

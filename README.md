@@ -17,7 +17,7 @@ Repositori persiapan AUV tim HydroShips: aplikasi onboard Jetson–Pixhawk, simu
 
 ## Status simulator
 
-**Profil default kini SAUVC 2027.2.1**, berdasarkan [rulebook resmi](https://sauvc.org/rulebook/) yang diperiksa 26 Oktober 2026. Kolam 50 × 25 m, tiga jalur kualifikasi, gate 2027, target zone, Surfacing Square, syarat reacquisition dan timer sudah dimigrasikan. Detail serta bukti penerimaan: [laporan 24](plan/24-migrasi-dan-uji-arena-2027.md). Fixture 2026 hanya untuk regresi eksplisit; hasil lama tetap berlabel edisi lamanya.
+**Profil default kini SAUVC 2027.3.2**, berdasarkan [source resmi terkunci](doc/sources/rulebook-2027.3.2/README.md) dan audit perbedaan seluruh bagian terhadap 2027.2.1. Aturan tugas/skor/geometri tidak berubah; perubahan isi ada pada keanggotaan tim. Tiga kualifikasi dan dua misi ARENA lulus pada [laporan 41](plan/41-audit-dan-migrasi-rulebook-2027-3-2.md). Riwayat migrasi awal arena 2027 tetap pada laporan 24; fixture 2026 tersedia sebagai regresi eksplisit.
 
 | Bagian | Status dan batas hasil |
 | --- | --- |
@@ -27,9 +27,29 @@ Repositori persiapan AUV tim HydroShips: aplikasi onboard Jetson–Pixhawk, simu
 | ARENA blue drum | Navigation dahulu → flare sesuai urutan → drop blue drum → Surfacing Square → stop |
 | ARENA pinger/pickup | TDOA virtual → drop red drum berpinger → seluruh badan keluar target zone → pickup bola yang sama → retensi sampai akhir |
 | Penilaian 2027 | Timer sejak thrust, poin tugas, penalti kontak, bonus surface dan bonus Square; bonus inspeksi fisik tidak dimasukkan |
-| Bukti pengujian terbaru | 130 tes unit; 8 kualifikasi + rerun ARENA lulus penerimaan terarah; hold berarus 30 detik, abort ke gaya nol dan shutdown bersih |
+| Bukti pengujian terbaru | 160 tes unit; bridge kamera dipisahkan dari sensor/kendali; enam eksperimen A/B/fault dan empat penerimaan default diterima; pemicu historis belum teridentifikasi |
 
 **ARENA dan kualifikasi autonomous visual kini memakai model gaya tujuh thruster dan estimator sensor virtual secara default.** Ground truth digunakan oleh referee/pencatat; profil ideal tersedia sebagai pembanding eksplisit. [Laporan 26](plan/26-arena-dinamika-dan-estimasi-sensor.md) mencatat penerimaan awal dinamis; [laporan 27](plan/27-kalibrasi-dvl-dan-penerimaan-gui.md) memuat kalibrasi DVL dan dua misi penuh dengan Gazebo serta kedua POV. Pinger adalah model geometrik TDOA, servo pelepas memakai respons ideal, dan pickup memakai latch fixed setelah kontak. Hasil ini belum membuktikan performa AUV fisik atau ketahanan pada seluruh kondisi kolam.
+
+[Laporan 43](plan/43-isolasi-bridge-kamera-dan-sensor.md) menerapkan default bridge kamera terpisah. Jeda proses kamera 1 s dapat dilalui dengan sensor tetap segar; jeda kamera 3 s dan kehilangan bridge sensor tetap memicu abort. Dua kualifikasi (termasuk GUI/dua POV), ARENA blue drum penuh serta hold berarus 180 s lulus; drift hold 2,09 cm. Subscriber raw-image lambat tidak mereproduksi stale; penyebab insiden lama tetap belum terbukti. Detail shutdown parent/Qt dicatat dalam laporan.
+
+[Laporan 42](plan/42-diagnosis-lokasi-stale-sensors.md) memvalidasi diagnosis produsen/native/ROS/estimator dengan dua pencatat independen. Umur sensor maksimum run nominal 73,37 ms terhadap batas 300 ms; drift hold 180 s 2,10 cm. Data lama tidak cukup untuk menentukan penyebab unik. Gazebo/probe shutdown bersih; grup viewer RQt masih memerlukan cleanup paksa yang dicatat.
+
+[Laporan 41](plan/41-audit-dan-migrasi-rulebook-2027-3-2.md) menyelesaikan audit dan migrasi acuan 2027.3.2. Lima run headless diterima; diagnosis lokasi diteruskan pada laporan 42 dan isolasi transport pada laporan 43; penyebab historis, konsistensi dan optimasi vertikal rencana 40 masih terbuka.
+
+[Laporan 39](plan/39-benchmark-dan-percepatan-uturn.md) mempercepat U-turn dinamis dengan permintaan yaw 0,7 rad/s. Tiga kandidat lulus pelintasan penuh dan mencatat start–surface 25,838–25,942 s, lebih cepat daripada baseline berpasangan. Rulebook resmi kini 2027.3.2 (30 Oktober); [pemeriksaan kualifikasi](doc/sources/rulebook-2027.3.2-check.md) pada tahap tersebut masih memakai fixture 2027.2.1; audit/migrasi berikutnya ada pada laporan 41.
+
+[Laporan 38](plan/38-fault-runtime-setelah-gerak.md) mengikat fault kamera, command, odometry, contact, clock dan controller freeze ke awal gerak. Sembilan run diterima, termasuk kamera/command ARENA; batas pengaman tidak dilonggarkan.
+
+[Laporan 37](plan/37-fault-setelah-start.md) memperbaiki waktu injeksi kehilangan IMU, tekanan, DVL dan aktuator menjadi 12 detik sesudah thrust mulai. Lima respons fault dan satu misi normal lulus; argumen kondisi kosong pada kedua penguji juga diperbaiki.
+
+[Laporan 36](plan/36-investigasi-stale-sensors.md) menambahkan diagnostik jeda penerimaan dan umur paket sensor. Dua pengulangan bersih serta satu uji fault setelah DIVE lulus, tetapi penyebab gangguan spontan lama belum teridentifikasi.
+
+[Laporan 35](plan/35-kualitas-kalibrasi-dvl-sebelum-start.md) menambahkan pemeriksaan kualitas bias DVL sebelum start. 139 tes unit lulus; 5/6 percobaan diterima. Tiga hold 180 detik yang diterima mencatat drift 2,10/2,07/1,86 cm; satu percobaan gagal karena stale_sensors. Kualifikasi nominal dan ARENA berarus lulus. Persiapan sampai thrust 26,76–28,31 detik simulasi. Gangguan sensor intermiten masih terbuka.
+
+[Laporan 34](plan/34-uji-hold-panjang-dan-variasi-arus.md) menguji hold 180 detik pada arus konstan 0,02/0,05/0,10 m/s dengan arah berbeda antar-run. Dua dari tiga hold panjang lulus; satu gagal dengan drift 12,05 cm meski estimasi posisi tampak stabil. Regresi 30 detik lulus. Temuan menunjukkan batas bias DVL tersisa; hold jangka panjang belum andal. Pengendali tidak diubah dan ambang tidak dilonggarkan.
+
+[Laporan 33](plan/33-sinkronisasi-kamera-dan-estimator.md) memperbaiki urutan kamera–sensor: observasi menunggu waktu estimator menyusul sebelum dikoreksi. Lima kasus prior, termasuk tiga pengulangan seed 91, menerima 13–19 koreksi dan mencatat galat maksimum 14,43–15,01 cm. Nominal dan hold berarus juga lulus; drift hold 2,36 cm dalam 30 detik. ARENA dan GUI tidak diuji ulang pada tahap ini.
 
 [Laporan 32](plan/32-surface-hold-dan-koreksi-prior.md) menambahkan `surface_hold:=true` untuk menjaga estimasi posisi setelah surface dengan thruster aktif; default tetap motor-off. Empat hold berarus 0,02 m/s mencatat drift maksimum 2,01 cm dalam jendela 30 detik. Empat kasus prior kualifikasi lulus dengan galat maksimum 14,45–18,24 cm, memakai koreksi visual bersyarat terhadap gate yang disurvei; satu run tidak menerima koreksi. Inisialisasi sensor parsial dan penilaian hold ARENA juga diperbaiki. Ini penerimaan terbatas, bukan bukti semua kondisi atau kendaraan nyata.
 
@@ -65,6 +85,17 @@ Jalankan satu mode setiap kali; hentikan mode sebelumnya sebelum membuka mode la
 | [17 — Persepsi dan ARENA](plan/17-hasil-arena-autonomous.md) | Ketahanan deteksi, perbaikan gate dan misi blue drum |
 | [18 — Dinamika dan estimasi sensor](plan/18-dinamika-dan-estimasi-sensor.md) | Model gaya, instrumen virtual dan pengujian gangguan |
 | [19 — Penilaian dan rancangan servo](plan/19-penilaian-arena-dan-rancangan-servo.md) | Perhitungan skor, perbedaan interpretasi contoh aturan dan konsep dropper |
+| [43 — Isolasi bridge kamera](plan/43-isolasi-bridge-kamera-dan-sensor.md) | 160 tes; enam eksperimen A/B/fault + empat penerimaan default, termasuk hold 180 s; guard tetap aktif |
+| [42 — Diagnosis lokasi stale_sensors](plan/42-diagnosis-lokasi-stale-sensors.md) | 157 tes; 11 run matriks utama, empat lokasi fault terbedakan; sebab historis tetap tak teridentifikasi |
+| [41 — Audit dan migrasi 2027.3.2](plan/41-audit-dan-migrasi-rulebook-2027-3-2.md) | 148 tes; tiga kualifikasi dan dua ARENA lulus, sumber dikunci dan delta diaudit |
+| [40 — Rencana solusi berikutnya](plan/40-rencana-solusi-dan-validasi-berikutnya.md) | Tahap audit selesai; diagnosis, konsistensi dan optimasi lanjutan masih terbuka |
+| [39 — Benchmark dan percepatan U-turn](plan/39-benchmark-dan-percepatan-uturn.md) | 147 tes; tiga pasangan lulus dan lebih cepat; fixture tetap 2027.2.1 |
+| [38 — Fault runtime setelah gerak](plan/38-fault-runtime-setelah-gerak.md) | 146 tes; delapan respons fault dan satu misi normal lulus |
+| [37 — Fault setelah start](plan/37-fault-setelah-start.md) | Empat fault native terikat start; lima respons fault dan satu kualifikasi normal lulus |
+| [36 — Investigasi stale_sensors](plan/36-investigasi-stale-sensors.md) | Diagnostik, dua hold lulus, satu fault bridge saat misi aktif; gangguan historis masih terbuka |
+| [35 — Kualitas kalibrasi DVL sebelum start](plan/35-kualitas-kalibrasi-dvl-sebelum-start.md) | Kesiapan berdasarkan ketidakpastian bias; 139 tes, 5/6 percobaan diterima |
+| [34 — Hold panjang dan variasi arus](plan/34-uji-hold-panjang-dan-variasi-arus.md) | 134 tes unit; 3/4 run diterima, satu hold 180 detik gagal drift |
+| [33 — Sinkronisasi kamera dan estimator](plan/33-sinkronisasi-kamera-dan-estimator.md) | 132 tes unit dan tujuh kualifikasi lulus; koreksi konsisten pada lima kasus prior |
 | [32 — Surface hold dan koreksi prior](plan/32-surface-hold-dan-koreksi-prior.md) | Hold aktif opt-in, disarm saat fault, koreksi visual gate survei dan startup sensor parsial |
 | [31 — Kalibrasi DVL dalam arus](plan/31-kalibrasi-dvl-dalam-arus.md) | Penahan preflight, konfirmasi kalibrasi dan akurasi lima run |
 | [30 — Pengujian keandalan berulang](plan/30-pengujian-keandalan-berulang.md) | 18 run + satu pengulangan, 14 diterima; perbaikan integrasi DVL, batas prior dan kegagalan dalam arus |

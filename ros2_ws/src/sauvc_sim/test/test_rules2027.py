@@ -12,6 +12,14 @@ from sauvc_sim.camera_geometry import CameraModel
 
 
 class Rules2027Test(unittest.TestCase):
+    def test_rulebook_version_is_consistent_and_legacy_remains_distinct(self):
+        from sauvc_sim.rules2027 import VERSION
+        self.assertEqual(VERSION,'2027.3.2')
+        current=ArenaJudge(edition='2027').result()
+        self.assertEqual(current['rulebook'],VERSION)
+        self.assertEqual(current['score']['rulebook'],VERSION)
+        self.assertEqual(ArenaJudge(edition='2026').result()['rulebook'],'2026 v6.1.0')
+
     def test_pool_three_lanes_gate_and_zone_geometry(self):
         w=ET.fromstring(build_world('finals',extended=True)).find('world')
         for i,y in enumerate(LANES,1):

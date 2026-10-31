@@ -60,7 +60,7 @@ class QualificationController:
                 self.turn_progress += wrap(yaw-self.last_yaw)
             self.last_yaw = yaw
             remaining = -math.pi-self.turn_progress
-            yaw_rate = clamp(remaining*1.8, .5)
+            yaw_rate = clamp(remaining*1.8, .7 if self.physical else .5)
             if self.physical:yaw_rate/=self.speed_scale
             if abs(remaining) < .025:
                 self.target = None

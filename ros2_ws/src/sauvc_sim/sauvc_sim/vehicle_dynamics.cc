@@ -34,6 +34,9 @@ class VehicleDynamics : public System, public ISystemConfigure,
   V linear{8,12,80},quadratic{25,35,40},angular{1.5,1.5,.4},angular2{.8,.8,.8},current{},previous_velocity{};
   std::chrono::steady_clock::time_point last_command{};
   bool received=false,timed_out=false;
+  unsigned long long sensor_sequence=0;
+  double thrust_started=-1;
+  bool FaultDue() const { return thrust_started>=0 && now-thrust_started>12; }
   std::string fault;
   std::mt19937 generator{42};
   std::normal_distribution<double> gaussian{0,1};
@@ -95,11 +98,11 @@ public:
     std::array<double,7> u{};
     {
       std::lock_guard<std::mutex> lock(mutex);
-      timed_out=received && (std::chrono::duration<double>(std::chrono::steady_clock::now()-last_command).count()>.5 || (fault=="actuator_loss" && now>12));
+      timed_out=received && (std::chrono::duration<double>(std::chrono::steady_clock::now()-last_command).count()>.5 || (fault=="actuator_loss" && FaultDue()));
       if (received && !timed_out) u=requested;
     }
     if (!released && std::any_of(u.begin(),u.end(),[](double x) { return std::abs(x)>1e-6; })) {
-      released=true;
+      released=true;thrust_started=now;
       if (restraint!=kNullEntity) { ecm.RequestRemoveEntity(restraint);restraint=kNullEntity; }
     }
     // The support balances external loads; queued wrenches on a fixed body can accumulate until release.
@@ -141,20 +144,27 @@ public:
     auto vector=[&](const char *key,V v,double sigma) {
       out<<",\""<<key<<"\":["<<v.X()+noise(sigma)<<','<<v.Y()+noise(sigma)<<','<<v.Z()+noise(sigma)<<']';
     };
-    if (!(fault=="imu_loss" && t>12)) {
+    if (!(fault=="imu_loss" && FaultDue())) {
       vector("gyro",gyro+V(0,0,.001),gn);vector("accel",accel,.02);vector("mag",mag,mn);
     }
     if (t-last_slow>=.05) {
       last_slow=t;
-      if (!(fault=="pressure_loss" && t>12))
+      if (!(fault=="pressure_loss" && FaultDue()))
         out<<",\"pressure_pa\":"<<101325+rho*g*std::max(0.,-pose.Pos().Z())+10+noise(pn);
-      if (!(fault=="dvl_loss" && t>12)) vector("dvl",dvl+V(.001,-.001,.0005),dn);
+      if (!(fault=="dvl_loss" && FaultDue())) vector("dvl",dvl+V(.001,-.001,.0005),dn);
     }
-    out<<'}';ignition::msgs::StringMsg msg;msg.set_data(out.str());sensors.Publish(msg);
-    std::ostringstream state;state<<"{\"time\":"<<t<<",\"buoyancy_n\":"<<buoyancy
+    out<<'}';ignition::msgs::StringMsg msg;msg.set_data(out.str());
+    const auto publish_begin=std::chrono::steady_clock::now();
+    const double producer_wall=std::chrono::duration<double>(publish_begin.time_since_epoch()).count();
+    sensors.Publish(msg);
+    const double publish_duration=std::chrono::duration<double>(std::chrono::steady_clock::now()-publish_begin).count();
+    std::ostringstream state;state.precision(12);state<<"{\"time\":"<<t<<",\"buoyancy_n\":"<<buoyancy
       <<",\"timed_out\":"<<(timed_out?"true":"false")<<",\"force_n\":[";
     for (size_t i=0;i<7;++i) state<<(i?",":"")<<forces[i];
-    state<<"]}";msg.set_data(state.str());telemetry.Publish(msg);
+    const bool injected=FaultDue() && (fault=="imu_loss" || fault=="pressure_loss" || fault=="dvl_loss" || fault=="actuator_loss");
+    state<<"],\"sensor_sequence\":"<<++sensor_sequence<<",\"producer_wall_s\":"<<producer_wall<<",\"sensor_publish_duration_s\":"<<publish_duration;
+    state<<",\"injected_fault\":\""<<(injected?fault:"")<<"\"}";
+    msg.set_data(state.str());telemetry.Publish(msg);
   }
 };
 }

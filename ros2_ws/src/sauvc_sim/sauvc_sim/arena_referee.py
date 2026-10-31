@@ -1,4 +1,5 @@
 """Independent ARENA task proof from hull contacts and physics ball positions."""
+from sauvc_sim.rules2027 import VERSION
 import math
 from sauvc_sim.arena import floor_z
 from sauvc_sim.referee import envelope, wrap
@@ -234,7 +235,7 @@ class ArenaJudge:
             self.inside_since=None
 
     def result(self):
-        return dict(rulebook='2027.2.1' if self.edition=='2027' else '2026 v6.1.0',
+        return dict(rulebook=VERSION if self.edition=='2027' else '2026 v6.1.0',
                     coordinate_frame='arena_UV' if self.edition=='2027' else 'world',
                     target_zone_exited=self.score.retrieval_crossing if self.edition=='2027' else False,
                     payload_acquired=self.payload_acquired,payload_grasped=self.payload_grasped,

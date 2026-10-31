@@ -24,6 +24,7 @@ class PhysicalRuntime(Node):
         self.reason='waiting_sensors';self.stamp=0.;self.desired=[0.]*4
         self.measured=[0.]*4;self.z=0.;self.cmd_time=0.;self.disarmed=False;self.active=False
         self.mission_state='WAIT';self.hold_target=None;self.pose=None
+        self.pending_gate=None;self.gate_deferred_frames=0
         self.declare_parameter('surface_hold',False);self.surface_hold=self.get_parameter('surface_hold').value
         self.declare_parameter('arena','qualification');self.arena=self.get_parameter('arena').value
         self.declare_parameter('edition','2027');self.declare_parameter('lane',1);self.declare_parameter('lateral_offset',0.)
@@ -55,6 +56,7 @@ class PhysicalRuntime(Node):
             self.valid=self.estimator.update(packet)
             self.reason=self.estimator.reason
             if not self.valid:return
+            self.apply_pending_gate()
             e=self.estimator;self.stamp=packet['time']
             out=Odometry();out.header.stamp.sec=int(self.stamp)
             out.header.stamp.nanosec=int((self.stamp-int(self.stamp))*1e9)
@@ -77,8 +79,20 @@ class PhysicalRuntime(Node):
     def gate_image(self,msg):
         if self.mission_state not in ('FIND_GATE','ALIGN'):return
         stamp=msg.header.stamp.sec+msg.header.stamp.nanosec*1e-9
+        if stamp<=self.estimator.gate_stamp or (self.pending_gate is not None and stamp<=self.pending_gate[1]):return
         detection=detect_gate(msg.data,msg.width,msg.height,msg.step,msg.encoding)
-        self.estimator.observe_gate(detection,stamp)
+        self.pending_gate=(detection,stamp)
+        if self.estimator.last is None or stamp>self.estimator.last:self.gate_deferred_frames+=1
+        self.apply_pending_gate()
+
+    def apply_pending_gate(self):
+        if self.mission_state not in ('FIND_GATE','ALIGN'):
+            self.pending_gate=None;return False
+        # Camera and instrument callbacks can arrive in either order.
+        if (self.pending_gate is None or not self.valid or self.estimator.last is None
+                or self.pending_gate[1]>self.estimator.last):return False
+        detection,stamp=self.pending_gate;self.pending_gate=None
+        return self.estimator.observe_gate(detection,stamp)
 
     def guard_fault(self,msg):
         self.disarmed=True
@@ -117,9 +131,13 @@ class PhysicalRuntime(Node):
         if self.role=='state_estimator':
             self.health.publish(String(data=json.dumps(dict(valid=self.valid and fresh,
                 reason=self.reason if fresh else 'stale_sensors',time=self.stamp,
+                sensor_age_wall_s=now-self.last_received,
                 source='pressure_gyro_magnetometer_dvl',dvl_bias_xy_mps=self.estimator.dvl_bias,
                 dvl_bias_samples=self.estimator.bias_samples,
-                dvl_calibrating=self.estimator.calibrating,gate_corrections=self.estimator.gate_corrections))))
+                dvl_bias_uncertainty_mps=self.estimator.dvl_bias_uncertainty,
+                dvl_calibration_ready=self.estimator.calibration_ready,
+                dvl_calibrating=self.estimator.calibrating,gate_corrections=self.estimator.gate_corrections,
+                gate_deferred_frames=self.gate_deferred_frames))))
         else:
             armed=self.active and self.valid and fresh and now-self.cmd_time<.5 and not self.disarmed
             holding=self.hold_target is not None and not self.disarmed

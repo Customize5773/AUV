@@ -161,3 +161,54 @@ bash tools/ros.sh launch sauvc_sim arena.launch.py autonomous:=true surface_hold
 Untuk ARENA, tambahkan `arena:=finals`. Jalankan satu simulator setiap kali. Perintah POV di atas tetap berlaku.
 
 Default `surface_hold:=false` mematikan motor setelah surface. Dalam mode hold, DONE berarti misi selesai tetapi thruster tetap aktif mempertahankan estimasi posisi, kedalaman dan heading saat mulai STOP. Pantau dengan `bash tools/ros.sh topic echo /sauvc/surface_hold/status`. Fault/abort atau feedback kedaluwarsa mengunci disarm dan gaya nol; pemulihan stream tidak otomatis melanjutkan hold. Ctrl+C menutup simulasi. Kriteria, hasil uji dan batasnya ada pada [laporan 32](../plan/32-surface-hold-dan-koreksi-prior.md).
+
+
+## Menunggu kualitas kalibrasi DVL
+
+Pada mode dinamis, kualifikasi dan ARENA kini menunggu sedikitnya 200 sampel DVL saat kendaraan tertahan dan indikator ketidakpastian bias horizontal ≤0,0004 m/s, kemudian aliran data stabil dua detik. Fase WAIT/WAIT_READY dapat lebih lama; tidak perlu mengirim perintah gerak untuk mempercepatnya. Jika belum siap sampai batas startup 45 detik, misi dibatalkan.
+
+Pantau `bash tools/ros.sh topic echo /sauvc/state/health`: `dvl_bias_samples`, `dvl_bias_uncertainty_mps`, dan `dvl_calibration_ready`. Sensor yang `valid=true` belum tentu siap untuk start. Prosedur ini memerlukan penahan independen; jangan menganggap kendaraan bebas hanyut sebagai referensi diam. Rincian dan hasil penerimaan: [laporan 35](../plan/35-kualitas-kalibrasi-dvl-sebelum-start.md).
+
+
+## Isolasi bridge kamera
+
+Default semua launch sekarang `bridge_layout:=isolated`: `sauvc_camera_bridge` menangani gambar depan/bawah, sedangkan `sauvc_bridge` menangani clock, sensor dan kendali. Perintah kualifikasi, ARENA serta POV di atas otomatis memakai susunan ini. Untuk diagnosis A/B gunakan `bridge_layout:=single`; pemeriksa juga menerima `--bridge-layout single` atau `--bridge-layout isolated`. Tanpa override, penguji memakai default launch. Batas pengaman tetap sama. Hasil dan batas: [laporan 43](../plan/43-isolasi-bridge-kamera-dan-sensor.md).
+
+## Diagnosis jeda native–ROS–estimator
+
+Gunakan folder baru untuk setiap run. Perintah berikut mengevaluasi simulator lokal dengan domain/partition terpisah. Pada ketiga terminal jalankan persiapan yang sama:
+
+```bash
+cd /home/rasya/AUV/ros2_ws
+export ROS_DOMAIN_ID=97
+export IGN_PARTITION=sauvc_diag_manual
+mkdir -p evidence/diag-manual-001
+```
+
+Terminal 1 — penguji kualifikasi dan dua POV:
+
+```bash
+bash tools/ros.sh python tools/check_qualification.py --vehicle-model dynamic --gui --pov --output evidence/diag-manual-001/check.json
+```
+
+Setelah `ign topic -l` menampilkan `/sauvc/sensors` dan `/sauvc/dynamics/telemetry`, segera mulai kedua probe selama preflight, sebelum DIVE/thrust pertama.
+
+Terminal 2 — observer native:
+
+```bash
+bash tools/ros.sh python tools/native_transport_probe.py --output evidence/diag-manual-001/native.jsonl
+```
+
+Terminal 3 — observer ROS dan sampel host:
+
+```bash
+bash tools/ros.sh python tools/ros_transport_probe.py --output evidence/diag-manual-001/ros.jsonl
+```
+
+Setelah penguji selesai, Ctrl+C pada kedua observer agar berkas ditutup. Analisis offline:
+
+```bash
+bash tools/ros.sh python tools/analyze_transport.py --native evidence/diag-manual-001/native.jsonl --ros evidence/diag-manual-001/ros.jsonl --checker evidence/diag-manual-001/check.json --output evidence/diag-manual-001/diagnosis.json
+```
+
+Analyzer menolak capture yang tidak mencakup awal/akhir jendela. Untuk replay contoh yang sudah diuji, gunakan perintah pada [laporan 42](../plan/42-diagnosis-lokasi-stale-sensors.md). Label diagnosis menyatakan batas lokasi yang didukung rekaman, bukan otomatis akar masalah spesifik DDS/rendering. Dua POV ditata pada X11 dan subscriber/window diverifikasi. Fallback cleanup grup RQt dapat memerlukan SIGKILL; field `pov_cleanup_forced_groups` mencatatnya. Ini terpisah dari shutdown Gazebo/probe dan pengaman kendaraan.

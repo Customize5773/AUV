@@ -214,6 +214,19 @@ class EstimationTest(unittest.TestCase):
 
 
 class DynamicMissionTest(unittest.TestCase):
+    def test_dynamic_turn_uses_available_yaw_limit_and_tapers_near_target(self):
+        ctrl=QualificationController(physical=True)
+        ctrl.started=0.;ctrl.state='TURN';ctrl.last_yaw=0.
+        command=ctrl.command((11.5,4.,-.6,0.),1.,None,0.,{})
+        self.assertAlmostEqual(command[3],-.7)
+        ctrl.turn_progress=-math.pi+.1
+        command=ctrl.command((11.5,4.,-.6,0.),2.,None,0.,{})
+        self.assertGreater(command[3],-.7)
+        self.assertLess(command[3],0.)
+        ideal=QualificationController()
+        ideal.started=0.;ideal.state='TURN';ideal.last_yaw=0.
+        self.assertAlmostEqual(ideal.command((11.5,4.,-.6,0.),1.,None,0.,{})[3],-4.)
+
     def test_short_clearance_brakes_before_turn_without_changing_ideal(self):
         ctrl=QualificationController(physical=True)
         ctrl.started=0.;ctrl.state='CLEAR_GATE';ctrl.turn_start=(10.6,4.)

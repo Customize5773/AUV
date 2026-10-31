@@ -45,6 +45,17 @@ class StateEstimator:
         self.calibrating=calibrate_dvl
         self.dvl_bias=[0.,0.]
         self.bias_samples=0
+        self.bias_m2=[0.,0.]
+
+    @property
+    def dvl_bias_uncertainty(self):
+        """Two standard errors of the horizontal mean; assumes independent samples."""
+        if self.bias_samples<2:return None
+        return 2*math.sqrt(max(0.,sum(self.bias_m2))/(self.bias_samples*(self.bias_samples-1)))
+
+    @property
+    def calibration_ready(self):
+        return self.bias_samples>=200 and self.dvl_bias_uncertainty<=.0004
 
     def finish_calibration(self):
         self.calibrating=False
@@ -84,7 +95,10 @@ class StateEstimator:
             if (self.calibrating and packet.get('deployment_held') is True and math.hypot(*packet['dvl'][:2])<.02 and
                     math.sqrt(sum(v*v for v in self.instruments['gyro']))<.03):
                 self.bias_samples+=1
-                self.dvl_bias=[b+(m-b)/self.bias_samples for b,m in zip(self.dvl_bias,packet['dvl'])]
+                for i,m in enumerate(packet['dvl'][:2]):
+                    delta=m-self.dvl_bias[i]
+                    self.dvl_bias[i]+=delta/self.bias_samples
+                    self.bias_m2[i]+=delta*(m-self.dvl_bias[i])
             measured=[v-(self.dvl_bias[i] if i<2 and self.bias_samples>=20 else 0.)
                       for i,v in enumerate(packet['dvl'])]
             # Integrating the feedback low-pass filter adds a speed-dependent position lag.

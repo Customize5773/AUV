@@ -37,12 +37,14 @@ def stop_viewers(viewers):
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--bridge-layout',choices=['single','isolated'],default=None,help='Override bridge process isolation; omit to use launch default')
     parser.add_argument('--vehicle-model',choices=['auto','ideal','dynamic'],default='auto')
     parser.add_argument('--gui',action='store_true')
     parser.add_argument('--pov',action='store_true',help='Open and verify both annotated camera viewers (requires --gui)')
     parser.add_argument('--edition',choices=['2026','2027'],default='2027')
     parser.add_argument('--output',type=Path,required=True)
     parser.add_argument('--surface-hold',action='store_true')
+    parser.add_argument('--hold-duration',type=float,default=30.,help='Hold measurement window in simulation seconds (at least 30)')
     parser.add_argument('--conditions',type=Path,help='JSON: sensor seed, world current, initial XY prior error, light scale')
     parser.add_argument('--extended',action='store_true')
     parser.add_argument('--pinger-drum',type=int,choices=[0,1,2,3,4],default=0)
@@ -52,6 +54,8 @@ def main():
     parser.add_argument('--fault',default='none',choices=['none','camera_loss','command_loss','odom_loss','contact_loss','clock_loss','imu_loss','pressure_loss','dvl_loss','actuator_loss'])
     args=parser.parse_args();args.output.parent.mkdir(parents=True,exist_ok=True)
     if args.surface_hold and (args.vehicle_model=='ideal' or args.fault not in ('','none')):parser.error('surface hold test requires dynamic vehicle and no early fault')
+    if not math.isfinite(args.hold_duration) or args.hold_duration<30:parser.error('--hold-duration must be finite and at least 30')
+    if not args.surface_hold and args.hold_duration!=30:parser.error('--hold-duration requires --surface-hold')
     test_conditions=load_conditions(args.conditions)
     if args.pov and not args.gui:parser.error('--pov requires --gui')
     rclpy.init();node=rclpy.create_node('arena_check')
@@ -92,7 +96,7 @@ def main():
     node.create_subscription(String,'/sauvc/sensors',lambda m:observed['sensors'].append(json.loads(m.data)),10)
     node.create_subscription(String,'/sauvc/dynamics/telemetry',lambda m:observed['dynamics'].append(json.loads(m.data)),10)
     node.create_subscription(String,'/sauvc/surface_hold/status',lambda m:observed['hold_status'].append(json.loads(m.data)),10)
-    report={'vehicle_model':args.vehicle_model,'passed':False,'edition':args.edition,'order':args.order,'fault':args.fault,
+    report={'bridge_layout':args.bridge_layout,'vehicle_model':args.vehicle_model,'passed':False,'edition':args.edition,'order':args.order,'fault':args.fault,
             'scene_variant':args.scene_variant,'blue_drum':args.blue_drum,
             'extended':args.extended,'pinger_drum':args.pinger_drum,'conditions':test_conditions,'surface_hold':args.surface_hold}
     viewers=[];viewer_logs=[]
@@ -102,7 +106,8 @@ def main():
             f'scene_variant:={args.scene_variant}',f'blue_drum:={args.blue_drum}',
             f'extended:={str(args.extended).lower()}',f'pinger_drum:={args.pinger_drum}',
             f'surface_hold:={str(args.surface_hold).lower()}',
-            f'conditions_file:={args.conditions.resolve() if args.conditions else ""}',
+            *([f'conditions_file:={args.conditions.resolve()}'] if args.conditions else []),
+            *([f'bridge_layout:={args.bridge_layout}'] if args.bridge_layout else []),
             f'fault:={args.fault}',f'output:={args.output.with_suffix("")}'],
             stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
         try:
@@ -113,23 +118,27 @@ def main():
                     viewers.append(subprocess.Popen(['bash','tools/ros.sh','run','rqt_image_view','rqt_image_view',
                         f'/sauvc/perception/{camera}/image_annotated'],stdout=viewer_log,
                         stderr=subprocess.STDOUT,start_new_session=True))
-            deadline=time.monotonic()+1000
+            deadline=time.monotonic()+1000+(3*args.hold_duration if args.surface_hold else 0)
             terminal_since=None
+            terminal_sim=None
             last_state=None
             while time.monotonic()<deadline:
                 if any(v.poll() is not None for v in viewers):raise RuntimeError('POV viewer exited during mission')
                 rclpy.spin_once(node,timeout_sec=.1)
+                if process.poll() is not None: raise RuntimeError('launch exited before completion')
                 if last_state!=observed['state']:
                     last_state=observed['state']
                     print(last_state,observed['trajectory'][-1] if observed['trajectory'] else '',flush=True)
                 terminal=last_state in ('DONE','ABORT') or observed['result'].get('phase')=='FAILED'
                 if terminal and terminal_since is None: terminal_since=time.monotonic()
                 if terminal_since is not None and time.monotonic()-terminal_since>2:
-                    if args.surface_hold and last_state=='DONE' and time.monotonic()-terminal_since<35:continue
+                    if args.surface_hold and observed['state']=='DONE':
+                        if not observed['trajectory']:continue
+                        if terminal_sim is None:terminal_sim=observed['trajectory'][-1][0]
+                        if observed['trajectory'][-1][0]-terminal_sim<args.hold_duration+5:continue
                     stable=len(observed['trajectory'])>20 and math.dist(observed['trajectory'][-1][1:4],observed['trajectory'][-20][1:4])<.01
                     if args.vehicle_model=='ideal' or stable or time.monotonic()-terminal_since>40:break
-                if process.poll() is not None: raise RuntimeError('launch exited before completion')
-            else: raise TimeoutError('ARENA did not finish in 1000 wall seconds')
+            else: raise TimeoutError('ARENA mission/hold exceeded wall-time deadline')
             recent=observed['commands'][-10:]
             zero=len(recent)==10 and all(all(abs(v)<1e-6 for v in row[1:]) for row in recent)
             stationary=len(observed['trajectory'])>20 and math.dist(observed['trajectory'][-1][1:4],observed['trajectory'][-20][1:4])<.01
@@ -141,8 +150,15 @@ def main():
                 key={'camera_loss':'front','contact_loss':'contacts','imu_loss':'gyro','pressure_loss':'pressure_pa'}.get(args.fault,args.fault.removesuffix('_loss'))
                 fault_verified=('stale_'+key in (info.get('reason','')+' '+observed['result'].get('reason',''))
                                 and bool(observed['trajectory']) and observed['trajectory'][-1][0]>=8)
+                from check_qualification import NATIVE_FAULTS,native_fault_evidence,runtime_fault_evidence
+                if args.fault in NATIVE_FAULTS:
+                    report['fault_injection']=native_fault_evidence(observed,args.fault)
+                    fault_verified=fault_verified and report['fault_injection']['passed']
+                elif args.vehicle_model!='ideal':
+                    report['fault_injection']=runtime_fault_evidence(args.output.with_suffix('.log').read_text(),args.fault,observed['dynamics'],12)
+                    fault_verified=fault_verified and report['fault_injection']['passed']
             if args.vehicle_model!='ideal':
-                from check_qualification import estimation_errors
+                from check_qualification import estimation_errors,calibration_evidence
                 truth=[s.node_name for s in node.get_subscriptions_info_by_topic('/sauvc/odom')]
                 report['truth_subscribers']=truth
                 consumers={s.node_name for s in node.get_subscriptions_info_by_topic('/sauvc/arena/result')}
@@ -155,7 +171,8 @@ def main():
                 report['estimated_state_available']=report['estimation_error']['samples']>50
                 health=observed['health'][-1] if observed['health'] else {}
                 report['dvl_calibration']={k:health.get(k) for k in ('dvl_bias_xy_mps','dvl_bias_samples','dvl_calibrating')}
-                report['dvl_calibration_valid']=health.get('dvl_bias_samples',0)>=20 and health.get('dvl_calibrating') is False
+                report['calibration_verification']=calibration_evidence(observed)
+                report['dvl_calibration_valid']=report['calibration_verification']['passed']
                 report['seven_thrusters']=bool(observed['dynamics']) and all(len(p['force_n'])==7 for p in observed['dynamics'])
                 report['thrusters_zero']=bool(observed['dynamics']) and all(abs(f)<.05 for f in observed['dynamics'][-1]['force_n'])
             report.update(zero_command=zero,stationary=stationary,fault_verified=fault_verified,
@@ -168,9 +185,16 @@ def main():
                 report['passed']=report['passed'] and report['pov_verified']
             if args.surface_hold and success:
                 from surface_hold_check import verify_hold
-                report['hold_verification']=verify_hold(node,observed)
+                report['hold_verification']=verify_hold(node,observed,args.hold_duration)
                 report['passed']=report['passed'] and report['hold_verification']['passed']
-        except Exception as exc: report['error']=str(exc)
+            report['bridge_publishers']={topic:[p.node_name for p in node.get_publishers_info_by_topic(topic)]
+                                         for topic in ('/clock','/sauvc/sensors','/sauvc/camera_front/image_raw')}
+            report['bridge_qos']={topic:[dict(node=p.node_name,reliability=p.qos_profile.reliability.name,depth=p.qos_profile.depth) for p in node.get_publishers_info_by_topic(topic)] for topic in report['bridge_publishers']}
+            report['bridge_publishers_unique']=all(len(v)==1 for v in report['bridge_publishers'].values())
+            report['passed']=report['passed'] and report['bridge_publishers_unique']
+        except Exception as exc:
+            report['passed']=False
+            report['error']=str(exc)
         finally:
             if process.poll() is None:
                 try:

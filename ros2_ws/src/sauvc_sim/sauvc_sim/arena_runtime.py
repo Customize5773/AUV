@@ -1,3 +1,4 @@
+from sauvc_sim.fault_schedule import FaultSchedule
 """ROS adapters for visual ARENA control and independent task proof."""
 import json
 import math
@@ -61,6 +62,7 @@ class ArenaRuntime(Node):
         self.command_zero=True;self.force_zero=True
         self.judgement={}
         self.ready_since=None
+        self.calibration_ready=False
         self.start_wall=time.monotonic()
         self.logged=None
         self.release_sent=False
@@ -90,6 +92,9 @@ class ArenaRuntime(Node):
             for camera in ('front','bottom'):
                 self.create_subscription(String,'/sauvc/perception/'+camera,
                                          lambda m,c=camera:self.perception(m,c),1)
+        self.fault_schedule=FaultSchedule(self.fault,12,self.get_logger().info)
+        self.create_subscription(Twist,'/sauvc/mission/cmd_vel',
+            lambda msg:self.fault_schedule.observe(msg,self.t),10)
         self.create_timer(.05,self.tick)
 
     def actual_command(self,msg):
@@ -106,16 +111,17 @@ class ArenaRuntime(Node):
 
     def estimate_health(self,msg):
         packet=json.loads(msg.data)
+        self.calibration_ready=packet.get('valid') is True and packet.get('dvl_calibration_ready') is True
         if packet.get('valid'):self.received['estimate_health']=time.monotonic()
         elif self.ctrl.started is not None and self.ctrl.state not in ('DONE','ABORT'):
             self.ctrl.change('ABORT',self.t,packet.get('reason','invalid_estimate'))
 
     def drop(self,key):
-        return self.fault==key+'_loss' and self.first_clock is not None and self.t-self.first_clock>12
+        return self.fault_schedule.drop(key,self.t)
 
     def clock(self,msg):
         t=msg.clock.sec+msg.clock.nanosec*1e-9
-        if self.drop('clock'): return
+        if self.fault_schedule.drop('clock',t): return
         if t>self.t: self.received['clock']=time.monotonic()
         if self.first_clock is None: self.first_clock=t
         self.t=t
@@ -221,10 +227,11 @@ class ArenaRuntime(Node):
         ctrl=self.ctrl
         if ctrl.started is None:
             steady=self.pose and self.first_clock is not None and self.t-self.first_clock>1 and all(now-self.received.get(k,0)<.5 for k in required)
+            if self.physical:steady=steady and self.calibration_ready
             if not steady: self.ready_since=None
             elif self.ready_since is None: self.ready_since=now
             if not steady or now-self.ready_since<2:
-                if now-self.start_wall>45: ctrl.change('ABORT',self.t,'startup_missing_data')
+                if now-self.start_wall>45: ctrl.change('ABORT',self.t,'dvl_calibration_not_ready' if self.physical and 'estimate_health' in self.received and not self.calibration_ready else 'startup_missing_data')
                 self.state_pub.publish(String(data=ctrl.state))
                 return
         if stale and ctrl.state not in ('DONE','ABORT'): ctrl.change('ABORT',self.t,'stale_'+stale)

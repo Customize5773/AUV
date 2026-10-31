@@ -1,6 +1,7 @@
 """Launch one SAUVC arena, a simulated AUV, and the ROS transport bridge."""
 from pathlib import Path
 import tempfile
+import yaml
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
@@ -10,6 +11,7 @@ from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 from sauvc_sim.arena import build_world
+from sauvc_sim.bridge_layout import bridge_groups
 from sauvc_sim.qualification import MAX_SPEED_SCALE
 from sauvc_sim.conditions import load_conditions
 
@@ -49,11 +51,13 @@ def start(context):
         ])),
         ExecuteProcess(cmd=['ign', 'gazebo', '-r', '-s', '--force-version', '6', str(world)], output='screen',
                        on_exit=Shutdown()),
-        Node(package='ros_gz_bridge', executable='parameter_bridge',
-             name='sauvc_bridge', output='screen',
-             parameters=[{'config_file': str(Path(get_package_share_directory('sauvc_sim'))
-                                            / 'config' / 'bridge.yaml')}]),
     ]
+    entries=yaml.safe_load((Path(get_package_share_directory('sauvc_sim'))/'config/bridge.yaml').read_text())
+    for name,rows in bridge_groups(entries,LaunchConfiguration('bridge_layout').perform(context)).items():
+        config_path=Path(directory.name)/(name+'.yaml')
+        config_path.write_text(yaml.safe_dump(rows,sort_keys=False))
+        actions.append(Node(package='ros_gz_bridge',executable='parameter_bridge',name=name,
+                            output='screen',parameters=[{'config_file':str(config_path)}]))
     if not headless:
         # Let launch own both processes instead of the Ruby GUI/server fork wrapper.
         actions.append(ExecuteProcess(cmd=['ign', 'gazebo', '-g', '--force-version', '6', str(world)],
@@ -93,6 +97,8 @@ def start(context):
 
 def generate_launch_description():
     return LaunchDescription([
+        DeclareLaunchArgument('bridge_layout',default_value='isolated',choices=['single','isolated'],
+                              description='Isolate camera traffic from sensors/control; single for A/B diagnosis'),
         DeclareLaunchArgument('edition',default_value='2027',choices=['2027','2026']),
         DeclareLaunchArgument('arena', default_value='qualification', choices=['qualification', 'finals']),
         DeclareLaunchArgument('headless', default_value='false', choices=['true', 'false']),

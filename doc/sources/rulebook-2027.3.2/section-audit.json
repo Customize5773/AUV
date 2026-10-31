@@ -1,0 +1,243 @@
+{
+  "old": "2027.2.1",
+  "new": "2027.3.2",
+  "sections": [
+    {
+      "section": "Certificate of Participation",
+      "status": "identical"
+    },
+    {
+      "section": "Contents",
+      "status": "identical"
+    },
+    {
+      "section": "Disqualification",
+      "status": "identical"
+    },
+    {
+      "section": "Feedback",
+      "status": "identical"
+    },
+    {
+      "section": "Game Procedure",
+      "status": "identical"
+    },
+    {
+      "section": "Game Procedure / Length of a game",
+      "status": "identical"
+    },
+    {
+      "section": "Game Procedure / Practice Rounds",
+      "status": "identical"
+    },
+    {
+      "section": "Game Procedure / Retries",
+      "status": "identical"
+    },
+    {
+      "section": "Game Procedure / Sequence of events during the competition",
+      "status": "identical"
+    },
+    {
+      "section": "General Restrictions",
+      "status": "identical"
+    },
+    {
+      "section": "Key terms",
+      "status": "identical"
+    },
+    {
+      "section": "Objectives",
+      "status": "identical"
+    },
+    {
+      "section": "Others",
+      "status": "identical"
+    },
+    {
+      "section": "Qualification",
+      "status": "identical"
+    },
+    {
+      "section": "Scoring at a glance",
+      "status": "identical"
+    },
+    {
+      "section": "Specification of AUV",
+      "status": "identical"
+    },
+    {
+      "section": "Specification of AUV / Communications",
+      "status": "identical"
+    },
+    {
+      "section": "Specification of AUV / Power",
+      "status": "identical"
+    },
+    {
+      "section": "Specification of AUV / Safety",
+      "status": "identical"
+    },
+    {
+      "section": "Specification of AUV / Size",
+      "status": "identical"
+    },
+    {
+      "section": "Structure of the Team",
+      "status": "changed"
+    },
+    {
+      "section": "Tasks",
+      "status": "identical"
+    },
+    {
+      "section": "Tasks / Aborting",
+      "status": "identical"
+    },
+    {
+      "section": "Tasks / Automatic Abort",
+      "status": "identical"
+    },
+    {
+      "section": "Tasks / Communication & Localization",
+      "status": "identical"
+    },
+    {
+      "section": "Tasks / Communication & Localization / Points",
+      "status": "identical"
+    },
+    {
+      "section": "Tasks / Communication & Localization / Specification of props",
+      "status": "identical"
+    },
+    {
+      "section": "Tasks / Examples",
+      "status": "identical"
+    },
+    {
+      "section": "Tasks / Examples / Example 1",
+      "status": "identical"
+    },
+    {
+      "section": "Tasks / Examples / Example 10",
+      "status": "identical"
+    },
+    {
+      "section": "Tasks / Examples / Example 2",
+      "status": "identical"
+    },
+    {
+      "section": "Tasks / Examples / Example 3",
+      "status": "identical"
+    },
+    {
+      "section": "Tasks / Examples / Example 4",
+      "status": "identical"
+    },
+    {
+      "section": "Tasks / Examples / Example 5",
+      "status": "identical"
+    },
+    {
+      "section": "Tasks / Examples / Example 6",
+      "status": "identical"
+    },
+    {
+      "section": "Tasks / Examples / Example 7",
+      "status": "identical"
+    },
+    {
+      "section": "Tasks / Examples / Example 8",
+      "status": "identical"
+    },
+    {
+      "section": "Tasks / Examples / Example 9",
+      "status": "identical"
+    },
+    {
+      "section": "Tasks / Navigation",
+      "status": "identical"
+    },
+    {
+      "section": "Tasks / Navigation / Points",
+      "status": "identical"
+    },
+    {
+      "section": "Tasks / Navigation / Specification of props",
+      "status": "identical"
+    },
+    {
+      "section": "Tasks / Penalties",
+      "status": "identical"
+    },
+    {
+      "section": "Tasks / Surfacing",
+      "status": "identical"
+    },
+    {
+      "section": "Tasks / Surfacing / Specification of the Surfacing Square",
+      "status": "identical"
+    },
+    {
+      "section": "Tasks / Surfacing / Surfacing Square Bonus",
+      "status": "identical"
+    },
+    {
+      "section": "Tasks / Target Acquisition",
+      "status": "identical"
+    },
+    {
+      "section": "Tasks / Target Acquisition / Points",
+      "status": "identical"
+    },
+    {
+      "section": "Tasks / Target Acquisition / Specification of props",
+      "status": "identical"
+    },
+    {
+      "section": "Tasks / Target Reacquisition",
+      "status": "identical"
+    },
+    {
+      "section": "Tasks / Target Reacquisition / Points",
+      "status": "identical"
+    },
+    {
+      "section": "Tasks / Target Reacquisition / Specification of props",
+      "status": "identical"
+    },
+    {
+      "section": "Tasks / Timing Bonus",
+      "status": "identical"
+    },
+    {
+      "section": "The Arena",
+      "status": "identical"
+    },
+    {
+      "section": "The Arena / Qualification Arena(s)",
+      "status": "identical"
+    },
+    {
+      "section": "The Arena / Qualification Arena(s) / Specification of props",
+      "status": "identical"
+    },
+    {
+      "section": "The Arena / Starting Zone",
+      "status": "identical"
+    },
+    {
+      "section": "Video Submission",
+      "status": "emphasis_only"
+    },
+    {
+      "section": "What's new in 2027",
+      "status": "identical"
+    },
+    {
+      "section": "metadata",
+      "status": "changed"
+    }
+  ],
+  "normalization": "Whitespace collapsed; emphasis-only classified separately; hierarchical headings preserve repeated Points/props sections."
+}

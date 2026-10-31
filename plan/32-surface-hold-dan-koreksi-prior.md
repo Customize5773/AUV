@@ -84,3 +84,5 @@ bash tools/ros.sh python tools/check_qualification.py --vehicle-model dynamic --
 ```
 
 Keseluruhan matriks berada dalam `run.py` di folder bukti. Runner memeriksa hash source sebelum setiap kasus dan menolak menimpa hasil lama. GUI/POV, arus yang lebih besar, seluruh matriks historis, gate acak dan kendaraan nyata tidak diuji pada tahap ini.
+
+Kelanjutan konsistensi koreksi kamera dan pengulangan prior posisi dicatat pada [laporan 33](33-sinkronisasi-kamera-dan-estimator.md). Hasil pada laporan 32 tetap merupakan bukti revisi sebelumnya.

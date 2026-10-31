@@ -1,4 +1,5 @@
-"""SAUVC 2026/2027.2.1 attempt accounting, separate from strict training success."""
+"""SAUVC 2026/2027.3.2 attempt accounting, separate from strict training success."""
+from sauvc_sim.rules2027 import VERSION
 import math
 
 
@@ -78,7 +79,7 @@ class ArenaScore:
         timing=max(0.,900-elapsed)*.03 if elapsed is not None and nav and other else 0.
         surface=5 if self.end_reason=='surface' else 0
         square=20 if self.square_ok else 0
-        return dict(rulebook='2027.2.1' if self.edition=='2027' else '2026 v6.1.0',final=self.ended is not None,end_reason=self.end_reason,
+        return dict(rulebook=VERSION if self.edition=='2027' else '2026 v6.1.0',final=self.ended is not None,end_reason=self.end_reason,
                     run_time_s=elapsed,navigation=nav,target_acquisition=acquisition,
                     communication_localization=flare,flare_order_bonus=ordered,target_reacquisition=retrieval,
                     surface_bonus=surface,surfacing_square_bonus=square,timing_bonus=timing,penalty_points=self.penalties,

@@ -63,3 +63,25 @@ Urutan kerja yang diusulkan: **identifikasi perangkat → BlueOS dan komunikasi 
 [31 — Kalibrasi DVL dalam arus](31-kalibrasi-dvl-dalam-arus.md): penahan preflight virtual dan konfirmasi kalibrasi; 121 tes unit, empat kasus arus + satu nominal lulus akurasi. Tiga kualifikasi berarus tetap gagal diam akhir.
 
 [32 — Surface hold dan koreksi prior](32-surface-hold-dan-koreksi-prior.md): hold opt-in setelah surface, disarm terkunci saat fault, koreksi visual gate survei dan inisialisasi sensor parsial; 130 tes unit, 8 kualifikasi + rerun ARENA lulus.
+
+[33 — Sinkronisasi kamera dan estimator](33-sinkronisasi-kamera-dan-estimator.md): observasi gate menunggu timestamp instrumen, penolakan duplikat/stale tetap berlaku, dan pengulangan kasus prior posisi; 132 tes unit serta tujuh kualifikasi lulus.
+
+[34 — Hold panjang dan variasi arus](34-uji-hold-panjang-dan-variasi-arus.md): 134 tes unit; 3/4 run diterima, satu hold 180 detik gagal drift; arus konstan berbeda antar-run dan batas bias DVL.
+
+[35 — Kualitas kalibrasi DVL sebelum start](35-kualitas-kalibrasi-dvl-sebelum-start.md): pemeriksaan ketidakpastian bias, kesiapan sebelum thrust, dan pengulangan hold 180 detik.
+
+[36 — Investigasi stale_sensors](36-investigasi-stale-sensors.md): waktu penerimaan, umur sensor, dua pengulangan dan fault setelah DIVE; penyebab gangguan lama masih terbuka.
+
+[37 — Fault setelah start](37-fault-setelah-start.md): 142 tes unit, empat fault native terikat thrust, lima respons fault dan satu kualifikasi normal lulus.
+
+[38 — Fault runtime setelah gerak](38-fault-runtime-setelah-gerak.md): 146 tes, delapan respons fault saat misi aktif dan satu kualifikasi normal lulus.
+
+[39 — Benchmark dan percepatan U-turn](39-benchmark-dan-percepatan-uturn.md): tiga pasangan lulus, waktu pelintasan kedua lebih cepat 1,562–1,938 s, 147 tes unit.
+
+[40 — Rencana solusi dan validasi berikutnya](40-rencana-solusi-dan-validasi-berikutnya.md): audit rulebook, diagnosis jeda sensor, opsi transport, konsistensi U-turn dan optimasi vertikal; pelaksanaan dikonfirmasi; audit/migrasi tercatat pada laporan 41.
+
+[41 — Audit dan migrasi rulebook 2027.3.2](41-audit-dan-migrasi-rulebook-2027-3-2.md): audit source lengkap, 148 tes unit, tiga kualifikasi dan dua ARENA lulus.
+
+[42 — Diagnosis lokasi stale_sensors](42-diagnosis-lokasi-stale-sensors.md): dua observer independen, 157 tes, empat lokasi fault terbedakan, matriks 11 run diterima; batas investigasi historis dinyatakan.
+
+[43 — Isolasi bridge kamera dan sensor](43-isolasi-bridge-kamera-dan-sensor.md): 160 tes; enam eksperimen A/B/fault dan empat penerimaan default (termasuk hold 180 s berarus) diterima, sensor tetap segar saat proses kamera jeda; penyebab historis tetap belum terbukti.
