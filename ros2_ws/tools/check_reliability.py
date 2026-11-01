@@ -12,8 +12,20 @@ from zoneinfo import ZoneInfo
 from sauvc_sim.conditions import conditions
 
 
-def matrix():
+def matrix(profile='reliability'):
     rows=[]
+    if profile=='qualification-speed':
+        for lane in (1,2,3):
+            extra=['--lane',str(lane)]+(['--yaw','.08'] if lane==2 else ['--lateral-offset','.15'] if lane==3 else [])
+            for seed in (7,42,91,123,2026):
+                rows.append(dict(name=f'q-lane{lane}-{seed}',suite='qualification',group=f'lane{lane}',conditions=conditions(dict(seed=seed)),args=extra))
+        for name,seed,values,extra in (
+            ('current-91',91,dict(current=[0.,.02,0.]),[]),
+            ('prior-lane2-42',42,dict(prior_error=[.1,-.1]),['--lane','2','--lateral-offset','.15','--yaw','.1']),
+            ('prior-lane3-91',91,dict(prior_error=[.1,-.1]),['--lane','3','--lateral-offset','.15','--yaw','.1'])):
+            rows.append(dict(name='q-'+name,suite='qualification',group='challenge',conditions=conditions(dict(seed=seed,**values)),args=extra))
+        return rows
+    if profile!='reliability':raise ValueError('unknown matrix profile')
     for i,seed in enumerate((7,42,91)):
         for group,values,extra in (
             ('nominal',{},[]),
@@ -36,7 +48,7 @@ def matrix():
 def metrics(data):
     error=data.get('estimation_error',{})
     accuracy=error.get('qualification_reference_passed',error.get('passed',False))
-    passed=bool(data.get('passed') and accuracy)
+    passed=bool(data.get('passed') and accuracy and all(data.get(k,False) for k in ('stationary','zero_command','thrusters_zero','shutdown_clean')))
     result=data.get('result',{})
     complete=data.get('state')=='DONE' and result.get('passed',False)
     failures=[key for key in ('passed','stationary','zero_command','thrusters_zero','shutdown_clean') if not data.get(key,False)]
@@ -50,16 +62,17 @@ def metrics(data):
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--profile',choices=['reliability','qualification-speed'],default='reliability')
     parser.add_argument('--suite',choices=['qualification','arena','all'],default='all')
     parser.add_argument('--case',help='Run one named case from the matrix')
     parser.add_argument('--output',type=Path,required=True,help='New evidence directory; existing directories are rejected')
     args=parser.parse_args()
-    rows=[r for r in matrix() if (args.suite=='all' or r['suite']==args.suite) and (not args.case or r['name']==args.case)]
+    rows=[r for r in matrix(args.profile) if (args.suite=='all' or r['suite']==args.suite) and (not args.case or r['name']==args.case)]
     if not rows:parser.error('no matching cases')
     args.output.mkdir(parents=True,exist_ok=False)
-    paths=sorted(p for root in ('src/sauvc_sim','tools') for p in Path(root).rglob('*') if p.suffix in ('.py','.cc','.json','.yaml'))
+    paths=sorted(p for root in ('src/sauvc_sim','tools') for p in Path(root).rglob('*') if p.suffix in ('.py','.cc','.json','.yaml','.so'))
     hashes={str(p):hashlib.sha256(p.read_bytes()).hexdigest() for p in paths}
-    report=dict(started=datetime.now(ZoneInfo('Asia/Jakarta')).isoformat(),status='running',matrix=rows,source_sha256=hashes,runs=[])
+    report=dict(profile=args.profile,started=datetime.now(ZoneInfo('Asia/Jakarta')).isoformat(),status='running',matrix=rows,source_sha256=hashes,runs=[])
     def save():
         runs=report['runs'];report['completed']=len(runs);report['accepted']=sum(r['accepted'] for r in runs)
         groups={}
@@ -92,6 +105,8 @@ def main():
         reason=json.loads(controller.read_text()).get('reason') if controller.exists() else None
         result=dict(name=row['name'],suite=row['suite'],group=row['group'],command=cmd,conditions=row['conditions'],exit_code=code,
                     reason=reason or data.get('result',{}).get('reason') or data.get('error'),**metrics(data))
+        result['accepted']=result['accepted'] and code==0
+        if code!=0:result['failed_checks'].append('process_exit')
         report['runs'].append(result);save();print(json.dumps(result),flush=True)
     report['status']='complete';save()
     raise SystemExit(0 if report['accepted']==report['completed'] else 1)

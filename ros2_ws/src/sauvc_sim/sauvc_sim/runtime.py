@@ -30,6 +30,13 @@ def values(msg):
     return (msg.linear.x, msg.linear.y, msg.linear.z, msg.angular.x, msg.angular.y, msg.angular.z)
 
 
+def preflight_timed_out(now, started, calibration_started, physical, fresh):
+    # Renderer startup must not consume calibration time; missing data keeps its deadline.
+    if physical and fresh and calibration_started is not None:
+        return now-calibration_started>45 or now-started>90
+    return now-started>45
+
+
 class Runtime(Node):
     def __init__(self, role):
         super().__init__('sauvc_' + role)
@@ -72,6 +79,7 @@ class Runtime(Node):
         self.started_wall = time.monotonic()
         self.ready_since = None
         self.calibration_ready = False
+        self.calibration_started_wall = None
         self.report = self.create_publisher(String, '/sauvc/qualification/result', STATUS_QOS)
         self.feedback_pub=self.create_publisher(String,'/sauvc/qualification/status',STATUS_QOS) if self.physical and role=='referee' else None
         self.state_pub = self.create_publisher(String, '/sauvc/qualification/state', STATUS_QOS)
@@ -160,7 +168,10 @@ class Runtime(Node):
     def estimate_health(self,msg):
         packet=json.loads(msg.data)
         self.calibration_ready=packet.get('valid') is True and packet.get('dvl_calibration_ready') is True
-        if packet.get('valid'):self.received['estimate_health']=time.monotonic()
+        if packet.get('valid'):
+            now=time.monotonic()
+            if self.calibration_started_wall is None:self.calibration_started_wall=now
+            self.received['estimate_health']=now
         elif self.role=='command_guard' and 'command' in self.received:
             self.trip(packet.get('reason','invalid_estimate'))
         elif self.controller.started is not None and self.controller.state not in ('DONE','ABORT'):
@@ -285,7 +296,7 @@ class Runtime(Node):
             elif ctrl.started is not None and stale and ctrl.state not in ('DONE', 'ABORT'):
                 ctrl.change('ABORT', self.t, 'stale_' + stale)
                 self.velocity_pub.publish(Twist())
-            elif now-self.started_wall > 45 and ctrl.started is None:
+            elif ctrl.started is None and ctrl.state not in ('DONE','ABORT') and preflight_timed_out(now,self.started_wall,self.calibration_started_wall,self.physical,not stale):
                 ctrl.change('ABORT', self.t, 'dvl_calibration_not_ready' if self.physical and 'estimate_health' in self.received and not self.calibration_ready else 'startup_missing_data')
             self.state_pub.publish(String(data=ctrl.state))
             if ctrl.state in ('DONE', 'ABORT'):

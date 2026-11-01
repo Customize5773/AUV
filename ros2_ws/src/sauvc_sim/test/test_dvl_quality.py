@@ -41,7 +41,7 @@ def test_mission_waits_for_calibration_then_requires_steady_stream(monkeypatch,a
     received={key:10. for key in ('clock','odom','contacts','estimate_health','camera','referee','front','bottom')}
     n=SimpleNamespace(controller=ctrl,ctrl=ctrl,role='qualification',referee=False,physical=True,mode='vision',
                       pose=(.3,3.5,-.05,0.),first_clock=0.,t=10.,received=received,calibration_ready=False,
-                      ready_since=5.,started_wall=0.,start_wall=0.,judgement={'phase':'START'},
+                      ready_since=5.,started_wall=0.,start_wall=0.,calibration_started_wall=None,judgement={'phase':'START'},
                       state_pub=Mock(),velocity_pub=Mock(),cmd=Mock(),grip=Mock(),logged_state=ctrl.state,logged=ctrl.state,
                       detection=None,detection_time=10.,drop=lambda key:False,stale=lambda keys,t:None)
     runtime=ArenaRuntime if arena else Runtime
@@ -56,7 +56,10 @@ def test_mission_waits_for_calibration_then_requires_steady_stream(monkeypatch,a
     ctrl.command.reset_mock();n.calibration_ready=False;now[0]=46.;n.t=46.;n.received={key:46. for key in received}
     runtime.tick(n)
     assert not ctrl.command.called
-    ctrl.change.assert_called_with('ABORT',46.,'dvl_calibration_not_ready')
+    assert not ctrl.change.called
+    now[0]=56.;n.t=56.;n.received={key:56. for key in received}
+    runtime.tick(n)
+    ctrl.change.assert_called_with('ABORT',56.,'dvl_calibration_not_ready')
 
 
 def test_acceptance_requires_quality_before_thrust_and_physical_restraint():
@@ -88,3 +91,17 @@ def test_native_fault_proof_rejects_preflight_or_missing_injection():
     rows.append(dict(time=40.,force_n=[1.]*7,injected_fault='dvl_loss'))
     assert module.native_fault_evidence(dict(dynamics=rows),'dvl_loss')['passed']
     assert not module.native_fault_evidence(dict(dynamics=rows),'imu_loss')['passed']
+
+
+@pytest.mark.parametrize('now,calibration_started,physical,fresh,expired',[
+    (46.,19.,True,True,False),
+    (65.,19.,True,True,True),
+    (91.,80.,True,True,True),
+    (46.,19.,True,False,True),
+    (46.,None,True,True,True),
+    (46.,19.,False,True,True),
+    (44.,None,True,False,False),
+])
+def test_preflight_budget_separates_renderer_startup_without_extending_missing_data(now,calibration_started,physical,fresh,expired):
+    from sauvc_sim.runtime import preflight_timed_out
+    assert preflight_timed_out(now,0.,calibration_started,physical,fresh)==expired

@@ -18,7 +18,7 @@ from std_msgs.msg import String, Bool
 
 from sauvc_sim.arena_mission import ArenaController, valid_order, level_rates
 from sauvc_sim.arena_referee import ArenaJudge
-from sauvc_sim.runtime import STATUS_QOS, values
+from sauvc_sim.runtime import STATUS_QOS, values, preflight_timed_out
 from sauvc_sim.camera_geometry import PoseHistory
 from sauvc_sim.acoustics import AcousticTracker
 from sauvc_sim.rules2027 import to_local
@@ -63,6 +63,7 @@ class ArenaRuntime(Node):
         self.judgement={}
         self.ready_since=None
         self.calibration_ready=False
+        self.calibration_started_wall=None
         self.start_wall=time.monotonic()
         self.logged=None
         self.release_sent=False
@@ -112,7 +113,10 @@ class ArenaRuntime(Node):
     def estimate_health(self,msg):
         packet=json.loads(msg.data)
         self.calibration_ready=packet.get('valid') is True and packet.get('dvl_calibration_ready') is True
-        if packet.get('valid'):self.received['estimate_health']=time.monotonic()
+        if packet.get('valid'):
+            now=time.monotonic()
+            if self.calibration_started_wall is None:self.calibration_started_wall=now
+            self.received['estimate_health']=now
         elif self.ctrl.started is not None and self.ctrl.state not in ('DONE','ABORT'):
             self.ctrl.change('ABORT',self.t,packet.get('reason','invalid_estimate'))
 
@@ -231,7 +235,7 @@ class ArenaRuntime(Node):
             if not steady: self.ready_since=None
             elif self.ready_since is None: self.ready_since=now
             if not steady or now-self.ready_since<2:
-                if now-self.start_wall>45: ctrl.change('ABORT',self.t,'dvl_calibration_not_ready' if self.physical and 'estimate_health' in self.received and not self.calibration_ready else 'startup_missing_data')
+                if ctrl.state not in ('DONE','ABORT') and preflight_timed_out(now,self.start_wall,self.calibration_started_wall,self.physical,not stale): ctrl.change('ABORT',self.t,'dvl_calibration_not_ready' if self.physical and 'estimate_health' in self.received and not self.calibration_ready else 'startup_missing_data')
                 self.state_pub.publish(String(data=ctrl.state))
                 return
         if stale and ctrl.state not in ('DONE','ABORT'): ctrl.change('ABORT',self.t,'stale_'+stale)
