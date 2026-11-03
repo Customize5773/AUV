@@ -178,6 +178,21 @@ class VisionTest(unittest.TestCase):
         c.command((.3, 4, -.6, 0), 10, None, 100, j)
         self.assertEqual(c.state, 'ABORT')
 
+    def test_dynamic_gate_search_uses_physical_yaw_rate_and_keeps_loss_timeout(self):
+        for scale in (1,8):
+            c=QualificationController(physical=True,speed_scale=scale,edition='2027')
+            j={'phase':'OUTBOUND','events':[]}
+            pose=(7.7,3.5,-.6,0.)
+            c.command(pose,0,None,100,j)
+            c.command(pose,1,{'bearing':.05,'distance':2.},0,j)
+            cmd=c.command(pose,2,None,100,j)
+            self.assertAlmostEqual(cmd[3],.18)
+            self.assertEqual(cmd[0],0.)
+            cmd=c.command(pose,3,None,100,j)
+            self.assertAlmostEqual(cmd[3],.18*math.cos(.7))
+            self.assertEqual(c.command(pose,10.1,None,100,j),(0.,0.,0.,0.))
+            self.assertEqual(c.reason,'gate_lost')
+
 
 if __name__ == '__main__':
     unittest.main()

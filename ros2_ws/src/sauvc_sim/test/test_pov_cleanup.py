@@ -41,3 +41,14 @@ class PovCleanupTest(unittest.TestCase):
                 try:os.killpg(launcher.pid,signal.SIGKILL)
                 except ProcessLookupError:pass
                 launcher.wait()
+
+
+class ViewerCommandTest(unittest.TestCase):
+    def test_only_declared_cameras_use_single_process_viewer(self):
+        path=Path(__file__).resolve().parents[3]/'tools/pov_windows.py'
+        spec=importlib.util.spec_from_file_location('viewer_windows',path)
+        module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        viewer_command=module.viewer_command
+        for camera in ('front','bottom'):
+            self.assertEqual(viewer_command(camera),['bash','tools/ros.sh','python','tools/pov_viewer.py',camera])
+        with self.assertRaises(ValueError):viewer_command('other')

@@ -14,6 +14,18 @@ def test_protobuf_string_line_preserves_packet_and_ignores_nondata_lines():
     assert m.decode(b'') is None and m.decode(b'CLI startup info') is None
     with pytest.raises(ValueError):m.decode(b'data: "not json"')
 
+
+def test_raw_camera_probe_preserves_stamp_without_logging_pixels():
+    from sensor_msgs.msg import Image
+    path=Path(__file__).resolve().parents[3]/'tools/ros_transport_probe.py'
+    spec=importlib.util.spec_from_file_location('image_probe',path)
+    module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+    msg=Image(width=2,height=1,step=6,encoding='rgb8',data=b'abcdef')
+    msg.header.stamp.sec=12;msg.header.stamp.nanosec=500000000
+    row=module.image_record('front',msg,100.)
+    assert row==dict(kind='ros_image',camera='front',wall_s=100.,sim_s=12.5,width=2,height=1,bytes=6)
+    assert 'data' not in row
+
 spec2=importlib.util.spec_from_file_location('diagnosis',Path(__file__).resolve().parents[3]/'tools/transport_diagnosis.py')
 d=importlib.util.module_from_spec(spec2);spec2.loader.exec_module(d)
 
@@ -67,10 +79,29 @@ def test_pov_management_excludes_unrelated_user_windows(monkeypatch):
     def output(cmd,**kwargs):
         if cmd[0]=='ps':return '10 1\n11 10\n22 1\n'
         if cmd[0]=='xwininfo' and '-tree' not in cmd:return 'Width: 1920\nHeight: 1080\n'
-        if cmd[0]=='xwininfo':return ' 0x10 "ours": ("rqt_image_view" "rqt_image_view")\n 0x20 "user": ("rqt_image_view" "rqt_image_view")\n'
+        if cmd[0]=='xwininfo':return ' 0x10 "SAUVC POV front": ("pov_viewer.py" "sauvc_pov")\n 0x20 "SAUVC POV bottom": ("pov_viewer.py" "sauvc_pov")\n'
         return '_NET_WM_PID(CARDINAL) = '+('11' if cmd[2]=='0x10' else '22')
     monkeypatch.setattr(module.subprocess,'check_output',output)
     assert module.owned_windows([SimpleNamespace(pid=10)])==[16]
     messages=[];monkeypatch.setattr(module,'send',lambda *args:messages.append(args))
     assert module.arrange([SimpleNamespace(pid=10)])==[16]
     assert messages[0][0]==[16] and messages[0][1]=='_NET_MOVERESIZE_WINDOW'
+
+
+@pytest.mark.parametrize('windows,timeout', [([],False),([16],False),([16],True)])
+def test_simulator_close_only_targets_owned_gazebo_windows(monkeypatch,windows,timeout):
+    from unittest.mock import Mock
+    import subprocess
+    path=Path(__file__).resolve().parents[3]/'tools/pov_windows.py'
+    spec=importlib.util.spec_from_file_location('gui_close',path)
+    module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+    process=Mock()
+    if timeout:process.wait.side_effect=subprocess.TimeoutExpired('launch',8)
+    owned=Mock(return_value=windows);send=Mock()
+    monkeypatch.setattr(module,'owned_windows',owned)
+    monkeypatch.setattr(module,'send',send)
+    assert module.close_simulator_gui(process)==bool(windows)
+    owned.assert_called_once_with([process],titles=('Gazebo',))
+    send.assert_called_once_with(windows,'_NET_CLOSE_WINDOW',[[0,1,0,0,0] for _ in windows])
+    if windows:process.wait.assert_called_once_with(timeout=8)
+    else:process.wait.assert_not_called()

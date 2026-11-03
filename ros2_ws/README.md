@@ -250,8 +250,8 @@ bash tools/ros.sh launch sauvc_sim arena.launch.py arena:=finals
 bash tools/ros.sh topic echo /sauvc/perception/front --once
 bash tools/ros.sh topic echo /sauvc/perception/bottom --once
 # Dua terminal terpisah untuk POV depan dan bawah dengan label deteksi
-bash tools/ros.sh run rqt_image_view rqt_image_view /sauvc/perception/front/image_annotated
-bash tools/ros.sh run rqt_image_view rqt_image_view /sauvc/perception/bottom/image_annotated
+bash tools/ros.sh python tools/pov_viewer.py front
+bash tools/ros.sh python tools/pov_viewer.py bottom
 ```
 
 Jika viewer gagal dengan `No module named PyQt5` / `PyQt5.sip`, pasang binding Qt pada virtualenv **ROS**, bukan virtualenv HydroShips:
@@ -338,3 +338,47 @@ Mode tambahan ARENA: `bash tools/ros.sh launch sauvc_sim arena.launch.py arena:=
 
 
 Sinkronisasi 7 thruster (26 Oktober 2026): profil canonical di [propulsion.json](../hydroships/backend/hydroships/propulsion.json), ditautkan dari `src/sauvc_sim/config/propulsion.json` dan disertakan pada share package saat install. Python allocator dan plugin gaya memakai geometri yang sama melalui SDF; tiga thruster vertikal dialokasikan dengan momen roll/pitch target nol. Posisi/sudut, gaya maksimum dan dinamika adalah asumsi latihan, belum matriks `CUSTOM_7T` yang diverifikasi dari firmware. Pembalikan `MOT_x_DIRECTION` dicatat sebagai konfigurasi ESC, tidak dikalikan ulang ke gaya ideal simulator. Controller misi tetap mengendalikan surge/sway/heave/yaw; rank geometri enam tidak berarti kontrol aktif 6-DoF sudah diimplementasikan. Profil default kini 2027; bukti pada laporan 23 adalah snapshot sebelum migrasi. Bukti: [laporan 23](../plan/23-sinkronisasi-7-thruster.md).
+
+### Penerimaan lanjutan 3 November 2026
+
+[Laporan 46](../plan/46-penerimaan-kualifikasi-dan-regresi-pinger.md): 170 tes unit lulus; 15 run tiga jalur sebelumnya dilengkapi dua kasus prior dan arus dengan hold aktif. Regresi ARENA pinger/pickup dinamis lulus dengan retensi bola, Square, skor 290,82606, waktu thrust–surface 205,798 detik dan shutdown bersih. Hasil motor-off dalam arus tetap gagal stationary dan dipertahankan; hold adalah skenario berbeda, bukan perubahan default.
+
+Untuk mengulang satu kasus hold pada direktori bukti baru:
+
+```bash
+bash tools/ros.sh python tools/check_reliability.py --profile qualification-speed --case q-current-hold-91 --output evidence/current-hold-repeat-001
+```
+
+Hold berakhir dengan emergency stop terverifikasi. Mode ini menggunakan thruster aktif untuk menjaga posisi sebelum stop; jangan menganggap motor-off dapat menahan arus. Ringkasan bukti lokal: `evidence/qualification-consistency-2027/resumed-verification.json`.
+
+### Shutdown GUI dan POV
+
+[Laporan 47](../plan/47-shutdown-pov-kamera.md): checker memakai penampil Qt satu proses (`tools/pov_viewer.py front` / `bottom`) dan meminta penutupan jendela Gazebo milik launch sebelum menghentikan server. Kualifikasi dan ARENA dinamis dengan dua POV diterima tanpa cleanup paksa; 174 tes unit lulus. Satu percobaan GUI awal abort `gate_lost`, belum ditetapkan penyebabnya. Verifikasi akhir: `evidence/pov-shutdown-2027/verification.json`.
+
+### Pemulihan gate sementara
+
+[Laporan 48](../plan/48-pemulihan-gate-hilang.md) membatasi yaw pencarian gate dinamis sesuai laju fisik 0,18 rad/s, tanpa mengubah timeout kehilangan gate/kamera. Sebanyak 175 tes unit lulus; tiga GUI dan satu headless lulus, satu GUI abort stale_camera. Uji kamera hilang sengaja tetap abort dengan perintah/gaya nol. Penerimaan belum sepenuhnya lulus; bukti: `evidence/gate-search-2027/verification.json`.
+
+### QoS kamera dan diagnosis transport
+
+[Laporan 49](../plan/49-diagnosis-transport-kamera.md): publisher raw front/bottom kini BEST_EFFORT, keep_last, depth 1; QoS clock/sensor/kendali dan timeout tetap. Consumer proyek sudah kompatibel. Klien raw eksternal harus menerima BEST_EFFORT; subscriber yang mewajibkan RELIABLE tidak cocok. Viewer berlabel memakai perintah yang sama seperti sebelumnya.
+
+Sebanyak 177 tes unit lulus; tiga kualifikasi dan satu ARENA GUI final serta pengaman kamera hilang diterima. Gap frame segar persepsi depan pada tiga kualifikasi 0,50–0,71 s, sebelumnya 1,20–1,50 s pada baseline terukur. Akar unik abort kamera lama belum terbukti; hasil ini mitigasi teruji dalam sampel kecil.
+
+Build menghasilkan `build/native_camera_probe`, pencatat metadata native tanpa piksel. ROS observer menyediakan `--images` opt-in; panduan lengkap dan bukti: `evidence/camera-transport-2027/verification.json`.
+
+### Perbaikan shared memory gambar besar — 4 November 2026
+
+[Laporan 50](../plan/50-akar-kehilangan-frame-shared-memory.md) mereproduksi kehilangan frame RGB 640×480 pada ROS langsung, tanpa Gazebo: segment 512 KiB terlalu kecil untuk payload 900 KiB. Kontrol 16 MiB menerima 180/180 frame per kamera; mengembalikan 512 KiB memunculkan kehilangan lagi.
+
+Launch otomatis memuat `config/fastdds-images.xml` pada bridge yang menerbitkan gambar dan node persepsi. UDP tetap tersedia; tidak perlu export profil global atau mengubah kernel. Jalankan build setelah pembaruan agar XML terpasang. QoS BEST_EFFORT depth 1, resolusi/FPS dan pengaman tetap.
+
+178 tes unit lulus. Tiga kualifikasi GUI serta ARENA standar dan uji kamera hilang diterima; gap frame segar depan pada kualifikasi 0,15–0,16 s. Bukti: `evidence/camera-isolation-20261104/verification.json`. Regresi extended serta transport sintetis Jetson dilanjutkan pada [laporan 51](../plan/51-regresi-pinger-dan-transport-jetson.md); driver kamera nyata belum divalidasi.
+
+### Regresi extended dan Jetson — 4 November 2026
+
+[Laporan 51](../plan/51-regresi-pinger-dan-transport-jetson.md): dua run final pinger/pickup extended diterima, dengan retensi bola hingga surface, skor sekitar 290,81 dan shutdown bersih. Satu run batch awal gagal shutdown dan tetap dicatat. Source sama dengan laporan 50; suite 178 tes unit tidak dijalankan ulang pada tahap tanpa perubahan runtime ini.
+
+Dalam harness diagnostik final, observer dihentikan sesudah DONE dan setelah data melewati STOPPED, sebelum teardown Gazebo. Ini lifecycle pencatatan, tidak melonggarkan kriteria misi. Bukti lokal: `evidence/pinger-shm-20261104/verification.json`.
+
+Jetson Orin NX lulus transport dua aliran RGB sintetis 640×480 pada profile SHM 16 MiB (80/80 per aliran). Ini bukan uji driver/stream kamera nyata. Inventaris menemukan satu USB exploreHD dengan empat node video; video0/2 adalah format capture alternatif dari perangkat yang sama, video1/3 metadata. Layanan HydroShips masih menunjuk path AUV2027 yang tidak ada dan memiliki venv Python rusak; integrasi runtime fisik belum dilanjutkan.

@@ -47,3 +47,18 @@ def test_success_does_not_hide_failed_shutdown():
     data=dict(passed=True,state='DONE',result=dict(passed=True),estimation_error=dict(passed=True),stationary=True,zero_command=True,thrusters_zero=True,shutdown_clean=False)
     assert not runner().metrics(data)['accepted']
     assert 'shutdown_clean' in runner().metrics(data)['failed_checks']
+
+
+def test_current_challenge_requires_active_hold_and_verified_emergency_stop():
+    row=next(r for r in runner().matrix('qualification-speed') if r['conditions']['current']!=[0,0,0])
+    assert row['name']=='q-current-hold-91' and '--surface-hold' in row['args']
+    data=dict(passed=True,stationary=True,zero_command=True,shutdown_clean=True,
+              surface_hold=True,thrusters_zero=False,estimation_error=dict(passed=True),
+              hold_verification=dict(passed=True,abort_disarmed=True,abort_thrusters_zero=True))
+    assert runner().metrics(data)['accepted']
+    for key in ('passed','abort_disarmed','abort_thrusters_zero'):
+        data['hold_verification'][key]=False
+        assert not runner().metrics(data)['accepted']
+        data['hold_verification'][key]=True
+    data['surface_hold']=False
+    assert not runner().metrics(data)['accepted']

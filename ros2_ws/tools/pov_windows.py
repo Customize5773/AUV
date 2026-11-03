@@ -6,7 +6,12 @@ import re
 import subprocess
 
 
-def owned_windows(viewers):
+def viewer_command(camera):
+    if camera not in ('front','bottom'):raise ValueError('unknown camera')
+    return ['bash','tools/ros.sh','python','tools/pov_viewer.py',camera]
+
+
+def owned_windows(viewers,titles=('SAUVC POV front','SAUVC POV bottom')):
     if not viewers:return []
     owned={v.pid for v in viewers}
     pairs=[tuple(map(int,line.split())) for line in subprocess.check_output(['ps','-eo','pid=,ppid='],text=True).splitlines()]
@@ -16,7 +21,8 @@ def owned_windows(viewers):
         owned=expanded
     tree=subprocess.check_output(['xwininfo','-root','-tree'],text=True)
     result=[]
-    for window in re.findall(r'^\s*(0x[0-9a-f]+) .*\("rqt_image_view" "rqt_image_view"\)',tree,re.M):
+    names='|'.join(re.escape(t) for t in titles)
+    for window in re.findall(r'^\s*(0x[0-9a-f]+) "(?:'+names+r')":.*',tree,re.M):
         prop=subprocess.check_output(['xprop','-id',window,'_NET_WM_PID'],text=True)
         match=re.search(r'=\s*(\d+)',prop)
         if match and int(match[1]) in owned:result.append(int(window,16))
@@ -65,3 +71,12 @@ def arrange(viewers):
     send(windows,'_NET_MOVERESIZE_WINDOW',[[2<<12|15<<8, int(width*.63)+10,40+i*(height//2),int(width*.35),(height-220)//2] for i in range(len(windows))])
     return windows
 
+
+
+def close_simulator_gui(process):
+    windows=owned_windows([process],titles=('Gazebo',))
+    send(windows,'_NET_CLOSE_WINDOW',[[0,1,0,0,0] for _ in windows])
+    if windows:
+        try:process.wait(timeout=8)
+        except subprocess.TimeoutExpired:pass
+    return bool(windows)

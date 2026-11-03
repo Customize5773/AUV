@@ -62,7 +62,7 @@ Gunakan perintah yang sama untuk kualifikasi maupun ARENA:
 cd /home/rasya/AUV/ros2_ws
 export ROS_DOMAIN_ID=86
 export IGN_PARTITION=sauvc_practice
-bash tools/ros.sh run rqt_image_view rqt_image_view /sauvc/perception/front/image_annotated
+bash tools/ros.sh python tools/pov_viewer.py front
 ```
 
 ## 4. Terminal 3 — POV kamera bawah
@@ -71,12 +71,10 @@ bash tools/ros.sh run rqt_image_view rqt_image_view /sauvc/perception/front/imag
 cd /home/rasya/AUV/ros2_ws
 export ROS_DOMAIN_ID=86
 export IGN_PARTITION=sauvc_practice
-bash tools/ros.sh run rqt_image_view rqt_image_view /sauvc/perception/bottom/image_annotated
+bash tools/ros.sh python tools/pov_viewer.py bottom
 ```
 
-Susun ketiga jendela agar Gazebo dan kedua POV terlihat bersamaan. Jika gambar kecil, perbesar jendela viewer. Jika topic belum terpilih, pilih topic yang sesuai pada dropdown dan gunakan transport `raw` bila tersedia.
-
-Untuk POV tanpa label, ganti topic depan dengan `/sauvc/camera_front/image_raw` dan topic bawah dengan `/sauvc/camera_bottom/image_raw`.
+Susun ketiga jendela agar Gazebo dan kedua POV terlihat bersamaan. Jika gambar kecil, perbesar jendela viewer. Penampil langsung berlangganan gambar berlabel pada kamera yang dipilih; tidak perlu memilih topic. Tutup melalui tombol jendela atau Ctrl+C pada terminal viewer. Penampil berjalan dalam satu proses Qt/ROS agar shutdown tidak meninggalkan anak proses RQt.
 
 ## 5. Menghentikan, mengulang, atau berganti misi
 
@@ -212,3 +210,21 @@ bash tools/ros.sh python tools/analyze_transport.py --native evidence/diag-manua
 ```
 
 Analyzer menolak capture yang tidak mencakup awal/akhir jendela. Untuk replay contoh yang sudah diuji, gunakan perintah pada [laporan 42](../plan/42-diagnosis-lokasi-stale-sensors.md). Label diagnosis menyatakan batas lokasi yang didukung rekaman, bukan otomatis akar masalah spesifik DDS/rendering. Dua POV ditata pada X11 dan subscriber/window diverifikasi. Fallback cleanup grup RQt dapat memerlukan SIGKILL; field `pov_cleanup_forced_groups` mencatatnya. Ini terpisah dari shutdown Gazebo/probe dan pengaman kendaraan.
+
+## QoS gambar mentah
+
+Publisher `/sauvc/camera_front/image_raw` dan `/sauvc/camera_bottom/image_raw` memakai BEST_EFFORT, keep_last, depth 1. Gunakan subscriber sensor-data/BEST_EFFORT; klien yang mewajibkan RELIABLE tidak akan tersambung. Perintah POV berlabel di atas tidak berubah. Diagnosis native/ROS dengan metadata tanpa piksel dijelaskan pada [laporan 49](../plan/49-diagnosis-transport-kamera.md).
+
+## Shared memory untuk gambar 640×480
+
+Setelah pembaruan profil gambar, jalankan sekali:
+
+```bash
+bash tools/ros.sh build --symlink-install
+```
+
+Launch memuat `config/fastdds-images.xml` secara otomatis untuk proses penerbit gambar, dengan kapasitas SHM 16 MiB dan UDP tetap tersedia. Perintah misi/POV di atas tidak berubah. Tidak perlu mengubah sysctl atau profil DDS global. [Reproduksi dan penerimaan perbaikan](../plan/50-akar-kehilangan-frame-shared-memory.md).
+
+## Urutan menutup observer diagnostik
+
+Jika menjalankan observer native/ROS tambahan, akhiri pencatatan setelah misi DONE dan pastikan rekaman mencakup STOPPED; lalu hentikan observer sebelum menutup GUI/server Gazebo. Harness pada [laporan 51](../plan/51-regresi-pinger-dan-transport-jetson.md) menguji urutan ini sambil tetap mewajibkan shutdown bersih. Ini tidak mengubah cara menjalankan misi biasa tanpa observer.

@@ -99,7 +99,7 @@ def main():
     report={'bridge_layout':args.bridge_layout,'vehicle_model':args.vehicle_model,'passed':False,'edition':args.edition,'order':args.order,'fault':args.fault,
             'scene_variant':args.scene_variant,'blue_drum':args.blue_drum,
             'extended':args.extended,'pinger_drum':args.pinger_drum,'conditions':test_conditions,'surface_hold':args.surface_hold}
-    viewers=[];viewer_logs=[]
+    viewers=[];viewer_logs=[];pov_windows=[]
     with args.output.with_suffix('.log').open('w') as log:
         process=subprocess.Popen(['bash','tools/ros.sh','launch','sauvc_sim','arena.launch.py',
             'arena:=finals',f'vehicle_model:={args.vehicle_model}',f'edition:={args.edition}','autonomous:=true',f'headless:={str(not args.gui).lower()}',f'flare_order:={args.order}',
@@ -112,11 +112,11 @@ def main():
             stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
         try:
             if args.pov:
+                from pov_windows import viewer_command
                 for camera in ('front','bottom'):
                     viewer_log=args.output.with_name(args.output.stem+'-pov-'+camera+'.log').open('w')
                     viewer_logs.append(viewer_log)
-                    viewers.append(subprocess.Popen(['bash','tools/ros.sh','run','rqt_image_view','rqt_image_view',
-                        f'/sauvc/perception/{camera}/image_annotated'],stdout=viewer_log,
+                    viewers.append(subprocess.Popen(viewer_command(camera),stdout=viewer_log,
                         stderr=subprocess.STDOUT,start_new_session=True))
             deadline=time.monotonic()+1000+(3*args.hold_duration if args.surface_hold else 0)
             terminal_since=None
@@ -126,6 +126,9 @@ def main():
                 if any(v.poll() is not None for v in viewers):raise RuntimeError('POV viewer exited during mission')
                 rclpy.spin_once(node,timeout_sec=.1)
                 if process.poll() is not None: raise RuntimeError('launch exited before completion')
+                if args.pov and not pov_windows and observed['state'] not in ('','WAIT','WAIT_READY'):
+                    from pov_windows import arrange
+                    pov_windows=arrange(viewers)
                 if last_state!=observed['state']:
                     last_state=observed['state']
                     print(last_state,observed['trajectory'][-1] if observed['trajectory'] else '',flush=True)
@@ -179,9 +182,10 @@ def main():
                 passed=zero and stationary and (success if args.fault=='none' else fault_verified and not success))
             if args.pov:
                 report['pov_subscribers']={c:[s.node_name for s in node.get_subscriptions_info_by_topic(
-                    f'/sauvc/perception/{c}/image_annotated') if s.node_name.startswith('rqt_gui_cpp_node_')]
+                    f'/sauvc/perception/{c}/image_annotated') if s.node_name=='sauvc_pov_'+c]
                     for c in ('front','bottom')}
-                report['pov_verified']=all(report['pov_subscribers'].values()) and all(v.poll() is None for v in viewers)
+                report['pov_windows']=pov_windows
+                report['pov_verified']=len(pov_windows)==2 and all(report['pov_subscribers'].values()) and all(v.poll() is None for v in viewers)
                 report['passed']=report['passed'] and report['pov_verified']
             if args.surface_hold and success:
                 from surface_hold_check import verify_hold
@@ -196,6 +200,12 @@ def main():
             report['passed']=False
             report['error']=str(exc)
         finally:
+            if args.gui and process.poll() is None:
+                try:
+                    from pov_windows import close_simulator_gui
+                    report['gui_close_requested']=close_simulator_gui(process)
+                except (OSError,RuntimeError,subprocess.SubprocessError) as exc:
+                    report['gui_close_error']=str(exc)
             if process.poll() is None:
                 try:
                     pause=subprocess.run(['ign','service','-s','/world/sauvc_finals/control',
@@ -216,6 +226,7 @@ def main():
             except subprocess.TimeoutExpired:
                 os.killpg(process.pid,signal.SIGKILL);process.wait();report['shutdown_forced']=True
             report['pov_cleanup_forced_groups']=stop_viewers(viewers)
+            report['passed']=report['passed'] and not report['pov_cleanup_forced_groups']
             for viewer_log in viewer_logs:viewer_log.close()
             node.destroy_node();rclpy.try_shutdown()
     log_text=args.output.with_suffix('.log').read_text()

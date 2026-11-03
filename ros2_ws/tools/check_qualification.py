@@ -171,11 +171,11 @@ def main():
             stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
         try:
             if args.pov:
+                from pov_windows import viewer_command
                 for camera in ('front','bottom'):
                     viewer_log=args.output.with_name(args.output.stem+'-pov-'+camera+'.log').open('w')
                     viewer_logs.append(viewer_log)
-                    viewers.append(subprocess.Popen(['bash','tools/ros.sh','run','rqt_image_view','rqt_image_view',
-                        f'/sauvc/perception/{camera}/image_annotated'],stdout=viewer_log,stderr=subprocess.STDOUT,start_new_session=True))
+                    viewers.append(subprocess.Popen(viewer_command(camera),stdout=viewer_log,stderr=subprocess.STDOUT,start_new_session=True))
             deadline = time.monotonic()+220+(3*args.hold_duration if args.surface_hold else 0)
             terminal_since = None
             terminal_sim = None
@@ -270,7 +270,7 @@ def main():
                 report['passed']=report['passed'] and report['hold_verification']['passed']
             if args.pov:
                 report['pov_subscribers']={c:[s.node_name for s in node.get_subscriptions_info_by_topic(
-                    f'/sauvc/perception/{c}/image_annotated') if s.node_name.startswith('rqt_gui_cpp_node_')] for c in ('front','bottom')}
+                    f'/sauvc/perception/{c}/image_annotated') if s.node_name=='sauvc_pov_'+c] for c in ('front','bottom')}
                 report['pov_windows']=pov_windows
                 report['pov_verified']=len(pov_windows)==2 and all(report['pov_subscribers'].values()) and all(v.poll() is None for v in viewers)
                 report['passed']=report['passed'] and report['pov_verified']
@@ -289,6 +289,12 @@ def main():
                     os.kill(frozen_pid, signal.SIGCONT)
                 except ProcessLookupError:
                     pass
+            if args.gui and process.poll() is None:
+                try:
+                    from pov_windows import close_simulator_gui
+                    report['gui_close_requested']=close_simulator_gui(process)
+                except (OSError,RuntimeError,subprocess.SubprocessError) as exc:
+                    report['gui_close_error']=str(exc)
             if process.poll() is None:
                 # Stop the render server through its API before tearing down ROS.
                 try:
@@ -319,6 +325,7 @@ def main():
                 report['passed'] = False
             from check_arena import stop_viewers
             report['pov_cleanup_forced_groups']=stop_viewers(viewers)
+            report['passed']=report['passed'] and not report['pov_cleanup_forced_groups']
             for viewer_log in viewer_logs:viewer_log.close()
             node.destroy_node()
             rclpy.try_shutdown()

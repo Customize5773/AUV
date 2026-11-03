@@ -85,3 +85,21 @@ Urutan kerja yang diusulkan: **identifikasi perangkat → BlueOS dan komunikasi 
 [42 — Diagnosis lokasi stale_sensors](42-diagnosis-lokasi-stale-sensors.md): dua observer independen, 157 tes, empat lokasi fault terbedakan, matriks 11 run diterima; batas investigasi historis dinyatakan.
 
 [43 — Isolasi bridge kamera dan sensor](43-isolasi-bridge-kamera-dan-sensor.md): 160 tes; enam eksperimen A/B/fault dan empat penerimaan default (termasuk hold 180 s berarus) diterima, sensor tetap segar saat proses kamera jeda; penyebab historis tetap belum terbukti.
+
+[44 — Konsistensi kualifikasi dan waktu preflight](44-konsistensi-kualifikasi-dan-preflight.md): 169 tes unit lulus, startup tertunda lulus; batch 18 kasus source baru berjalan. Pixhawk USB Jetson terverifikasi melalui capture pasif; tetap disarmed, status CRITICAL belum didiagnosis.
+
+[45 — Diagnosis Pixhawk USB Jetson](45-diagnosis-pixhawk-usb-jetson.md): profil tujuh thruster cocok, disarmed; CRITICAL terbukti akibat kehilangan input pilot: input netral terbatas memulihkan STANDBY, lalu timeout mengembalikan CRITICAL. Sensor kedalaman eksternal belum terverifikasi.
+
+[46 — Penerimaan kualifikasi dan regresi pinger](46-penerimaan-kualifikasi-dan-regresi-pinger.md): 170 tes unit lulus; 15 run jalur serta tiga kasus lanjutan diterima dalam dua tahap. Arus memakai hold aktif dengan bukti emergency stop; drift motor-off tetap tercatat. Regresi pinger/pickup dinamis lulus, 205,798 detik dan skor 290,82606 tanpa penalti.
+
+[47 — Shutdown POV kamera](47-shutdown-pov-kamera.md): penampil Qt satu proses dan penutupan GUI Gazebo sebelum server; kualifikasi dan ARENA dengan dua POV lulus tanpa SIGKILL, 174 tes unit lulus. `gate_lost` intermiten pada percobaan awal tetap terbuka.
+
+[48 — Pemulihan gate hilang](48-pemulihan-gate-hilang.md): koreksi skala yaw pencarian dinamis, 175 tes unit lulus; 4/5 percobaan misi selesai dan satu abort stale_camera. Pengaman kehilangan kamera sengaja terverifikasi; penerimaan GUI masih parsial.
+
+[49 — Diagnosis transport kamera dan QoS](49-diagnosis-transport-kamera.md): observer native/raw ROS, uji bridge gap, QoS kamera BEST_EFFORT depth 1; 177 tes unit, tiga kualifikasi dan satu ARENA GUI final serta respons camera_loss diterima. Percobaan asinkron dibatalkan; akar unik gangguan historis belum ditutup.
+
+[50 — Akar kehilangan frame besar](50-akar-kehilangan-frame-shared-memory.md): isolasi tanpa renderer, kontrol kapasitas SHM kecil–besar–kecil; profil 16 MiB khusus penerbit gambar. 178 tes unit, tiga kualifikasi GUI, ARENA standar dan respons camera_loss diterima.
+
+[51 — Regresi pinger dan Jetson](51-regresi-pinger-dan-transport-jetson.md): dua run extended final diterima, satu kegagalan shutdown awal dipertahankan; coverage observer hingga STOPPED. Jetson menerima 80/80 frame sintetis pada profil 16 MiB. Unit HydroShips lama dan venv rusak menjadi prasyarat integrasi fisik berikutnya.
+
+[52 — Pemulihan HydroShips Jetson](52-pemulihan-hydroships-jetson.md): environment Linux baru dan unit path aktif; staging, tujuh sampel API/frontend serta bridge ROS ready terverifikasi. Tidak ada koneksi atau perintah kendaraan.

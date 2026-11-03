@@ -151,7 +151,9 @@ class QualificationController:
                         angle=math.atan2(self.gate[1]-y,self.gate[0]-x)
                         yaw_rate=clamp(wrap(angle-yaw)*1.6,.3)/self.speed_scale
                         if math.dist((x,y),self.gate)<2.1:vx=-.15/self.speed_scale
-                    else:yaw_rate = .18*math.cos((t-self.lost_since)*.7)
+                    else:
+                        yaw_rate = .18*math.cos((t-self.lost_since)*.7)
+                        if self.physical:yaw_rate/=self.speed_scale
         if self.state == 'ABORT':
             return (0., 0., 0., 0.)
         command=tuple(self.speed_scale*v for v in (vx, vy, vz, yaw_rate))

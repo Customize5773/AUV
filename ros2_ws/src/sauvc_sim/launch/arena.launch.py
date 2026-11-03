@@ -11,7 +11,7 @@ from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 from sauvc_sim.arena import build_world
-from sauvc_sim.bridge_layout import bridge_groups
+from sauvc_sim.bridge_layout import bridge_groups, camera_qos
 from sauvc_sim.qualification import MAX_SPEED_SCALE
 from sauvc_sim.conditions import load_conditions
 
@@ -52,19 +52,22 @@ def start(context):
         ExecuteProcess(cmd=['ign', 'gazebo', '-r', '-s', '--force-version', '6', str(world)], output='screen',
                        on_exit=Shutdown()),
     ]
+    image_env={'FASTRTPS_DEFAULT_PROFILES_FILE':str(Path(get_package_share_directory('sauvc_sim'))/'config/fastdds-images.xml')}
     entries=yaml.safe_load((Path(get_package_share_directory('sauvc_sim'))/'config/bridge.yaml').read_text())
     for name,rows in bridge_groups(entries,LaunchConfiguration('bridge_layout').perform(context)).items():
         config_path=Path(directory.name)/(name+'.yaml')
         config_path.write_text(yaml.safe_dump(rows,sort_keys=False))
+        qos=camera_qos(rows)
         actions.append(Node(package='ros_gz_bridge',executable='parameter_bridge',name=name,
-                            output='screen',parameters=[{'config_file':str(config_path)}]))
+                            output='screen',parameters=[{'config_file':str(config_path),**qos}],
+                            additional_env=image_env if qos else {}))
     if not headless:
         # Let launch own both processes instead of the Ruby GUI/server fork wrapper.
         actions.append(ExecuteProcess(cmd=['ign', 'gazebo', '-g', '--force-version', '6', str(world)],
                                       output='screen', on_exit=Shutdown()))
     if cameras and perception:
         actions.append(Node(package='sauvc_sim', executable='perception',
-                            parameters=[{'arena': arena}], output='screen', on_exit=Shutdown()))
+                            parameters=[{'arena': arena}], additional_env=image_env, output='screen', on_exit=Shutdown()))
     if physical:
         for executable in ('state_estimator','propulsion'):
             actions.append(Node(package='sauvc_sim',executable=executable,parameters=[dict(

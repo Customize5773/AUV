@@ -7,10 +7,20 @@ import time
 import rclpy
 from rclpy.signals import SignalHandlerOptions
 from std_msgs.msg import String
+from sensor_msgs.msg import Image
+from rclpy.qos import qos_profile_sensor_data
+
+
+def image_record(camera,msg,now):
+    return dict(kind='ros_image',camera=camera,wall_s=now,
+                sim_s=msg.header.stamp.sec+msg.header.stamp.nanosec*1e-9,
+                width=msg.width,height=msg.height,bytes=len(msg.data))
 
 
 def main():
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path,required=True);args=p.parse_args()
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path,required=True)
+    p.add_argument('--images',action='store_true',help='Opt-in raw camera metadata; no pixels are logged')
+    args=p.parse_args()
     stopping=False
     def stop(*_):
         nonlocal stopping
@@ -37,6 +47,9 @@ def main():
             return callback
         for camera in ('front','bottom'):
             node.create_subscription(String,'/sauvc/perception/'+camera,camera_receive(camera),10)
+            if args.images:
+                node.create_subscription(Image,'/sauvc/camera_'+camera+'/image_raw',
+                    lambda msg,c=camera:write(image_record(c,msg,time.monotonic())),qos_profile_sensor_data)
         def heartbeat():
             write(dict(kind='heartbeat',wall_s=time.monotonic()));out.flush()
         def host():

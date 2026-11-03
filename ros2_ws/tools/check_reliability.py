@@ -20,7 +20,7 @@ def matrix(profile='reliability'):
             for seed in (7,42,91,123,2026):
                 rows.append(dict(name=f'q-lane{lane}-{seed}',suite='qualification',group=f'lane{lane}',conditions=conditions(dict(seed=seed)),args=extra))
         for name,seed,values,extra in (
-            ('current-91',91,dict(current=[0.,.02,0.]),[]),
+            ('current-hold-91',91,dict(current=[0.,.02,0.]),['--surface-hold']),
             ('prior-lane2-42',42,dict(prior_error=[.1,-.1]),['--lane','2','--lateral-offset','.15','--yaw','.1']),
             ('prior-lane3-91',91,dict(prior_error=[.1,-.1]),['--lane','3','--lateral-offset','.15','--yaw','.1'])):
             rows.append(dict(name='q-'+name,suite='qualification',group='challenge',conditions=conditions(dict(seed=seed,**values)),args=extra))
@@ -48,10 +48,13 @@ def matrix(profile='reliability'):
 def metrics(data):
     error=data.get('estimation_error',{})
     accuracy=error.get('qualification_reference_passed',error.get('passed',False))
-    passed=bool(data.get('passed') and accuracy and all(data.get(k,False) for k in ('stationary','zero_command','thrusters_zero','shutdown_clean')))
+    hold=data.get('hold_verification',{})
+    force_zero=bool(hold.get('passed') and hold.get('abort_disarmed') and hold.get('abort_thrusters_zero')) if data.get('surface_hold') else bool(data.get('thrusters_zero'))
+    passed=bool(data.get('passed') and accuracy and force_zero and all(data.get(k,False) for k in ('stationary','zero_command','shutdown_clean')))
     result=data.get('result',{})
     complete=data.get('state')=='DONE' and result.get('passed',False)
-    failures=[key for key in ('passed','stationary','zero_command','thrusters_zero','shutdown_clean') if not data.get(key,False)]
+    failures=[key for key in ('passed','stationary','zero_command','shutdown_clean') if not data.get(key,False)]
+    if not force_zero:failures.append('hold_stop' if data.get('surface_hold') else 'thrusters_zero')
     if not accuracy:failures.append('accuracy_reference')
     return dict(accepted=passed,mission_complete=complete,
                 failed_checks=failures,state=data.get('state'),max_xy_m=error.get('max_xy_m'),
@@ -70,7 +73,7 @@ def main():
     rows=[r for r in matrix(args.profile) if (args.suite=='all' or r['suite']==args.suite) and (not args.case or r['name']==args.case)]
     if not rows:parser.error('no matching cases')
     args.output.mkdir(parents=True,exist_ok=False)
-    paths=sorted(p for root in ('src/sauvc_sim','tools') for p in Path(root).rglob('*') if p.suffix in ('.py','.cc','.json','.yaml','.so'))
+    paths=sorted(p for root in ('src/sauvc_sim','tools') for p in Path(root).rglob('*') if p.suffix in ('.py','.cc','.json','.yaml','.xml','.so'))
     hashes={str(p):hashlib.sha256(p.read_bytes()).hexdigest() for p in paths}
     report=dict(profile=args.profile,started=datetime.now(ZoneInfo('Asia/Jakarta')).isoformat(),status='running',matrix=rows,source_sha256=hashes,runs=[])
     def save():

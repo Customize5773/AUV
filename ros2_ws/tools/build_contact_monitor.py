@@ -17,3 +17,8 @@ for source,library in [('contact_monitor.cc','libsauvc_contact_monitor.so'),
                        ('vehicle_dynamics.cc','libsauvc_vehicle_dynamics.so')]:
     subprocess.run(['c++', '-std=c++17', '-shared', '-fPIC', '-O2',
                     str(package/source), '-o',str(package/library),*flags],check=True)
+
+probe = root / 'build/native_camera_probe'
+probe.parent.mkdir(parents=True, exist_ok=True)
+subprocess.run(['c++', '-std=c++17', '-O2', str(root/'tools/native_camera_probe.cc'),
+                '-o', str(probe), *flags],check=True)

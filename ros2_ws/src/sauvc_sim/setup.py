@@ -10,7 +10,7 @@ setup(
         ('share/ament_index/resource_index/packages', ['resource/sauvc_sim']),
         ('share/sauvc_sim', ['package.xml']),
         ('share/sauvc_sim/launch', glob('launch/*.launch.py')),
-        ('share/sauvc_sim/config', glob('config/*.yaml')+glob('config/*.json')),
+        ('share/sauvc_sim/config', glob('config/*.yaml')+glob('config/*.json')+glob('config/*.xml')),
     ],
     install_requires=['setuptools'],
     entry_points={'console_scripts': [
