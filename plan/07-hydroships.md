@@ -13,28 +13,28 @@ Implementasi dimulai setelah pengguna menyetujui rencana aplikasi mandiri dengan
 - CPU, RAM, penyimpanan, uptime, serta sembilan sensor thermal Jetson terbaca dari host.
 - Maksimum 10.000 kejadian; rekaman telemetri JSONL dirotasi menjadi maksimal 8 berkas × 8 MiB.
 
-Alamat utama: **http://127.0.0.1:8081**. Panduan pemasangan dan operasi ada di [README aplikasi](../hydroships/README.md).
+Alamat utama: **http://127.0.0.1:8081**. Panduan pemasangan dan operasi ada di [README aplikasi](../GUI-prototype/README.md).
 
 ## Bukti pengujian
 
 | Pemeriksaan | Hasil |
 | --- | --- |
 | Build frontend + TypeScript | Lulus |
-| Alur backend/API | 11 pengujian lulus; [output](../hydroships/evidence/backend-tests.txt) |
-| Browser demo | Enam halaman desktop/mobile, tanpa overflow, perubahan parameter, ekspor, unduh log, disconnect; [hasil](../hydroships/evidence/browser-check.json) |
-| Browser SITL baca-saja | Enam halaman, dialog parameter buka/batal, ekspor, unduh rekaman; [hasil](../hydroships/evidence/sitl-browser/browser-check.json) |
-| ArduSub SITL ARM64 | Firmware 4.5.7; 1.377/1.377 parameter terbaca; [hasil](../hydroships/evidence/sitl-check.json) |
+| Alur backend/API | 11 pengujian lulus; [output](../GUI-prototype/evidence/backend-tests.txt) |
+| Browser demo | Enam halaman desktop/mobile, tanpa overflow, perubahan parameter, ekspor, unduh log, disconnect; [hasil](../GUI-prototype/evidence/browser-check.json) |
+| Browser SITL baca-saja | Enam halaman, dialog parameter buka/batal, ekspor, unduh rekaman; [hasil](../GUI-prototype/evidence/sitl-browser/browser-check.json) |
+| ArduSub SITL ARM64 | Firmware 4.5.7; 1.377/1.377 parameter terbaca; [hasil](../GUI-prototype/evidence/sitl-check.json) |
 | Perubahan parameter SITL | `PILOT_SPEED_DN`: 0 → 1 → 0, seluruh respons dikonfirmasi; nilai awal dipulihkan |
 | Putus/sambung SITL | Proses simulator dihentikan sementara dengan SIGSTOP lalu dilanjutkan SIGCONT; kehilangan heartbeat terdeteksi, sesi berganti, daftar parameter terbaca kembali |
-| Restart/crash aplikasi | Restart biasa dan SIGKILL berhasil dipulihkan systemd, konfigurasi sama sebelum/sesudah; [hasil](../hydroships/evidence/service-check.json) |
+| Restart/crash aplikasi | Restart biasa dan SIGKILL berhasil dipulihkan systemd, konfigurasi sama sebelum/sesudah; [hasil](../GUI-prototype/evidence/service-check.json) |
 | Startup otomatis | User service enabled dan `Linger=yes`; proses teramati mulai 23,7 detik setelah boot saat pemeriksaan 4 Oktober; [bukti Jetson](08-validasi-jetson-hydroships.md). Reboot terkontrol dengan pemeriksaan sebelum/sesudah belum dilakukan |
-| Uji ketahanan 60 menit | Lulus: 3.600,02 detik, 718 pemeriksaan, tanpa kegagalan; `completed: true`, `ok: true`; [hasil](../hydroships/evidence/soak-sitl.json) |
-| Rotasi log setelah uji ketahanan | Lulus: maksimal delapan berkas, masing-masing tidak melebihi 8 MiB; [hasil](../hydroships/evidence/log-retention-check.json) |
+| Uji ketahanan 60 menit | Lulus: 3.600,02 detik, 718 pemeriksaan, tanpa kegagalan; `completed: true`, `ok: true`; [hasil](../GUI-prototype/evidence/soak-sitl.json) |
+| Rotasi log setelah uji ketahanan | Lulus: maksimal delapan berkas, masing-masing tidak melebihi 8 MiB; [hasil](../GUI-prototype/evidence/log-retention-check.json) |
 | Pixhawk fisik, USB cabut/pasang | Belum diuji; perangkat belum tersedia pada pengujian ini |
 
 Browser demo dan pemeriksaan awal SITL tidak mencatat error JavaScript, HTTP gagal, atau permintaan aset eksternal. Peringatan deprecation dari dependensi test client dicatat pada output pytest; seluruh pengujian tetap lulus.
 
-Screenshot lokal: [dashboard demo](../hydroships/evidence/dashboard-demo.png), [parameter demo](../hydroships/evidence/parameters-demo.png), [dashboard ponsel](../hydroships/evidence/dashboard-mobile.png), [dashboard SITL](../hydroships/evidence/sitl-browser/dashboard-demo.png). Berkas hasil runtime/screenshot tidak dimasukkan ke Git oleh konfigurasi aplikasi; perintah untuk membuat ulang bukti tersedia di README.
+Screenshot lokal: [dashboard demo](../GUI-prototype/evidence/dashboard-demo.png), [parameter demo](../GUI-prototype/evidence/parameters-demo.png), [dashboard ponsel](../GUI-prototype/evidence/dashboard-mobile.png), [dashboard SITL](../GUI-prototype/evidence/sitl-browser/dashboard-demo.png). Berkas hasil runtime/screenshot tidak dimasukkan ke Git oleh konfigurasi aplikasi; perintah untuk membuat ulang bukti tersedia di README.
 
 ## Simulator dan uji ketahanan
 

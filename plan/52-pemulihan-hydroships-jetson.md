@@ -19,7 +19,7 @@ Unit user systemd masih menunjuk `/home/aero/AUV2027/hydroships`, padahal repo a
 4. `/api/autonomy` menunjukkan runtime `ready`, tanpa error, tanpa misi aktif. Driver tugas masih `synthetic`; ini bukan bukti kontrol fisik.
 5. Versi backend 0.1.2, koneksi kendaraan tetap `disconnected`.
 
-Bukti: [verification.json](../hydroships/evidence/jetson-recovery-20261104/verification.json), [persiapan](../hydroships/evidence/jetson-recovery-20261104/prepare-result.json), [cutover dan sampel](../hydroships/evidence/jetson-recovery-20261104/finish-result.json), [status ROS](../hydroships/evidence/jetson-recovery-20261104/autonomy.json).
+Bukti: [verification.json](../GUI-prototype/evidence/jetson-recovery-20261104/verification.json), [persiapan](../GUI-prototype/evidence/jetson-recovery-20261104/prepare-result.json), [cutover dan sampel](../GUI-prototype/evidence/jetson-recovery-20261104/finish-result.json), [status ROS](../GUI-prototype/evidence/jetson-recovery-20261104/autonomy.json).
 
 ## Batas
 

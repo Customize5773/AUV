@@ -57,7 +57,7 @@ ROS_DOMAIN_ID=0 /usr/bin/python3 scripts/check-ros-vehicle.py --source serial --
 env -u PYTHONPATH .venv/bin/python scripts/check-browser.py --read-only --desktop-only --output evidence/pixhawk/browser
 ```
 
-Kontrak payload dan aturan freshness: [README ROS 2](../hydroships/ros2_ws/README.md#telemetri-pixhawk-ke-ros-2).
+Kontrak payload dan aturan freshness: [README ROS 2](../GUI-prototype/ros2_ws/README.md#telemetri-pixhawk-ke-ros-2).
 
 ## Batas dan langkah berikutnya
 

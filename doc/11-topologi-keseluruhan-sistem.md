@@ -597,7 +597,7 @@ Tes backend/ROS memakai data sementara dan domain 78:
 env -u PYTHONPATH HYDROSHIPS_TEST_ROS=1 .venv/bin/python -m pytest -q
 ```
 
-Pemeriksaan browser Autonomous yang menjalankan misi software memakai layanan uji port 8083/domain 77, bukan layanan kendaraan utama. Setup lengkap ada di [panduan ROS 2](../hydroships/ros2_ws/README.md). Langkah instalasi/build, aktivasi service, dan backup tersedia di [README HydroShips](../hydroships/README.md).
+Pemeriksaan browser Autonomous yang menjalankan misi software memakai layanan uji port 8083/domain 77, bukan layanan kendaraan utama. Setup lengkap ada di [panduan ROS 2](../GUI-prototype/ros2_ws/README.md). Langkah instalasi/build, aktivasi service, dan backup tersedia di [README HydroShips](../GUI-prototype/README.md).
 
 ## 11. Pembagian pekerjaan dan integrasi berikutnya
 
@@ -625,8 +625,8 @@ Urutan pengembangan yang disarankan berdasarkan keadaan sekarang:
 
 | Acuan lokal | Isi |
 | --- | --- |
-| [README aplikasi](../hydroships/README.md) | Pemasangan, operasi browser, service, penyimpanan, dan pengujian |
-| [README ROS 2](../hydroships/ros2_ws/README.md) | Kontrak topic/payload dan integrasi modul |
+| [README aplikasi](../GUI-prototype/README.md) | Pemasangan, operasi browser, service, penyimpanan, dan pengujian |
+| [README ROS 2](../GUI-prototype/ros2_ws/README.md) | Kontrak topic/payload dan integrasi modul |
 | [Implementasi HydroShips](../plan/07-hydroships.md) | Fondasi aplikasi mandiri dan validasi MAVLink/SITL |
 | [Validasi Jetson](../plan/08-validasi-jetson-hydroships.md) | Metrik host, startup/restart, dan batas pengujian |
 | [Platform autonomous](../plan/09-platform-autonomous-ros2.md) | FSM software, acuan kode KKI, serta pengujian ROS |

@@ -8,7 +8,7 @@ Repositori persiapan AUV tim HydroShips: aplikasi onboard Jetson–Pixhawk, simu
 
 | Folder | Isi |
 | --- | --- |
-| [hydroships/](hydroships/README.md) | Aplikasi onboard: dashboard, telemetri, parameter, monitor sistem dan log |
+| [hydroships/](GUI-prototype/README.md) | Aplikasi onboard: dashboard, telemetri, parameter, monitor sistem dan log |
 | [ros2_ws/](ros2_ws/README.md) | Workspace SAUVC terpisah: kualifikasi, ARENA, persepsi kamera dan misi autonomous |
 | [mechanical/payload-servo/](mechanical/payload-servo/README.md) | Konsep parametrik pelepas payload dan gripper pickup berbasis servo |
 | [plan/](plan/README.md) | Keputusan, rencana implementasi dan laporan bukti pengujian |
@@ -134,4 +134,4 @@ Model OpenSCAD adalah rancangan awal, belum dirender atau diuji fabrikasi. Tidak
 
 ## Aplikasi onboard
 
-Aplikasi dikembangkan di `hydroships/` dengan Git milik repositori AUV2027. Panduan pemasangan dan akses lokal **http://127.0.0.1:8081** tersedia pada [README aplikasi](hydroships/README.md). Profil eksperimen BlueOS sebelumnya menggunakan port 8080. Status simulator di atas tidak menyatakan aplikasi onboard sudah menjalankan misi tersebut pada AUV fisik.
+Aplikasi dikembangkan di `hydroships/` dengan Git milik repositori AUV2027. Panduan pemasangan dan akses lokal **http://127.0.0.1:8081** tersedia pada [README aplikasi](GUI-prototype/README.md). Profil eksperimen BlueOS sebelumnya menggunakan port 8080. Status simulator di atas tidak menyatakan aplikasi onboard sudah menjalankan misi tersebut pada AUV fisik.

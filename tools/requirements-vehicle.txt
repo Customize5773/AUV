@@ -1,0 +1,5 @@
+# Same pinned MAVLink dependencies as the archived, tested backend.
+pymavlink==2.4.50
+pyserial==3.5
+lxml==6.1.3
+fastcrc==0.5.0

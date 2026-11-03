@@ -6,7 +6,7 @@ Tanggal: **26 Oktober 2026, Asia/Jakarta**. Konfigurasi yang diselaraskan: **T1â
 
 ## Satu sumber profil
 
-Profil canonical: [hydroships/backend/hydroships/propulsion.json](../hydroships/backend/hydroships/propulsion.json). File [ros2_ws/src/sauvc_sim/config/propulsion.json](../ros2_ws/src/sauvc_sim/config/propulsion.json) adalah symlink ke sumber tersebut. Build ROS menyertakannya di share/config; paket wheel HydroShips juga menyertakannya. Tidak ada salinan konfigurasi source kedua yang harus diperbarui manual.
+Profil canonical: [hydroships/backend/hydroships/propulsion.json](../GUI-prototype/backend/hydroships/propulsion.json). File [ros2_ws/src/sauvc_sim/config/propulsion.json](../ros2_ws/src/sauvc_sim/config/propulsion.json) adalah symlink ke sumber tersebut. Build ROS menyertakannya di share/config; paket wheel HydroShips juga menyertakannya. Tidak ada salinan konfigurasi source kedua yang harus diperbarui manual.
 
 Profil memuat nomor motor/output, fungsi output, kelompok horizontal/vertikal, parameter pembalik motor dari snapshot Pixhawk, serta geometri latihan. `hardware_mixer_verified=false` tetap eksplisit.
 

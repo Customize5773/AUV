@@ -38,7 +38,7 @@ flowchart LR
 - Layanan utama `hydroships.service` diperbarui dan diperiksa melalui browser pada port 8081: tiga node terdeteksi, runtime siap, tidak ada misi berjalan. Koneksi demo yang aktif sebelumnya dipulihkan setelah restart. Layanan uji port 8083 dihentikan setelah pemeriksaan.
 - Artefak lokal (diabaikan Git): `hydroships/evidence/ros2-inventory.json` dan `hydroships/evidence/autonomy/`.
 
-Panduan operasi, variabel lingkungan, kontrak topic, serta perintah uji berada di [README workspace ROS 2](../hydroships/ros2_ws/README.md).
+Panduan operasi, variabel lingkungan, kontrak topic, serta perintah uji berada di [README workspace ROS 2](../GUI-prototype/ros2_ws/README.md).
 
 ## Pekerjaan yang belum diimplementasikan
 
