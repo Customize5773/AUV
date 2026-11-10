@@ -1,3 +1,5 @@
+> Topologi historis berbasis GUI. Sejak 4 November 2026, operasi aktif memakai [SSH](../CARA-OPERASI-SSH.md) dan prototipe GUI berada di `GUI-prototype/`.
+
 # Topologi keseluruhan sistem AUV2027 / HydroShips
 
 **Versi dokumen:** 1.1 · **Tanggal:** 12 Oktober 2026 · **Bahasa:** Indonesia.

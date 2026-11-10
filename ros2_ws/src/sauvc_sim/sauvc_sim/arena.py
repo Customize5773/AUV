@@ -181,9 +181,14 @@ def auv(world, arena, cameras, lane=1, lateral_offset=0.0, yaw=0.0, physical=Fal
     inertia = tag(inertial, 'inertia')
     for key, value in [('ixx', 0.333333), ('iyy', 0.666667), ('izz', 0.866667)]:
         tag(inertia, key, value*mass/20)
-    part(link, 'hull', (0, 0, 0, 0, 0, 0), 'box', (0.6, 0.4, 0.2), YELLOW)
-    part(link, 'nose', (0.305, 0, 0, 0, 0, 0), 'box', (0.01, 0.22, 0.12),
-         '0.03 0.04 0.05 1', False)
+    # Visual CAD fits the existing hull; dynamics/contact geometry remains configured separately.
+    solid = tag(link, 'collision', name='hull')
+    tag(solid, 'pose', '0 0 0 0 0 0')
+    geometry(solid, 'box', (0.6, 0.4, 0.2))
+    visual = tag(link, 'visual', name='sauvc_2027_v1_visual')
+    mesh = tag(tag(visual, 'geometry'), 'mesh')
+    tag(mesh, 'uri', (Path(__file__).parent/'meshes'/'sauvc_2027_v1.obj').resolve().as_uri())
+    tag(visual, 'cast_shadows', 'false')
     contact = tag(link, 'sensor', name='hull_contacts', type='contact')
     tag(contact, 'always_on', 'true')
     tag(contact, 'update_rate', 30)

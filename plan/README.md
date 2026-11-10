@@ -103,3 +103,13 @@ Urutan kerja yang diusulkan: **identifikasi perangkat → BlueOS dan komunikasi 
 [51 — Regresi pinger dan Jetson](51-regresi-pinger-dan-transport-jetson.md): dua run extended final diterima, satu kegagalan shutdown awal dipertahankan; coverage observer hingga STOPPED. Jetson menerima 80/80 frame sintetis pada profil 16 MiB. Unit HydroShips lama dan venv rusak menjadi prasyarat integrasi fisik berikutnya.
 
 [52 — Pemulihan HydroShips Jetson](52-pemulihan-hydroships-jetson.md): environment Linux baru dan unit path aktif; staging, tujuh sampel API/frontend serta bridge ROS ready terverifikasi. Tidak ada koneksi atau perintah kendaraan.
+
+[54 — Telemetry pasif dan kamera Jetson](54-telemetry-pasif-dan-kamera-jetson.md): telemetry fisik 12 detik dan capture 60 frame lulus; Pixhawk tetap disarmed/CRITICAL, tekanan eksternal belum terbukti. Suite operasi lokal 3 lulus, 1 gagal akibat referensi arsip GUI.
+
+[53 — Operasi SSH dan arsip GUI](53-operasi-ssh-dan-arsip-gui.md): GUI diarsipkan di `GUI-prototype` Jetson dan dihapus dari laptop sesuai konfirmasi pengguna; layanan Jetson dinonaktifkan; Wi-Fi SSH key, telemetry pasif, capture kamera dan perintah simulator terminal teruji. 178 tes simulator, 3 tes profil dan 4 tes operasi per host lulus; misi fisik belum diintegrasikan.
+
+[55 — Kamera fisik ke ROS/persepsi](55-kamera-fisik-ros-persepsi.md): dua uji Jetson 30 detik lulus aliran/stale/shutdown; 274/275 dan 262/268 hasil, p95 186,7–211,1 ms sejak pembacaan host selesai. Kalibrasi dan akurasi target nyata belum tervalidasi.
+
+[56 — Wi-Fi, reboot dan kesiapan Pixhawk](56-wifi-reboot-dan-kesiapan-pixhawk.md): power saving dinonaktifkan, 30/30 koneksi dan 3/3 rekoneksi berhasil; reboot pulih sekitar 47,5 s. 15 parameter propulsi cocok. Uji gerak belum dapat dilakukan karena Pixhawk hanya USB tanpa daya thruster.
+
+[57 — Model AUV FBX](57-model-auv-fbx-simulator.md): visual kendaraan dari model pengguna, normalisasi envelope, penyatuan vertex dan mesh OBJ/MTL terpaket; render Gazebo diperiksa, collision dan model gaya tetap. 179 tes lulus; kualifikasi serta ARENA dinamis dengan dua POV dan shutdown akhir bersih diterima. Satu kegagalan shutdown GUI awal tetap dicatat.

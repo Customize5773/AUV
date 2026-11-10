@@ -8,4 +8,6 @@ GUI-prototype/evidence/
 AGENTS.md
 .venv-vehicle/
 evidence/
-GUI-prototype
+GUI-prototype.zip
+tools/__pycache__/
+ros2_ws/sauvc 2027 v1.fbx

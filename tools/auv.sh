@@ -19,6 +19,7 @@ case "${1:-help}" in
       *) echo 'Usage: bash tools/auv.sh sim-start qualification|arena|pinger' >&2; exit 2 ;;
     esac
     [[ -f "$root/ros2_ws/install/local_setup.bash" ]] || { echo 'Build ros2_ws first.' >&2; exit 1; }
+    command -v ign >/dev/null || { echo "Gazebo Fortress is required; run simulation on the laptop." >&2; exit 1; }
     exec systemd-run --user --unit="$unit" --collect \
       --property=Restart=no --property=KillSignal=SIGINT --property=TimeoutStopSec=30 \
       --working-directory="$root/ros2_ws" \
@@ -33,7 +34,7 @@ case "${1:-help}" in
     ;;
   camera-check)
     [[ $# == 2 && "$2" == /dev/v4l/by-id/* && -c "$2" ]] || { echo 'Supply one stable /dev/v4l/by-id/ capture device.' >&2; exit 2; }
-    exec timeout 20 v4l2-ctl --device="$2" --stream-mmap --stream-count=60 --stream-to=/dev/null
+    exec timeout 20 v4l2-ctl --device="$2" --set-fmt-video=width=640,height=480,pixelformat=MJPG --set-parm=30 --stream-mmap --stream-count=60 --stream-to=/dev/null
     ;;
   help)
     echo 'status | devices | sim-start qualification|arena|pinger | sim-stop | logs'

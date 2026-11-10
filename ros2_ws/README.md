@@ -382,3 +382,11 @@ Launch otomatis memuat `config/fastdds-images.xml` pada bridge yang menerbitkan 
 Dalam harness diagnostik final, observer dihentikan sesudah DONE dan setelah data melewati STOPPED, sebelum teardown Gazebo. Ini lifecycle pencatatan, tidak melonggarkan kriteria misi. Bukti lokal: `evidence/pinger-shm-20261104/verification.json`.
 
 Jetson Orin NX lulus transport dua aliran RGB sintetis 640×480 pada profile SHM 16 MiB (80/80 per aliran). Ini bukan uji driver/stream kamera nyata. Inventaris menemukan satu USB exploreHD dengan empat node video; video0/2 adalah format capture alternatif dari perangkat yang sama, video1/3 metadata. Layanan HydroShips masih menunjuk path AUV2027 yang tidak ada dan memiliki venv Python rusak; integrasi runtime fisik belum dilanjutkan.
+
+### Kamera fisik Jetson (4 November 2026)
+
+Alat penerimaan [tools/check_physical_camera.py](tools/check_physical_camera.py) menguji kamera USB → ROS → persepsi pada domain 187 terisolasi, tanpa Pixhawk. Dua uji 30 detik lulus aliran, stale dan shutdown; hasil 274/275 dan 262/268 frame, p95 latensi host 186,7–211,1 ms. Ini belum kalibrasi, akurasi target nyata atau layanan kamera produksi. Prosedur ada pada [panduan SSH](../CARA-OPERASI-SSH.md), bukti dan batas pada [laporan 55](../plan/55-kamera-fisik-ros-persepsi.md).
+
+### Model visual AUV SAUVC 2027 v1
+
+Model FBX pengguna kini menjadi visual default kendaraan pada kualifikasi dan ARENA. Mesh OBJ/MTL sudah disertakan dalam paket, sehingga launch tidak memerlukan konversi FBX. Collision, kamera dan dinamika tetap memakai konfigurasi simulator yang ada. Skala visual disesuaikan ke envelope lama; belum dimensi fisik terkalibrasi. [Laporan integrasi dan reproduksi aset](../plan/57-model-auv-fbx-simulator.md).

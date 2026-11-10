@@ -15,3 +15,7 @@ Normalisasi whitespace menghasilkan 56 bagian identik, satu hanya penekanan Mark
 Aturan tugas/skor, kualifikasi dan geometri yang dinyatakan dalam source tidak berubah. Matriks dampak dan penerimaan simulator ada pada [laporan 41](../../../plan/41-audit-dan-migrasi-rulebook-2027-3-2.md). Ini audit perbedaan versi; bukan klaim bahwa seluruh kewajiban lomba sudah dimodelkan atau kendaraan memenuhi inspeksi fisik.
 
 Source diarsipkan tanpa mengubah teks. Gambar identik dengan arsip lama dan tidak diduplikasi; tautan gambar relatif pada source mengikuti tata letak repo upstream. Hak sumber tetap pada penyelenggara. [Arsip 2027.2.1](../rulebook-2027-published/README.md) dipertahankan sebagai riwayat.
+
+## Pemeriksaan ulang 4 November 2026
+
+Halaman resmi masih menyatakan **2027.3.2**, diperbarui **30 Oktober 2026**. Source `master/rulebook.md` upstream identik byte demi byte dengan arsip ini (SHA-256 sama); tidak ditemukan perubahan teks aturan yang memerlukan migrasi simulator. Bukti pemeriksaan: [rulebook-check-20261104.json](../rulebook-check-20261104.json). Pemeriksaan ini tidak membuktikan tidak adanya pengumuman lain di luar halaman/source tersebut.

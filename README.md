@@ -1,14 +1,18 @@
 # AUV2027 — HydroShips
 
+**Alur aktif: [VS Code Remote SSH melalui Wi-Fi](CARA-OPERASI-SSH.md).** Migrasi GUI dan bukti pengujian: [laporan 53](plan/53-operasi-ssh-dan-arsip-gui.md).
+
 Panduan perintah kualifikasi, ARENA dan kedua POV: [Cara running simulator](ros2_ws/CARA-RUNNING.md).
 
 Peta kode dan panduan Graphify: [Graphify untuk repo AUV](doc/GRAPHIFY.md).
 
-Repositori persiapan AUV tim HydroShips: aplikasi onboard Jetson–Pixhawk, simulasi SAUVC dengan ROS 2/Gazebo, rancangan mekanik, serta laporan pengujian.
+Repositori persiapan AUV tim HydroShips: operasi Jetson melalui VS Code Remote SSH, simulasi SAUVC dengan ROS 2/Gazebo, rancangan mekanik, serta laporan pengujian.
 
 | Folder | Isi |
 | --- | --- |
-| [hydroships/](GUI-prototype/README.md) | Aplikasi onboard: dashboard, telemetri, parameter, monitor sistem dan log |
+| `GUI-prototype/` pada Jetson | Arsip GUI lama; dihapus dari laptop sesuai konfirmasi pengguna, layanan dinonaktifkan |
+| [tools/](CARA-OPERASI-SSH.md) | Operasi terminal: perangkat, telemetry pasif, uji kamera dan simulator systemd |
+| [config/](config/propulsion.json) | Profil tujuh thruster bersama, mandiri dari GUI |
 | [ros2_ws/](ros2_ws/README.md) | Workspace SAUVC terpisah: kualifikasi, ARENA, persepsi kamera dan misi autonomous |
 | [mechanical/payload-servo/](mechanical/payload-servo/README.md) | Konsep parametrik pelepas payload dan gripper pickup berbasis servo |
 | [plan/](plan/README.md) | Keputusan, rencana implementasi dan laporan bukti pengujian |
@@ -27,7 +31,7 @@ Repositori persiapan AUV tim HydroShips: aplikasi onboard Jetson–Pixhawk, simu
 | ARENA blue drum | Navigation dahulu → flare sesuai urutan → drop blue drum → Surfacing Square → stop |
 | ARENA pinger/pickup | TDOA virtual → drop red drum berpinger → seluruh badan keluar target zone → pickup bola yang sama → retensi sampai akhir |
 | Penilaian 2027 | Timer sejak thrust, poin tugas, penalti kontak, bonus surface dan bonus Square; bonus inspeksi fisik tidak dimasukkan |
-| Bukti pengujian terbaru | 160 tes unit; bridge kamera dipisahkan dari sensor/kendali; enam eksperimen A/B/fault dan empat penerimaan default diterima; pemicu historis belum teridentifikasi |
+| Bukti pengujian terbaru | 178 tes unit simulator lulus; kualifikasi melalui terminal/systemd mencapai DONE dan shutdown bersih pada migrasi SSH (laporan 53) |
 
 **ARENA dan kualifikasi autonomous visual kini memakai model gaya tujuh thruster dan estimator sensor virtual secara default.** Ground truth digunakan oleh referee/pencatat; profil ideal tersedia sebagai pembanding eksplisit. [Laporan 26](plan/26-arena-dinamika-dan-estimasi-sensor.md) mencatat penerimaan awal dinamis; [laporan 27](plan/27-kalibrasi-dvl-dan-penerimaan-gui.md) memuat kalibrasi DVL dan dua misi penuh dengan Gazebo serta kedua POV. Pinger adalah model geometrik TDOA, servo pelepas memakai respons ideal, dan pickup memakai latch fixed setelah kontak. Hasil ini belum membuktikan performa AUV fisik atau ketahanan pada seluruh kondisi kolam.
 
@@ -132,6 +136,8 @@ Log, trajectory, hasil referee dan ringkasan JSON berada secara lokal di `ros2_w
 
 Model OpenSCAD adalah rancangan awal, belum dirender atau diuji fabrikasi. Tidak ada klaim servo, pickup atau pinger fisik telah bekerja.
 
-## Aplikasi onboard
+## Operasi onboard
 
-Aplikasi dikembangkan di `hydroships/` dengan Git milik repositori AUV2027. Panduan pemasangan dan akses lokal **http://127.0.0.1:8081** tersedia pada [README aplikasi](GUI-prototype/README.md). Profil eksperimen BlueOS sebelumnya menggunakan port 8080. Status simulator di atas tidak menyatakan aplikasi onboard sudah menjalankan misi tersebut pada AUV fisik.
+Gunakan [panduan SSH](CARA-OPERASI-SSH.md). Laptop membuka `/home/aero/AUV` pada Jetson melalui `auv-wifi`; edit dan eksekusi berjalan di Jetson. GUI disimpan di `/home/aero/AUV/GUI-prototype` pada Jetson; folder GUI laptop telah dihapus sesuai konfirmasi pengguna. Integrasi kendali misi fisik belum tersedia; perintah simulasi tetap terisolasi dari hardware.
+
+**Model AUV — 11 November 2026:** FBX SAUVC 2027 v1 sudah menjadi visual default simulator, dengan collision dan dinamika yang ada tetap dipakai. Build dan 179 tes lulus; kualifikasi serta ARENA dinamis dengan dua POV lulus pada penerimaan akhir. [Laporan 57 dan screenshot Gazebo](plan/57-model-auv-fbx-simulator.md).

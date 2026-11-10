@@ -19,7 +19,7 @@ class OpsTest(unittest.TestCase):
     def test_profile_is_shared_without_gui_dependency(self):
         canonical = ROOT/'config/propulsion.json'
         self.assertEqual((ROOT/'ros2_ws/src/sauvc_sim/config/propulsion.json').resolve(), canonical)
-        self.assertEqual((ROOT/'GUI-prototype/backend/hydroships/propulsion.json').resolve(), canonical)
+        self.assertTrue(canonical.is_file())
 
     def test_no_heartbeat_is_not_ready(self):
         ticks = iter(i*.1 for i in range(100))

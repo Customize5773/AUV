@@ -9,6 +9,33 @@ class ArenaTest(unittest.TestCase):
     def world(self, arena):
         return ET.fromstring(build_world(arena,edition='2026')).find('world')
 
+    def test_cad_visual_resolves_without_changing_collision_or_cameras(self):
+        from pathlib import Path
+        from urllib.parse import unquote, urlparse
+        for arena in ('qualification', 'finals'):
+            world = ET.fromstring(build_world(arena)).find('world')
+            link = world.find("model[@name='sauvc_auv']/link")
+            self.assertEqual(link.findtext("collision[@name='hull']/geometry/box/size"), '0.6 0.4 0.2')
+            self.assertEqual(len(link.findall('collision')), 1)
+            uri = link.findtext('visual/geometry/mesh/uri')
+            path = Path(unquote(urlparse(uri).path))
+            self.assertTrue(path.is_file(), uri)
+            content = path.read_text()
+            self.assertIn('\nf ', content)
+            for line in content.splitlines():
+                if line.startswith('mtllib '):
+                    self.assertTrue((path.parent/line.split(maxsplit=1)[1]).is_file())
+            import hashlib
+            import json
+            metadata = json.loads(path.with_suffix('.json').read_text())
+            self.assertEqual(hashlib.sha256(path.read_bytes()).hexdigest(), metadata['output_sha256'])
+            low, high = metadata['output_bounds']
+            for a, b, limit in zip(low, high, (.6, .4, .2)):
+                self.assertLessEqual(b-a, limit+1e-6)
+            self.assertLess(metadata['output_triangles'], 250000)
+            self.assertEqual(link.findtext("sensor[@name='camera_front']/pose"), '0.32 0 0 0 0 0')
+            self.assertEqual(link.findtext("sensor[@name='camera_bottom']/pose"), '0 0 -0.12 0 1.57079633 0')
+
     def test_floor_collision_surfaces_match_depth_profile(self):
         world = self.world('finals')
         for x in (0, 6.25, 12.5, 18.75, 25):
