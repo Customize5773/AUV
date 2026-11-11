@@ -1,7 +1,7 @@
 """Independent ARENA task proof from hull contacts and physics ball positions."""
 from sauvc_sim.rules2027 import VERSION
 import math
-from sauvc_sim.arena import floor_z
+from sauvc_sim.arena import floor_z, PICKUP_X, PICKUP_Z
 from sauvc_sim.referee import envelope, wrap
 from sauvc_sim.arena_mission import valid_order
 from sauvc_sim.arena_layout import layout
@@ -80,9 +80,9 @@ class ArenaJudge:
             roll,pitch=pose[3:5] if len(pose)==6 else (0.,0.)
             cr,sr,cp,sp=math.cos(roll),math.sin(roll),math.cos(pitch),math.sin(pitch)
             cy,sy=math.cos(pose[-1]),math.sin(pose[-1])
-            for a in (-.24,-.16):
+            for a in (PICKUP_X-.04,PICKUP_X+.04):
                 for b in (-.04,.04):
-                    for d in (-.459,-.41):
+                    for d in (PICKUP_Z-.009,-.09):
                         bx,by,bz=a,b*cr-d*sr,b*sr+d*cr
                         bx,bz=bx*cp+bz*sp,-bx*sp+bz*cp
                         px,py,pz=pose[0]+bx*cy-by*sy,pose[1]+bx*sy+by*cy,pose[2]+bz
@@ -207,7 +207,7 @@ class ArenaJudge:
             pose=self.previous;yaw=pose[-1]
             roll,pitch=pose[3:5] if len(pose)==6 else (0.,0.)
             # The capture tool tilts with the body, including after disarm.
-            bx,by,bz=-.2,.45*math.sin(roll),-.45*math.cos(roll)
+            bx,by,bz=PICKUP_X,-PICKUP_Z*math.sin(roll),PICKUP_Z*math.cos(roll)
             bx,bz=bx*math.cos(pitch)+bz*math.sin(pitch),-bx*math.sin(pitch)+bz*math.cos(pitch)
             point=(pose[0]+bx*math.cos(yaw)-by*math.sin(yaw),
                    pose[1]+bx*math.sin(yaw)+by*math.cos(yaw),pose[2]+bz)

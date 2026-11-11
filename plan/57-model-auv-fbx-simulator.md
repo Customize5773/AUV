@@ -38,7 +38,7 @@ cd /home/rasya/AUV
 c++ ros2_ws/tools/export_auv_fbx.cc -lassimp -o /tmp/export_auv_fbx
 /tmp/export_auv_fbx 'ros2_ws/sauvc 2027 v1.fbx' /tmp/auv-source.glb
 python3 -m venv /tmp/auv-mesh-tools
-/tmp/auv-mesh-tools/bin/pip install trimesh==5.2.0 fast-simplification==0.2.0
+/tmp/auv-mesh-tools/bin/pip install trimesh==5.2.0 fast-simplification==0.2.0 scipy==1.11.4
 /tmp/auv-mesh-tools/bin/python ros2_ws/tools/prepare_auv_mesh.py \
   /tmp/auv-source.glb ros2_ws/src/sauvc_sim/sauvc_sim/meshes/sauvc_2027_v1.obj
 bash ros2_ws/tools/ros.sh build --symlink-install
@@ -61,3 +61,7 @@ Kualifikasi percobaan GUI pertama menyelesaikan misi, kedua POV terverifikasi, t
 Bukti akhir: [verification.json](../ros2_ws/evidence/auv-mesh-20261111/verification.json), [kualifikasi](../ros2_ws/evidence/auv-mesh-20261111/qualification-accepted.json), [ARENA](../ros2_ws/evidence/auv-mesh-20261111/arena-final.json). Run kualifikasi headless awal pada mesh konversi pendahuluan bukan penerimaan aset final. Kegagalan shutdown GUI awal tetap dipertahankan; hasil ini bukan bukti bahwa semua kejadian shutdown intermiten telah diselesaikan.
 
 Cakupan runtime akhir: satu kualifikasi jalur 1 dan satu ARENA blue drum, default kondisi tanpa arus. Extended pinger/pickup dan seluruh variasi layout/arus belum diulang dengan visual ini. Dimensi/massa/drag nyata tetap memerlukan kalibrasi; model FBX yang diimplementasikan adalah visual.
+
+Pembaruan 12 November: regresi extended pinger/pickup dengan model yang sama diterima pada [laporan 58](58-regresi-pinger-model-auv.md), termasuk keluar zona, bola yang sama dan retensi hingga stop. Batas variasi layout/arus di atas tetap berlaku.
+
+Pembaruan visual 12 November: kualitas simplifikasi diperbaiki setelah pembandingan FBX penuh; mesh aktif menjadi 816.288 segitiga dengan guard luas/bounds dan normals tepi tajam. Lihat [laporan 60](60-evaluasi-body-dan-kualitas-mesh.md); statistik 230.463 di atas adalah revisi awal.

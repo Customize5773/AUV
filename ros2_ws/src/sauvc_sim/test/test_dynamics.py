@@ -7,6 +7,7 @@ from sauvc_sim.dynamics import PropulsionController,allocation,config,displaced_
 from sauvc_sim.state_estimation import StateEstimator
 from sauvc_sim.qualification import QualificationController
 from sauvc_sim.referee import QualificationJudge
+from sauvc_sim.vehicle_geometry import qualification_start_x
 
 
 class DynamicsTest(unittest.TestCase):
@@ -100,7 +101,7 @@ class EstimationTest(unittest.TestCase):
             packet=self.packet(i*.01,velocity=0. if i<5 else 1.)
             if i%5:packet.pop('dvl')
             self.assertTrue(est.update(packet))
-        self.assertAlmostEqual(est.x-.3,.45,delta=.02)
+        self.assertAlmostEqual(est.x-qualification_start_x(0.),.45,delta=.02)
         self.assertLess(est.velocity[0],1.)
         self.assertEqual(est.integration_velocity[0],1.)
 
@@ -179,13 +180,13 @@ class EstimationTest(unittest.TestCase):
     def test_dead_reckoning_pressure_and_magnetic_heading(self):
         est=StateEstimator()
         for i in range(501):self.assertTrue(est.update(self.packet(i*.02)))
-        self.assertAlmostEqual(est.x,5.3,delta=.01)
+        self.assertAlmostEqual(est.x,5.+qualification_start_x(0.),delta=.01)
         self.assertAlmostEqual(est.z,-.6,delta=.002)
         self.assertAlmostEqual(est.yaw,0.,delta=.002)
         other=StateEstimator(lane=2)
         for i in range(501):other.update(self.packet(i*.02,math.pi/2))
         self.assertAlmostEqual(other.y,17.,delta=.01)
-        self.assertAlmostEqual(other.x,.2,delta=.01)
+        self.assertAlmostEqual(other.x,qualification_start_x(math.pi/2),delta=.01)
 
     def test_missing_sensors_timestamp_and_invalid_data(self):
         for missing in ('gyro','dvl','pressure_pa'):
@@ -279,13 +280,13 @@ class DynamicMissionTest(unittest.TestCase):
 
     def test_physical_preflight_drift_is_not_a_mission_start(self):
         judge=QualificationJudge(physical=True)
-        judge.update((.3,4.,-.05,0.),0.)
-        judge.update((.3,4.,-.14,0.),1.)
-        judge.update((.3,4.,-.096,0.),2.)
+        judge.update((qualification_start_x(0.),4.,-.05,0.),0.)
+        judge.update((qualification_start_x(0.),4.,-.14,0.),1.)
+        judge.update((qualification_start_x(0.),4.,-.096,0.),2.)
         self.assertEqual(judge.phase,'START')
         self.assertIsNone(judge.run_started)
         judge.arm(3.)
-        judge.update((.3,4.,-.3,0.),3.)
+        judge.update((qualification_start_x(0.),4.,-.3,0.),3.)
         self.assertEqual(judge.phase,'OUTBOUND')
 
 

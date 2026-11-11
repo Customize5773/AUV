@@ -9,13 +9,13 @@ class ArenaTest(unittest.TestCase):
     def world(self, arena):
         return ET.fromstring(build_world(arena,edition='2026')).find('world')
 
-    def test_cad_visual_resolves_without_changing_collision_or_cameras(self):
+    def test_cad_visual_and_collision_bounds_match_with_camera_frames_preserved(self):
         from pathlib import Path
         from urllib.parse import unquote, urlparse
         for arena in ('qualification', 'finals'):
             world = ET.fromstring(build_world(arena)).find('world')
             link = world.find("model[@name='sauvc_auv']/link")
-            self.assertEqual(link.findtext("collision[@name='hull']/geometry/box/size"), '0.6 0.4 0.2')
+            self.assertEqual(link.findtext("collision[@name='hull']/geometry/box/size"), '0.518486 0.386876 0.2')
             self.assertEqual(len(link.findall('collision')), 1)
             uri = link.findtext('visual/geometry/mesh/uri')
             path = Path(unquote(urlparse(uri).path))
@@ -32,7 +32,11 @@ class ArenaTest(unittest.TestCase):
             low, high = metadata['output_bounds']
             for a, b, limit in zip(low, high, (.6, .4, .2)):
                 self.assertLessEqual(b-a, limit+1e-6)
-            self.assertLess(metadata['output_triangles'], 250000)
+            self.assertLess(metadata['output_triangles'], 900000)
+            self.assertLess(path.stat().st_size,100000000)
+            self.assertEqual(metadata['normal_smoothing_angle_deg'],30)
+            self.assertTrue(all(p['area_error']<=.015+1e-9 and p['bound_error_m']<=.0005+1e-9
+                                for p in metadata['parts_quality']))
             self.assertEqual(link.findtext("sensor[@name='camera_front']/pose"), '0.32 0 0 0 0 0')
             self.assertEqual(link.findtext("sensor[@name='camera_bottom']/pose"), '0 0 -0.12 0 1.57079633 0')
 

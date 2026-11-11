@@ -113,3 +113,15 @@ Urutan kerja yang diusulkan: **identifikasi perangkat → BlueOS dan komunikasi 
 [56 — Wi-Fi, reboot dan kesiapan Pixhawk](56-wifi-reboot-dan-kesiapan-pixhawk.md): power saving dinonaktifkan, 30/30 koneksi dan 3/3 rekoneksi berhasil; reboot pulih sekitar 47,5 s. 15 parameter propulsi cocok. Uji gerak belum dapat dilakukan karena Pixhawk hanya USB tanpa daya thruster.
 
 [57 — Model AUV FBX](57-model-auv-fbx-simulator.md): visual kendaraan dari model pengguna, normalisasi envelope, penyatuan vertex dan mesh OBJ/MTL terpaket; render Gazebo diperiksa, collision dan model gaya tetap. 179 tes lulus; kualifikasi serta ARENA dinamis dengan dua POV dan shutdown akhir bersih diterima. Satu kegagalan shutdown GUI awal tetap dicatat.
+
+[58 — Regresi pinger/pickup model baru](58-regresi-pinger-model-auv.md): satu run extended GUI + dua POV diterima, 290,79888 poin, 206,704 s dan 1.332 snapshot retensi; 179 tes lulus. Satu percobaan awal gagal karena viewer keluar dan tetap dicatat.
+
+[59 — Gripper lebih dekat](59-posisi-gripper-lebih-dekat.md): titik tangkap naik 5 cm menjadi z −0,40 m, dudukan tersambung ke badan dan depth/retensi sinkron. 180 tes serta extended GUI + dua POV lulus; clearance hull–rim nominal 2 cm.
+
+[60 — Evaluasi body dan mesh](60-evaluasi-body-dan-kualitas-mesh.md): panel/rangka yang hilang akibat simplifikasi dipulihkan; mesh 816.288 segitiga dengan pemeriksaan luas/bounds. 180 tes, 2 tes konversi dan kualifikasi GUI/POV lulus; collision masih lebih besar dari visual.
+
+[61 — Extended dengan body revisi](61-penerimaan-extended-body-revisi.md): satu run extended GUI/POV lulus pada mesh 816.288 segitiga dan gripper baru; 290,77638 poin, 207,454 s, 1.325 snapshot retensi dan shutdown bersih.
+
+[62 — Collision sesuai batas visual](62-collision-sesuai-batas-visual.md): hull, spawn start-wall, prior estimator dan envelope referee memakai batas mesh yang sama; 183 tes simulator, dua kualifikasi dan satu ARENA extended lulus, termasuk GUI/POV serta shutdown bersih.
+
+[63 — Regresi collision, arus/prior dan blue drum](63-regresi-collision-arus-dan-blue-drum.md): kualifikasi arus/prior dan hold lulus; pause sebelum GUI exit memperbaiki urutan teardown penguji. Empat misi selesai, tiga penerimaan lulus; satu kegagalan shutdown awal dipertahankan. 183 tes lulus.

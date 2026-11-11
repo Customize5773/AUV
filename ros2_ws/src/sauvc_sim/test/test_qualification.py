@@ -4,14 +4,17 @@ import numpy as np
 from sauvc_sim.gate_detection import detect_gate
 from sauvc_sim.referee import QualificationJudge, envelope
 from sauvc_sim.qualification import QualificationController
+from sauvc_sim.vehicle_geometry import qualification_start_x
+
+START_X=qualification_start_x(0.)
 
 
 class JudgeTest(unittest.TestCase):
     def start(self):
         j = QualificationJudge()
-        j.update((.3, 4, -.05, 0), 0)
-        j.update((.3, 4, -.3, 0), 1)
-        j.update((.3, 4, -.6, 0), 3)
+        j.update((START_X, 4, -.05, 0), 0)
+        j.update((START_X, 4, -.3, 0), 1)
+        j.update((START_X, 4, -.6, 0), 3)
         return j
 
     def out(self, j):
@@ -55,8 +58,8 @@ class JudgeTest(unittest.TestCase):
 
     def test_early_surface_and_wrong_gate_and_contacts(self):
         j = self.start()
-        j.update((.3, 4, -.15, 0), 9)
-        j.update((.3, 4, -.05, 0), 10)
+        j.update((START_X, 4, -.15, 0), 9)
+        j.update((START_X, 4, -.05, 0), 10)
         self.assertEqual(j.reason, 'early_surface')
         j = self.start()
         for x in np.arange(.4, 9.61, .1):
@@ -71,20 +74,20 @@ class JudgeTest(unittest.TestCase):
 
     def test_start_wall_exception_expires(self):
         j = self.start()
-        j.update((.3, 4, -.6, 0), 4, ['wall_start'])
+        j.update((START_X, 4, -.6, 0), 4, ['wall_start'])
         self.assertNotEqual(j.phase, 'FAILED')
         j.update((.5, 4, -.6, 0), 5)
-        j.update((.3, 4, -.6, 0), 6, ['wall_start'])
+        j.update((START_X, 4, -.6, 0), 6, ['wall_start'])
         self.assertEqual(j.reason, 'contact:wall_start')
 
     def test_preflight_wait_is_not_scored_as_an_active_run(self):
         j = QualificationJudge()
-        j.update((.3, 4, -.05, 0), 0)
-        j.update((.3, 4, -.05, 0), 20, ['wall_start'])
+        j.update((START_X, 4, -.05, 0), 0)
+        j.update((START_X, 4, -.05, 0), 20, ['wall_start'])
         self.assertEqual(j.phase, 'START')
         self.assertIsNone(j.run_started)
-        j.update((.3, 4, -.08, 0), 21)
-        j.update((.3, 4, -.08, 0), 32)
+        j.update((START_X, 4, -.08, 0), 21)
+        j.update((START_X, 4, -.08, 0), 32)
         self.assertEqual(j.reason, 'dive_timeout')
 
     def test_turn_before_clearance_is_not_accepted(self):
@@ -100,11 +103,11 @@ class JudgeTest(unittest.TestCase):
         j.update((11, 4, -.6, 0), 40)
         self.assertEqual(j.reason, 'pose_discontinuity')
 
-    def test_envelope_accounts_for_pitch_and_protruding_camera(self):
+    def test_envelope_rotates_hull_without_counting_virtual_camera(self):
         flat = envelope((10, 4, -.6, 0))
         pitched = envelope((10, 4, -.6, 0, math.pi/2, 0))
-        self.assertAlmostEqual(flat[1], 10.32)
-        self.assertAlmostEqual(pitched[4], -.92)
+        self.assertAlmostEqual(flat[1], 10.259243)
+        self.assertAlmostEqual(pitched[4], -.859243)
 
 
 class VisionTest(unittest.TestCase):
@@ -112,7 +115,7 @@ class VisionTest(unittest.TestCase):
         judge = {'phase': 'OUTBOUND', 'events': []}
         slow = QualificationController(speed_scale=1)
         fast = QualificationController(speed_scale=8)
-        pose = (.3, 4, -.05, 0)
+        pose = (START_X, 4, -.05, 0)
         self.assertAlmostEqual(fast.command(pose, 0, None, 0, judge)[2],
                                8*slow.command(pose, 0, None, 0, judge)[2])
         for invalid in (0, -1, 9, math.nan, math.inf):
@@ -155,7 +158,7 @@ class VisionTest(unittest.TestCase):
     def test_controller_stops_after_failure_and_never_surfaces_early(self):
         c = QualificationController()
         j = {'phase': 'OUTBOUND', 'events': []}
-        cmd = c.command((.3, 4, -.05, 0), 1, None, 100, j)
+        cmd = c.command((START_X, 4, -.05, 0), 1, None, 100, j)
         self.assertLess(cmd[2], 0)
         c.command((1, 4, -.6, 0), 2, None, 100, {'phase': 'FAILED', 'reason': 'contact'})
         self.assertEqual(c.state, 'ABORT')
@@ -172,10 +175,10 @@ class VisionTest(unittest.TestCase):
     def test_detection_loss_stops_forward_and_times_out(self):
         c = QualificationController()
         j = {'phase': 'OUTBOUND', 'events': []}
-        c.command((.3, 4, -.6, 0), 0, None, 100, j)
-        cmd = c.command((.3, 4, -.6, 0), 1, None, 100, j)
+        c.command((START_X, 4, -.6, 0), 0, None, 100, j)
+        cmd = c.command((START_X, 4, -.6, 0), 1, None, 100, j)
         self.assertEqual(cmd[0], 0)
-        c.command((.3, 4, -.6, 0), 10, None, 100, j)
+        c.command((START_X, 4, -.6, 0), 10, None, 100, j)
         self.assertEqual(c.state, 'ABORT')
 
     def test_dynamic_gate_search_uses_physical_yaw_rate_and_keeps_loss_timeout(self):

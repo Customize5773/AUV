@@ -4,6 +4,7 @@ Inputs are noisy sensor measurements, never pose/orientation ground truth.
 The deployment mark supplies the initial XY prior; a surveyed qualification gate
 can correct translation during the outbound camera approach.
 """
+from sauvc_sim.vehicle_geometry import qualification_start_x
 import math
 
 
@@ -124,7 +125,7 @@ class StateEstimator:
         self.yaw=wrap(self.yaw+a*wrap(heading-self.yaw))
         if self.x is None:
             # Hull touches the known starting wall; heading is measured by AHRS.
-            self.x=.3*abs(math.cos(self.yaw))+.2*abs(math.sin(self.yaw))+self.prior_error[0]
+            self.x=qualification_start_x(self.yaw)+self.prior_error[0]
         vx,vy,vz=self.integration_velocity
         # Rotate DVL FLU velocity by the estimated full attitude.
         bx,by,bz=vx,cr*vy-sr*vz,sr*vy+cr*vz

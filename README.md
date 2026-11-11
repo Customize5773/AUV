@@ -141,3 +141,15 @@ Model OpenSCAD adalah rancangan awal, belum dirender atau diuji fabrikasi. Tidak
 Gunakan [panduan SSH](CARA-OPERASI-SSH.md). Laptop membuka `/home/aero/AUV` pada Jetson melalui `auv-wifi`; edit dan eksekusi berjalan di Jetson. GUI disimpan di `/home/aero/AUV/GUI-prototype` pada Jetson; folder GUI laptop telah dihapus sesuai konfirmasi pengguna. Integrasi kendali misi fisik belum tersedia; perintah simulasi tetap terisolasi dari hardware.
 
 **Model AUV — 11 November 2026:** FBX SAUVC 2027 v1 sudah menjadi visual default simulator, dengan collision dan dinamika yang ada tetap dipakai. Build dan 179 tes lulus; kualifikasi serta ARENA dinamis dengan dua POV lulus pada penerimaan akhir. [Laporan 57 dan screenshot Gazebo](plan/57-model-auv-fbx-simulator.md).
+
+**Regresi extended — 12 November 2026:** model AUV baru lulus satu run pinger/pickup extended, termasuk bola yang sama, retensi hingga stop, dua POV dan shutdown; skor 290,79888 tanpa penalti. 179 tes unit lulus kembali. Satu percobaan awal gagal karena viewer keluar. [Laporan 58](plan/58-regresi-pinger-model-auv.md).
+
+**Gripper pickup — 12 November 2026:** titik tangkap dinaikkan 5 cm ke z −0,40 m, dengan dudukan tersambung ke badan. 180 tes dan satu penerimaan extended GUI/POV lulus. Clearance hull–rim nominal 2 cm masih memerlukan validasi fisik. [Evaluasi dan pembanding](plan/59-posisi-gripper-lebih-dekat.md).
+
+**Evaluasi body — 12 November 2026:** penyederhanaan mesh sebelumnya terlalu agresif pada panel; revisi 816.288 segitiga memulihkan bentuk mendekati FBX penuh. 180 tes simulator, 2 tes konversi dan kualifikasi GUI/POV lulus. Collision dan parameter fisika masih pendekatan latihan. [Laporan 60](plan/60-evaluasi-body-dan-kualitas-mesh.md).
+
+**Penerimaan body revisi — 12 November 2026:** ARENA extended GUI/POV lulus pada run pertama, termasuk pickup bola yang sama hingga stop; 290,77638 poin, penalti nol dan shutdown bersih. [Laporan 61](plan/61-penerimaan-extended-body-revisi.md).
+
+**Collision sesuai visual — 12 November 2026:** hull box kini 51,8486 × 38,6876 × 20 cm, mengikuti batas mesh. Start-wall, prior estimator dan envelope referee disinkronkan; frame kamera tidak dihitung sebagai benda fisik. Build, 183 tes, dua kualifikasi (termasuk start miring) dan satu ARENA extended lulus; GUI/dua POV serta shutdown bersih terverifikasi pada run nominal dan extended. Gripper tidak berubah. Collision tetap AABB, parameter fisika belum terkalibrasi pada AUV nyata. [Laporan 62](plan/62-collision-sesuai-batas-visual.md).
+
+**Regresi collision — 12 November 2026:** kualifikasi jalur 2 dengan arus 0,02 m/s dan prior meleset lulus; drift hold aktif 0,52 cm dalam sekitar 30 s dan emergency stop lulus. Satu ARENA selesai tetapi gagal shutdown; kedua penguji kini pause sebelum GUI exit. Kualifikasi dan ARENA GUI/dua POV sesudah perbaikan diterima dengan shutdown bersih; ARENA blue drum 2 mencatat 210,40156 poin tanpa penalti. 183 tes unit lulus. Semua percobaan tetap dicatat; belum jaminan keandalan semua kondisi atau validasi fisik. [Laporan 63](plan/63-regresi-collision-arus-dan-blue-drum.md).

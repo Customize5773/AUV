@@ -2,7 +2,7 @@
 import math
 from sauvc_sim.camera_geometry import CameraModel, to_world
 from sauvc_sim.referee import wrap
-from sauvc_sim.arena import floor_z
+from sauvc_sim.arena import floor_z, PICKUP_X, PICKUP_Z
 from sauvc_sim.rules2027 import floor_z as floor2027
 
 
@@ -297,7 +297,7 @@ class ArenaController:
                 self.aligned_since=None;self.change('ALIGN_PICKUP',t)
             return self.go(pose,self.goal,.65,depth=self.cruise_depth)
         if self.state in ('ALIGN_PICKUP','DESCEND_PICKUP','LIFT_PICKUP'):
-            dx,dy=self.goal[0]-(x-.2*math.cos(yaw)),self.goal[1]-(y-.2*math.sin(yaw))
+            dx,dy=self.goal[0]-(x+PICKUP_X*math.cos(yaw)),self.goal[1]-(y+PICKUP_X*math.sin(yaw))
             if self.state=='ALIGN_PICKUP' and math.hypot(dx,dy)<.012:
                 self.change('DESCEND_PICKUP',t)
             if self.state=='DESCEND_PICKUP':
@@ -308,7 +308,7 @@ class ArenaController:
                     self.change('ABORT',t,'pickup_not_proven');return zero
             if self.state=='LIFT_PICKUP' and z>(self.cruise_depth-.06 if self.physical else -.3):
                 self.change('TO_SQUARE' if self.edition=='2027' else 'SURFACE',t);return zero
-            depth=self.cruise_depth if self.state in ('ALIGN_PICKUP','LIFT_PICKUP') else (-2. if self.edition=='2027' else floor_z(self.goal[0]))+.49
+            depth=self.cruise_depth if self.state in ('ALIGN_PICKUP','LIFT_PICKUP') else (-2. if self.edition=='2027' else floor_z(self.goal[0]))-PICKUP_Z+.04
             return (max(-.12,min(.12,(dx*math.cos(yaw)+dy*math.sin(yaw))*.8)),
                     max(-.12,min(.12,(-dx*math.sin(yaw)+dy*math.cos(yaw))*.8)),
                     max(-.12,min(.12,(depth-z)*1.5)),0.)

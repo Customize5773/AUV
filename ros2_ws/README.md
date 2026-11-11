@@ -2,7 +2,7 @@
 
 Panduan perintah kualifikasi, ARENA dan kedua POV: [Cara running simulator](CARA-RUNNING.md).
 
-Workspace SAUVC terpisah dalam repositori AUV. Package `sauvc_sim` menyediakan **Qualification Arena(s)** dan **The Arena / finals**, AUV latihan berbentuk kotak, dua kamera, odometri, dan perintah gerak ROS 2. Tidak memerlukan model dari internet atau workspace KKI.
+Workspace SAUVC terpisah dalam repositori AUV. Package `sauvc_sim` menyediakan **Qualification Arena(s)** dan **The Arena / finals**, AUV dengan visual mesh dan collision box, dua kamera, odometri, dan perintah gerak ROS 2. Tidak memerlukan model dari internet atau workspace KKI.
 
 **Profil default: SAUVC 2027.3.2**, diperiksa 1 November 2026. [Sumber resmi terkunci dan audit delta](../doc/sources/rulebook-2027.3.2/README.md); [penerimaan terbaru](../plan/41-audit-dan-migrasi-rulebook-2027-3-2.md). Launch, generator arena dan pemeriksa misi memakai `edition:=2027` / `--edition 2027`. Edisi 2026 hanya tersedia sebagai regresi eksplisit. Migrasi awal dan bukti historis: [laporan 24](../plan/24-migrasi-dan-uji-arena-2027.md); sumber historis: [arsip 2027.2.1](../doc/sources/rulebook-2027-published/README.md). Bagian bukti bertanggal sebelum migrasi adalah hasil historis 2026. Matriks sebelum perbaikan penahan preflight: **120 tes unit lulus; 18 misi selesai, 14 diterima dan empat kasus arus gagal diam/akurasi**. Matriks terdiri dari 12 kualifikasi dan enam ARENA dengan variasi seed sensor, prior posisi, cahaya 70% dan arus 0,02 m/s. Seluruhnya shutdown bersih. Estimator kini memisahkan integrasi DVL dari filter kecepatan kontrol. Satu pengulangan tambahan prior gagal pada galat 0,2010 m; total 14 dari 19 run diterima. Batas prior dan kegagalan arus dijelaskan pada [laporan 30](../plan/30-pengujian-keandalan-berulang.md). Batch ini headless; GUI/POV dan injeksi gangguan tetap bukti historis [laporan 27](../plan/27-kalibrasi-dvl-dan-penerimaan-gui.md). Lima fixture dan 98/98 uji label perturbasi dari tahap sebelumnya tercatat pada [laporan 29](../plan/29-validasi-flare-dan-penerimaan-ulang.md). Kelulusan fixture/label tidak membuktikan keandalan seluruh kondisi atau kesiapan kolam nyata.
 
@@ -75,7 +75,7 @@ Koordinat dunia: `x=0…50`, `y=0…25`, `z=0` permukaan. Kualifikasi menghadap 
 | Target zone | Mat hijau 8 × 2 m; lokal U=21…23, V=14…22 |
 | Drum | Dunia y=22, x=21/23/25/27; diameter 60 cm, kedalaman 30 cm |
 | Surfacing Square | Pusat dunia (11,1; 7), bukaan 2 × 2 m, marker biru 0,3 m di bawah permukaan |
-| AUV latihan | Kotak 60 × 40 × 20 cm; profil bersama 4 thruster horizontal + 3 vertikal |
+| AUV latihan | Visual mesh dan collision AABB 51,8486 × 38,6876 × 20 cm; 4 thruster horizontal + 3 vertikal |
 
 Posisi setiap prop dan ukuran konstruksi adalah fixture latihan, bukan koordinat resmi hasil pengukuran diagram. Shelf 1,8 m dan slope 17,5 m ditafsirkan untuk pemodelan; diagram resmi tidak berskala. Gunakan `edition:=2026` hanya untuk mengulang bukti lama.
 
@@ -207,7 +207,7 @@ Hasil implementasi dan batas pembuktiannya tercatat pada [laporan kualifikasi](.
 
 `vehicle_model:=dynamic` mengaktifkan gravitasi dan plugin gaya `VehicleDynamics`, serta menghapus `VelocityControl`. Tujuh thruster abstrak (T1–T4 horizontal, T5–T7 vertikal) menghasilkan wrench melalui posisi/arah masing-masing. Gaya mengikuti `F=Fmax*u*abs(u)` dengan batas ±20 N horizontal/±40 N vertikal dan respons orde satu τ=0,15 s. Pengendali kecepatan mengalokasikan wrench menjadi tujuh input `u` dan mengerem melalui thrust balik. Pose atau kecepatan aktual tidak di-set langsung.
 
-Drag translasi/rotasi mengikuti `-D*v-Q*v*abs(v)`. Buoyancy memakai `rho*g*V_submerged`, pusat apung di atas pusat massa, dan volume terendam yang berkurang ketika mendekati permukaan. Parameter awal di [dynamics.yaml](src/sauvc_sim/config/dynamics.yaml): massa 20 kg, displaced volume 20,5 L, air tawar 1000 kg/m³. Preset sedikit positif buoyancy sehingga setelah thrust dimatikan kendaraan mengapung pada waterline. Collision box tetap 60×40×20 cm; volume efektif mewakili frame yang sebagian tergenang. Ini model drag diagonal dan buoyancy pendekatan untuk badan hampir datar, belum CFD/added-mass/Coriolis penuh atau model thruster terkalibrasi. Arus konfigurasi default nol.
+Drag translasi/rotasi mengikuti `-D*v-Q*v*abs(v)`. Buoyancy memakai `rho*g*V_submerged`, pusat apung di atas pusat massa, dan volume terendam yang berkurang ketika mendekati permukaan. Parameter awal di [dynamics.yaml](src/sauvc_sim/config/dynamics.yaml): massa 20 kg, displaced volume 20,5 L, air tawar 1000 kg/m³. Preset sedikit positif buoyancy sehingga setelah thrust dimatikan kendaraan mengapung pada waterline. Collision box mengikuti batas mesh 51,8486×38,6876×20 cm; volume efektif dan inertia tetap koefisien latihan, belum diturunkan dari CAD atau pengukuran fisik. Ini model drag diagonal dan buoyancy pendekatan untuk badan hampir datar, belum CFD/added-mass/Coriolis penuh atau model thruster terkalibrasi. Arus konfigurasi default nol.
 
 | Topic | Isi / pengguna |
 | --- | --- |
@@ -390,3 +390,19 @@ Alat penerimaan [tools/check_physical_camera.py](tools/check_physical_camera.py)
 ### Model visual AUV SAUVC 2027 v1
 
 Model FBX pengguna kini menjadi visual default kendaraan pada kualifikasi dan ARENA. Mesh OBJ/MTL sudah disertakan dalam paket, sehingga launch tidak memerlukan konversi FBX. Collision, kamera dan dinamika tetap memakai konfigurasi simulator yang ada. Skala visual disesuaikan ke envelope lama; belum dimensi fisik terkalibrasi. [Laporan integrasi dan reproduksi aset](../plan/57-model-auv-fbx-simulator.md).
+
+Regresi pinger/pickup extended model baru juga diterima pada [laporan 58](../plan/58-regresi-pinger-model-auv.md): bola yang sama dipertahankan hingga stop, 290,79888 poin dan shutdown bersih. Satu percobaan awal terhenti karena viewer keluar; penyebabnya belum diketahui.
+
+### Posisi gripper pickup (12 November 2026)
+
+Titik tangkap extended kini `(−0,20, 0, −0,40) m`, naik 5 cm, dengan dudukan yang menyambung ke badan. Offset ini menjaga clearance hull–rim sekitar 2 cm saat menjangkau bola pada posisi datar; offset terlalu pendek tidak menjangkau dasar drum. Controller dan referee diselaraskan, toleransi retensi tetap 7,5 cm. 180 tes serta satu penerimaan extended GUI/POV lulus. [Evaluasi dan gambar sebelum/sesudah](../plan/59-posisi-gripper-lebih-dekat.md).
+
+### Evaluasi ulang body (12 November 2026)
+
+Mesh runtime kini 816.288 segitiga agar panel cover dan rangka bawah tetap utuh seperti referensi FBX penuh. Konverter memeriksa luas/bounds tiap part dan memisahkan normals pada tepi tajam. Orientasi +X depan dan ukuran latihan sekitar 51,85 × 38,69 × 20 cm dipakai; collision masih box 60 × 40 × 20 cm. Build, 180 tes simulator, 2 tes konversi dan satu kualifikasi dinamis GUI/POV lulus. ARENA belum diulang untuk revisi body ini. [Evaluasi, perbandingan gambar dan batas realisme](../plan/60-evaluasi-body-dan-kualitas-mesh.md).
+
+ARENA extended dengan revisi body 816.288 segitiga serta gripper z −0,40 m juga lulus pada [laporan 61](../plan/61-penerimaan-extended-body-revisi.md): 290,77638 poin tanpa penalti, 207,454 s thrust–surface, kedua POV dan shutdown bersih. Ini satu fixture; collision dan kalibrasi fisik tetap belum disamakan dengan CAD.
+
+**Collision sesuai visual — 12 November 2026:** hull box kini 51,8486 × 38,6876 × 20 cm, mengikuti batas mesh. Start-wall, prior estimator dan envelope referee disinkronkan; frame kamera tidak dihitung sebagai benda fisik. Build, 183 tes, dua kualifikasi (termasuk start miring) dan satu ARENA extended lulus; GUI/dua POV serta shutdown bersih terverifikasi pada run nominal dan extended. Gripper tidak berubah. Collision tetap AABB, parameter fisika belum terkalibrasi pada AUV nyata. [Laporan 62](../plan/62-collision-sesuai-batas-visual.md).
+
+**Regresi collision — 12 November 2026:** kualifikasi jalur 2 dengan arus 0,02 m/s dan prior meleset lulus; drift hold aktif 0,52 cm dalam sekitar 30 s dan emergency stop lulus. Satu ARENA selesai tetapi gagal shutdown; kedua penguji kini pause sebelum GUI exit. Kualifikasi dan ARENA GUI/dua POV sesudah perbaikan diterima dengan shutdown bersih; ARENA blue drum 2 mencatat 210,40156 poin tanpa penalti. 183 tes unit lulus. Semua percobaan tetap dicatat; belum jaminan keandalan semua kondisi atau validasi fisik. [Laporan 63](../plan/63-regresi-collision-arus-dan-blue-drum.md).

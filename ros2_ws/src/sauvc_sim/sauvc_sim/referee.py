@@ -1,5 +1,6 @@
 """Independent qualification judge for the published 2026 training geometry."""
 import math
+from sauvc_sim.vehicle_geometry import HULL_CORNERS
 from sauvc_sim.arena import floor_z
 
 
@@ -13,12 +14,10 @@ def envelope(pose):
     c, s = math.cos(yaw), math.sin(yaw)
     cr, sr, cp, sp = math.cos(roll), math.sin(roll), math.cos(pitch), math.sin(pitch)
     corners = []
-    for a in (-.3, .32):
-        for b in (-.2, .2):
-            for d in (-.12, .1):
-                bx, by, bz = a, b*cr-d*sr, b*sr+d*cr
-                bx, bz = bx*cp+bz*sp, -bx*sp+bz*cp
-                corners.append((x+bx*c-by*s, y+bx*s+by*c, z+bz))
+    for a,b,d in HULL_CORNERS:
+        bx, by, bz = a, b*cr-d*sr, b*sr+d*cr
+        bx, bz = bx*cp+bz*sp, -bx*sp+bz*cp
+        corners.append((x+bx*c-by*s, y+bx*s+by*c, z+bz))
     return (min(p[0] for p in corners), max(p[0] for p in corners),
             min(p[1] for p in corners), max(p[1] for p in corners),
             min(p[2] for p in corners), max(p[2] for p in corners))
@@ -74,7 +73,7 @@ class QualificationJudge:
         lo, hi, bottom_y, top_y, bottom_z, top_z = envelope(pose)
         if self.started is None:
             self.started = t
-            hull_rear = x - .3*abs(math.cos(yaw)) - .2*abs(math.sin(yaw))
+            hull_rear = lo
             if abs(hull_rear) > .015 or abs(y-self.gate_y) > .5 or hi >= 9.975:
                 self.fail('invalid_start', t)
                 return

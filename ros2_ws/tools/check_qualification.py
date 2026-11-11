@@ -289,6 +289,16 @@ def main():
                     os.kill(frozen_pid, signal.SIGCONT)
                 except ProcessLookupError:
                     pass
+            # Pause rendering before GUI exit triggers launch-wide SIGINT.
+            if process.poll() is None:
+                try:
+                    pause=subprocess.run(['ign','service','-s','/world/sauvc_qualification/control',
+                        '--reqtype','ignition.msgs.WorldControl','--reptype','ignition.msgs.Boolean',
+                        '--timeout','3000','--req','pause: true'],capture_output=True,text=True,timeout=5)
+                    report['paused_before_shutdown']='data: true' in pause.stdout
+                    drain=time.monotonic()+.15
+                    while time.monotonic()<drain:rclpy.spin_once(node,timeout_sec=.02)
+                except (subprocess.TimeoutExpired,OSError): report['paused_before_shutdown']=False
             if args.gui and process.poll() is None:
                 try:
                     from pov_windows import close_simulator_gui
@@ -296,14 +306,7 @@ def main():
                 except (OSError,RuntimeError,subprocess.SubprocessError) as exc:
                     report['gui_close_error']=str(exc)
             if process.poll() is None:
-                # Stop the render server through its API before tearing down ROS.
                 try:
-                    pause=subprocess.run(['ign','service','-s','/world/sauvc_qualification/control',
-                        '--reqtype','ignition.msgs.WorldControl','--reptype','ignition.msgs.Boolean',
-                        '--timeout','3000','--req','pause: true'],stdout=log,stderr=subprocess.STDOUT,timeout=5)
-                    report['paused_before_shutdown']=pause.returncode==0
-                    drain=time.monotonic()+.15
-                    while time.monotonic()<drain:rclpy.spin_once(node,timeout_sec=.02)
                     stop = subprocess.run(['ign', 'service', '-s', '/server_control',
                         '--reqtype', 'ignition.msgs.ServerControl', '--reptype', 'ignition.msgs.Boolean',
                         '--timeout', '3000', '--req', 'stop: true'], stdout=log,

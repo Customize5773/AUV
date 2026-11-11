@@ -24,7 +24,7 @@ class AcousticPickupTest(unittest.TestCase):
         j.score.award('acquisition',3,ball_id='payload',drum=1)
         j.score.award('target_zone_exit',4)
         j.previous=(22.,19.,-.3,0.,.2,0.)
-        point=[22.-.2*math.cos(.2)-.45*math.sin(.2),19.,-.3+.2*math.sin(.2)-.45*math.cos(.2)]
+        point=[22.-.2*math.cos(.2)-.4*math.sin(.2),19.,-.3+.2*math.sin(.2)-.4*math.cos(.2)]
         def frame(t,attached=True,offset=0.):
             return dict(time=t,payload_attached=attached,balls={'payload':dict(position=[point[0]+offset,*point[1:]],released=True)})
         j.physics(frame(5));j.physics(frame(5.6))
@@ -35,6 +35,26 @@ class AcousticPickupTest(unittest.TestCase):
         self.assertTrue(j.payload_retrieved)
         j.physics(frame(8,attached=False))
         self.assertFalse(j.payload_retrieved)
+
+    def test_close_mount_still_reaches_ball_below_drum_rim(self):
+        import xml.etree.ElementTree as ET
+        w=ET.fromstring(build_world('finals',extended=True,edition='2027'))
+        body=w.find("world/model[@name='sauvc_auv']/link")
+        finger=list(map(float,body.findtext("collision[@name='pickup_finger_0']/pose").split()))
+        self.assertAlmostEqual(finger[2],-.4)
+        mount=body.find("collision[@name='pickup_mount']")
+        center=float(mount.findtext('pose').split()[2])
+        height=float(mount.findtext('geometry/box/size').split()[2])
+        self.assertAlmostEqual(center+height/2,-.09)
+        self.assertAlmostEqual(center-height/2,-.37)
+        # Ball center is floor + 2 cm base + 2 cm radius; rim top is floor + 32 cm.
+        vehicle_z=.04-finger[2]
+        self.assertAlmostEqual(vehicle_z-.1-.32,.02)
+        ctrl=ArenaController(extended=True,edition='2027',physical=True)
+        ctrl.started=0.;ctrl.since=1.;ctrl.state='DESCEND_PICKUP';ctrl.goal=[22.,15.]
+        command=ctrl.command((22.2,15.,-2.+vehicle_z,0.),2.,{})
+        self.assertAlmostEqual(command[2],0.)
+        self.assertTrue(ctrl.grip)
 
     def test_vertical_ping_keeps_only_an_established_nearby_target(self):
         a=AcousticTracker()
@@ -80,6 +100,8 @@ class AcousticPickupTest(unittest.TestCase):
         j.update((.7,8.,-.05,0.),0.)
         j.update((.7,8.,-.4,0.),1.)
         j.update((.7,8.,-.8,0.),2.)
+        self.assertEqual(j.reason,'')
+        j.update((.7,8.,-.82,0.),3.)
         self.assertEqual(j.reason,'pool_envelope')
         c=ArenaController(extended=True)
         c.command((.7,8.,-.65,0.),1.,{})
@@ -89,7 +111,7 @@ class AcousticPickupTest(unittest.TestCase):
         j=ArenaJudge(extended=True)
         j.navigation=True;j.score.started=0;j.score.award('navigation',1)
         j.score.award('payload',2,ball_id='payload');j.score.award('acquisition',3,ball_id='payload',drum=1)
-        j.score.award('navigation',4);j.previous=(24.2,9.5,-.74,0.)
+        j.score.award('navigation',4);j.previous=(24.2,9.5,-.79,0.)
         def frame(t,attached,x=24.):
             return dict(time=t,payload_attached=attached,balls={'payload':dict(position=[x,9.5,-1.19],released=True)})
         j.physics(frame(5,False));self.assertFalse(j.payload_grasped)

@@ -123,7 +123,7 @@ def main():
             terminal_sim=None
             last_state=None
             while time.monotonic()<deadline:
-                if any(v.poll() is not None for v in viewers):raise RuntimeError('POV viewer exited during mission')
+                if any(v.poll() is not None for v in viewers):raise RuntimeError(f'POV viewer exited during mission: exit_codes={[v.poll() for v in viewers]}')
                 rclpy.spin_once(node,timeout_sec=.1)
                 if process.poll() is not None: raise RuntimeError('launch exited before completion')
                 if args.pov and not pov_windows and observed['state'] not in ('','WAIT','WAIT_READY'):
@@ -200,12 +200,7 @@ def main():
             report['passed']=False
             report['error']=str(exc)
         finally:
-            if args.gui and process.poll() is None:
-                try:
-                    from pov_windows import close_simulator_gui
-                    report['gui_close_requested']=close_simulator_gui(process)
-                except (OSError,RuntimeError,subprocess.SubprocessError) as exc:
-                    report['gui_close_error']=str(exc)
+            # Pause rendering before GUI exit triggers launch-wide SIGINT.
             if process.poll() is None:
                 try:
                     pause=subprocess.run(['ign','service','-s','/world/sauvc_finals/control',
@@ -214,6 +209,15 @@ def main():
                     report['paused_before_shutdown']='data: true' in pause.stdout
                     drain=time.monotonic()+.15
                     while time.monotonic()<drain:rclpy.spin_once(node,timeout_sec=.02)
+                except (subprocess.TimeoutExpired,OSError): report['paused_before_shutdown']=False
+            if args.gui and process.poll() is None:
+                try:
+                    from pov_windows import close_simulator_gui
+                    report['gui_close_requested']=close_simulator_gui(process)
+                except (OSError,RuntimeError,subprocess.SubprocessError) as exc:
+                    report['gui_close_error']=str(exc)
+            if process.poll() is None:
+                try:
                     stop=subprocess.run(['ign','service','-s','/server_control',
                         '--reqtype','ignition.msgs.ServerControl','--reptype','ignition.msgs.Boolean',
                         '--timeout','3000','--req','stop: true'],capture_output=True,text=True,timeout=5)

@@ -9,6 +9,7 @@ import math
 from pathlib import Path
 import xml.etree.ElementTree as ET
 from sauvc_sim.arena_layout import layout
+from sauvc_sim.vehicle_geometry import HULL_SIZE, HULL_CENTER, qualification_start_x
 
 
 WHITE = '0.92 0.94 0.96 1'
@@ -18,6 +19,10 @@ BLUE = '0.025 0.2 0.85 1'
 YELLOW = '1 0.8 0.02 1'
 ORANGE = '1 0.35 0.02 1'
 POOL = '0.55 0.75 0.85 1'
+
+# Reach the 32 cm drum rim while keeping the hull 2 cm above it at pickup.
+PICKUP_X = -.2
+PICKUP_Z = -.4
 
 
 def tag(parent, element_name, text=None, **attrs):
@@ -165,7 +170,7 @@ def ball(world, name, position, radius):
 def auv(world, arena, cameras, lane=1, lateral_offset=0.0, yaw=0.0, physical=False, fault='none'):
     vehicle = tag(world, 'model', name='sauvc_auv')
     # Keep the collision hull touching the start wall even with a yaw offset.
-    start_x = 0.3 * abs(math.cos(yaw)) + 0.2 * abs(math.sin(yaw))
+    start_x = qualification_start_x(yaw)
     tag(vehicle, 'pose', numbers((start_x if arena == 'qualification' else 0.7,
                                 (4 if lane == 1 else 12) + lateral_offset
                                 if arena == 'qualification' else 8, -0.05, 0, 0, yaw)))
@@ -181,10 +186,10 @@ def auv(world, arena, cameras, lane=1, lateral_offset=0.0, yaw=0.0, physical=Fal
     inertia = tag(inertial, 'inertia')
     for key, value in [('ixx', 0.333333), ('iyy', 0.666667), ('izz', 0.866667)]:
         tag(inertia, key, value*mass/20)
-    # Visual CAD fits the existing hull; dynamics/contact geometry remains configured separately.
+    # Hull is the visual mesh AABB; cameras are non-solid sensor frames.
     solid = tag(link, 'collision', name='hull')
-    tag(solid, 'pose', '0 0 0 0 0 0')
-    geometry(solid, 'box', (0.6, 0.4, 0.2))
+    tag(solid, 'pose', numbers((*HULL_CENTER,0,0,0)))
+    geometry(solid, 'box', HULL_SIZE)
     visual = tag(link, 'visual', name='sauvc_2027_v1_visual')
     mesh = tag(tag(visual, 'geometry'), 'mesh')
     tag(mesh, 'uri', (Path(__file__).parent/'meshes'/'sauvc_2027_v1.obj').resolve().as_uri())
@@ -305,7 +310,7 @@ def build_world(arena, cameras=True, lane=1, lateral_offset=0.0, yaw=0.0,
     if edition=='2027':
         from sauvc_sim.rules2027 import LANES
         vehicle=world.find("model[@name='sauvc_auv']")
-        start_x=.3*abs(math.cos(yaw))+.2*abs(math.sin(yaw))
+        start_x=qualification_start_x(yaw)
         pose=(start_x,LANES[lane-1]+lateral_offset,-.05,0,0,yaw) if arena=='qualification' else (34.,.7,-.05,0,0,math.pi/2)
         vehicle.find('pose').text=numbers(pose)
         view.find('camera_pose').text='25 -30 36 0 0.7 1.5707963'
@@ -322,8 +327,12 @@ def build_world(arena, cameras=True, lane=1, lateral_offset=0.0, yaw=0.0,
         body=world.find("model[@name='sauvc_auv']/link")
         # Fixed capture fingers; close command latches only after payload contact.
         for i,dy in enumerate((-.026,.026)):
-            part(body,f'pickup_finger_{i}',(-.2,dy,-.45,0,0,0),'sphere',(.009,),WHITE)
-        part(body,'pickup_roof',(-.2,0,-.42,0,0,0),'box',(.06,.06,.01),WHITE)
+            part(body,f'pickup_finger_{i}',(PICKUP_X,dy,PICKUP_Z,0,0,0),'sphere',(.009,),WHITE)
+        roof_z=PICKUP_Z+.03
+        part(body,'pickup_roof',(PICKUP_X,0,roof_z,0,0,0),'box',(.06,.06,.01),WHITE)
+        top=-.09
+        part(body,'pickup_mount',(PICKUP_X,0,(top+roof_z)/2,0,0,0),
+             'box',(.016,.016,top-roof_z),WHITE)
     ET.indent(sdf)
     return ET.tostring(sdf, encoding='unicode', xml_declaration=True)
 
