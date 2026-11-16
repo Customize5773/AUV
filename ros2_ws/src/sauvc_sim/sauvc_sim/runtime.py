@@ -157,6 +157,8 @@ class Runtime(Node):
         self.received['camera'] = time.monotonic()
         self.frames += 1
         self.detection = detect_gate(msg.data, msg.width, msg.height, msg.step, msg.encoding)
+        if self.detection is not None:
+            self.detection['stamp']=msg.header.stamp.sec+msg.header.stamp.nanosec*1e-9
         self.detection_time = time.monotonic()
         self.detections += self.detection is not None
 

@@ -104,7 +104,9 @@ def detect_objects(data, width, height, step, encoding='rgb8', camera='front', a
         r,g,b=(rgb[:,:,i].astype(float) for i in range(3))
         blue_score=b-(r+g)/2
         contrast=np.zeros_like(blue_score)
-        contrast[:,4:-4]=blue_score[:,4:-4]-(blue_score[:,:-8]+blue_score[:,8:])/2
+        # A pole must peak above both sides; a single red edge creates a false blue halo.
+        contrast[:,4:-4]=np.minimum(blue_score[:,4:-4]-blue_score[:,:-8],
+                                   blue_score[:,4:-4]-blue_score[:,8:])
         faint=(contrast>12)&(b>r*1.3)&(b>g*1.15)
         padded=np.pad(faint,((1,1),(0,0)))
         dilated=padded[:-2]|padded[1:-1]|padded[2:]

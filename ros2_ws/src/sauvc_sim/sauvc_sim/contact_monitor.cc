@@ -13,7 +13,6 @@
 #include <ignition/gazebo/Model.hh>
 #include <ignition/gazebo/Link.hh>
 #include <ignition/gazebo/components/Model.hh>
-#include <ignition/gazebo/components/Gravity.hh>
 #include <ignition/gazebo/components/LinearVelocityCmd.hh>
 #include <ignition/gazebo/components/AngularVelocityCmd.hh>
 #include <atomic>
@@ -22,6 +21,8 @@
 #include <random>
 #include <cmath>
 #include <ignition/gazebo/components/DetachableJoint.hh>
+#include <ignition/gazebo/components/Link.hh>
+#include <algorithm>
 
 namespace sauvc {
 using namespace ignition::gazebo;
@@ -64,7 +65,8 @@ class ArenaPhysics : public System, public ISystemPreUpdate, public ISystemPostU
   ignition::transport::Node node;
   ignition::transport::Node::Publisher publisher;
   std::atomic<bool> request{false}, gripRequest{false};
-  Entity attachment{kNullEntity}, pinger{kNullEntity};
+  Entity attachment{kNullEntity}, loadingJoint{kNullEntity}, pinger{kNullEntity};
+  Entity gripper{kNullEntity};
   std::vector<Entity> fingers;
   bool pickupContact{false};
   double servoAngle{0};
@@ -87,7 +89,7 @@ public:
       acousticPublisher=node.Advertise<ignition::msgs::StringMsg>("/sauvc/acoustics");
       configured=true;
     }
-    if (auv==kNullEntity || payload==kNullEntity || hull==kNullEntity) {
+    if (auv==kNullEntity || payload==kNullEntity || hull==kNullEntity || gripper==kNullEntity) {
       ecm.Each<components::Model,components::Name>([&](const Entity &e,const components::Model *,const components::Name *n) {
         if (n->Data()=="sauvc_auv") auv=e;
         if (n->Data()=="payload_ball") payload=e;
@@ -100,13 +102,26 @@ public:
       ecm.Each<components::Collision,components::Name>([&](const Entity &e,const components::Collision *,const components::Name *n) {
         if (n->Data()=="hull" && scopedName(e,ecm).find("sauvc_auv")!=std::string::npos) hull=e;
         if (n->Data().find("pickup_")==0 && scopedName(e,ecm).find("sauvc_auv")!=std::string::npos) {
-          fingers.push_back(e);
-          ecm.CreateComponent(e,components::ContactSensorData());
+          if (std::find(fingers.begin(),fingers.end(),e)==fingers.end()) {
+            fingers.push_back(e);
+            ecm.CreateComponent(e,components::ContactSensorData());
+          }
+        }
+        return true;
+      });
+      ecm.Each<components::Link,components::Name>([&](const Entity &e,const components::Link *,const components::Name *n) {
+        if (n->Data()=="payload_gripper" && scopedName(e,ecm).find("sauvc_auv")!=std::string::npos) {
+          gripper=e;
         }
         return true;
       });
     }
-    if (info.paused || auv==kNullEntity || payload==kNullEntity) return;
+    if (info.paused || auv==kNullEntity || payload==kNullEntity || gripper==kNullEntity) return;
+    if (!dropped && loadingJoint==kNullEntity) {
+      loadingJoint=ecm.CreateEntity();
+      ecm.CreateComponent(loadingJoint,components::DetachableJoint({
+        gripper,Model(payload).CanonicalLink(ecm),"fixed"}));
+    }
     for (size_t i=0;i<3;++i) if (balls[i]!=kNullEntity) {
       if (!released[i]) Hold(balls[i],supports[i],ecm);
       else Free(balls[i],ecm);
@@ -116,11 +131,8 @@ public:
     if (!dropped) {
       if (servoAngle>=2.094395) {
         dropped=true;
+        ecm.RequestRemoveEntity(loadingJoint);loadingJoint=kNullEntity;
         Free(payload,ecm);
-      } else {
-        auto pose=worldPose(auv,ecm);
-        pose.Pos()+=pose.Rot().RotateVector(ignition::math::Vector3d(.2,0,-.18));
-        Hold(payload,pose,ecm);
       }
     } else Free(payload,ecm);
     pickupContact=false;
@@ -130,10 +142,10 @@ public:
         if (c.collision1().name().find("payload_ball::")!=std::string::npos ||
             c.collision2().name().find("payload_ball::")!=std::string::npos) pickupContact=true;
     }
-    if (gripRequest.load() && dropped && pickupContact && attachment==kNullEntity) {
+    if (gripRequest.load() && dropped && pickupContact && attachment==kNullEntity && gripper!=kNullEntity) {
       attachment=ecm.CreateEntity();
       ecm.CreateComponent(attachment,components::DetachableJoint({
-        Model(auv).CanonicalLink(ecm),Model(payload).CanonicalLink(ecm),"fixed"}));
+        gripper,Model(payload).CanonicalLink(ecm),"fixed"}));
     }
     if (!gripRequest.load() && attachment!=kNullEntity) {
       ecm.RequestRemoveEntity(attachment);attachment=kNullEntity;
@@ -170,11 +182,13 @@ public:
     if (info.paused || payload==kNullEntity || info.simTime-last<std::chrono::milliseconds(50)) return;
     last=info.simTime;
     std::ostringstream out;
+    const auto capture=worldPose(gripper,ecm).Pos();
     out<<"{\"time\":"<<std::chrono::duration<double>(info.simTime).count()
+       <<",\"pickup_position\":["<<capture.X()<<','<<capture.Y()<<','<<capture.Z()<<']'
        <<",\"payload_released\":"<<(dropped?"true":"false")
        <<",\"servo_angle_rad\":"<<servoAngle
        <<",\"pickup_contact\":"<<(pickupContact?"true":"false")
-       <<",\"payload_attached\":"<<(attachment!=kNullEntity?"true":"false")<<",\"balls\":{";
+       <<",\"payload_attached\":"<<(attachment!=kNullEntity || loadingJoint!=kNullEntity?"true":"false")<<",\"balls\":{";
     auto emit=[&](const std::string &name,Entity e,bool freed) {
       const auto p=worldPose(e,ecm).Pos();
       out<<'"'<<name<<"\":{\"position\":["<<p.X()<<','<<p.Y()<<','<<p.Z()

@@ -1,5 +1,7 @@
 # Rencana Program — SAUVC 2027
 
+**Mulai di sini: [peta progres dan posisi kita](../STATUS.md).** Ringkasan aktif; laporan bernomor adalah bukti dan riwayat.
+
 Status: **draf pengantar untuk diskusi**, 1 Oktober 2026. Belum menjadi arsitektur final atau jadwal komitmen. Disusun dari percakapan dengan penanggung jawab Program.
 
 Tujuan pekerjaan Program adalah mengintegrasikan Jetson, Pixhawk–ArduSub, dan kamera, kemudian membangun kemampuan robot menjalankan misi otonom secara bertahap. Fokus pertama: integrasi perangkat di meja dengan bukti pengujian yang dapat diulang.
@@ -125,3 +127,25 @@ Urutan kerja yang diusulkan: **identifikasi perangkat → BlueOS dan komunikasi 
 [62 — Collision sesuai batas visual](62-collision-sesuai-batas-visual.md): hull, spawn start-wall, prior estimator dan envelope referee memakai batas mesh yang sama; 183 tes simulator, dua kualifikasi dan satu ARENA extended lulus, termasuk GUI/POV serta shutdown bersih.
 
 [63 — Regresi collision, arus/prior dan blue drum](63-regresi-collision-arus-dan-blue-drum.md): kualifikasi arus/prior dan hold lulus; pause sebelum GUI exit memperbaiki urutan teardown penguji. Empat misi selesai, tiga penerimaan lulus; satu kegagalan shutdown awal dipertahankan. 183 tes lulus.
+
+[64 — Konsistensi dan benchmark setelah collision](64-konsistensi-dan-benchmark-setelah-collision.md): baseline 18/18; batch patch 17/18 diterima, lifecycle bridge diperbaiki dan kasus gagal/GUI diulang lulus. 184 tes Python, native bridge dan tiga ARENA final lulus. Tiga kandidat percepatan ditolak; kesiapan fisik dicatat karena kapal belum selesai.
+
+[65 — Penerimaan penuh bridge terkelola](65-penerimaan-penuh-bridge-terkelola.md): seluruh 18 kualifikasi pada source bridge baru diterima tanpa retry; sensor/dinamika, pelintasan, hold/fault-stop dan shutdown lulus. Start–surface 25,822–26,872 s; tidak ada tuning kecepatan baru.
+
+[66 — Visual air dan kolam](66-visual-air-dan-kolam.md): permukaan PBR dengan normal map riak statis, ubin dan coping 2027; collision tetap. 185 tes, kualifikasi dan ARENA extended GUI/POV lulus. Satu percobaan terputus dipertahankan; tanpa klaim gelombang/refraksi/kekeruhan fisik.
+
+[67 — Optik air kamera berdasarkan depth](67-optik-air-kamera-berdasarkan-depth.md): mode opsional RGBD → atenuasi RGB/haze → raw, timestamp tepat dan tanpa depth ke navigasi. 191 tes serta empat penerimaan akhir air/baseline/fault lulus. Buffer bertipe mengurangi biaya filter; model belum terkalibrasi air nyata.
+
+[68 — Ketahanan optik air dan depth loss](68-ketahanan-optik-air-dan-depth-loss.md): fault depth selektif tanpa replay/gaya nol; fallback warna gate memulihkan kualifikasi 0,05/m. 193 tes, 12 replay negatif, baseline dan ARENA ringan lulus. Kualifikasi 0,10/m serta ARENA 0,05/m tetap gagal dan dicatat.
+
+[69 — Rulebook dan halo biru ARENA](69-rulebook-dan-perbaikan-halo-biru-arena.md): pemeriksaan resmi 16 November tetap 2027.3.2; satu perubahan kontras dua sisi menghilangkan kandidat flare palsu. 194 tes, 94 perturbasi, 15 replay dan tiga ARENA 0,05/0,025/m lulus. Kualifikasi 0,10/m belum ditangani.
+
+[70 — Kualifikasi optik 0,10/m](70-kualifikasi-optik-010-dan-median-warna.md): median menggantikan rata-rata fallback warna. 195 tes, enam replay positif/12 negatif serta tiga jalur 0,10/m, baseline dan regresi ARENA lulus. Fokus selesai pada kasus yang diuji; status utama diperbarui.
+
+[71 — Demonstrasi dan konsistensi revisi optik](71-demonstrasi-dan-konsistensi-revisi-optik.md): Gazebo dan kedua POV dikonfirmasi terlihat pengguna; rekaman tersimpan. 15/15 run diterima, manifest source cocok dan shutdown bersih; jeda POV bawah kualifikasi dicatat terpisah dari kelulusan misi.
+
+[72 — Antrean RGB–depth dan jeda POV](72-antrean-pasangan-rgb-depth-dan-pov.md): kehilangan pasangan pada antrean satu frame direproduksi; input depth 3 mempertahankan timestamp tepat. 195 tes, tiga kualifikasi GUI tanpa stale setelah gambar pertama, respons depth-loss dan ARENA extended lulus.
+
+[73 — Konsistensi revisi antrean kamera](73-konsistensi-setelah-perbaikan-antrean-kamera.md): 13/13 kasus non-GUI yang sama diterima pada source laporan 72: sembilan kualifikasi, arus/hold, prior dan dua ARENA; manifest cocok dan shutdown bersih.
+
+[74 — Gripper tengah, pendek dan bola awal](74-gripper-tengah-pendek-dan-bola-awal.md): carrier pendek dengan slider pickup, spawn payload pada joint yang sama dan kamera bawah diselaraskan. 197 tes serta extended GUI/POV, blue drum dan kualifikasi lulus. Bola awal berada pada joint gripper; bukaan release diperbaiki dengan collision tetap aktif. Percobaan gagal tetap disimpan.

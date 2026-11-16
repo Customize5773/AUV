@@ -1,5 +1,7 @@
 # AUV2027 — HydroShips
 
+**Mulai di sini: [peta progres dan posisi kita](STATUS.md).** Ringkasan aktif; laporan bernomor adalah bukti dan riwayat.
+
 **Alur aktif: [VS Code Remote SSH melalui Wi-Fi](CARA-OPERASI-SSH.md).** Migrasi GUI dan bukti pengujian: [laporan 53](plan/53-operasi-ssh-dan-arsip-gui.md).
 
 Panduan perintah kualifikasi, ARENA dan kedua POV: [Cara running simulator](ros2_ws/CARA-RUNNING.md).
@@ -21,6 +23,8 @@ Repositori persiapan AUV tim HydroShips: operasi Jetson melalui VS Code Remote S
 
 ## Status simulator
 
+**Fokus kualifikasi 0,10/m selesai pada kasus yang diuji:** tiga jalur, baseline jernih dan regresi ARENA diterima; 195 tes unit lulus. Ringkasan aktif dan diagram diperbarui pada [STATUS.md](STATUS.md); bukti terperinci pada [laporan 70](plan/70-kualifikasi-optik-010-dan-median-warna.md).
+
 **Profil default kini SAUVC 2027.3.2**, berdasarkan [source resmi terkunci](doc/sources/rulebook-2027.3.2/README.md) dan audit perbedaan seluruh bagian terhadap 2027.2.1. Aturan tugas/skor/geometri tidak berubah; perubahan isi ada pada keanggotaan tim. Tiga kualifikasi dan dua misi ARENA lulus pada [laporan 41](plan/41-audit-dan-migrasi-rulebook-2027-3-2.md). Riwayat migrasi awal arena 2027 tetap pada laporan 24; fixture 2026 tersedia sebagai regresi eksplisit.
 
 | Bagian | Status dan batas hasil |
@@ -31,7 +35,19 @@ Repositori persiapan AUV tim HydroShips: operasi Jetson melalui VS Code Remote S
 | ARENA blue drum | Navigation dahulu → flare sesuai urutan → drop blue drum → Surfacing Square → stop |
 | ARENA pinger/pickup | TDOA virtual → drop red drum berpinger → seluruh badan keluar target zone → pickup bola yang sama → retensi sampai akhir |
 | Penilaian 2027 | Timer sejak thrust, poin tugas, penalti kontak, bonus surface dan bonus Square; bonus inspeksi fisik tidak dimasukkan |
-| Bukti pengujian terbaru | 178 tes unit simulator lulus; kualifikasi melalui terminal/systemd mencapai DONE dan shutdown bersih pada migrasi SSH (laporan 53) |
+| Bukti pengujian terbaru | 195 tes; tiga jalur kualifikasi 0,10/m, baseline jernih dan regresi ARENA lulus setelah koreksi fallback warna ([laporan 70](plan/70-kualifikasi-optik-010-dan-median-warna.md)). Matriks 18/18 sebelum revisi visual ada pada laporan 65 |
+
+**Pembaruan sebelumnya, 16 November — [laporan 69](plan/69-rulebook-dan-perbaikan-halo-biru-arena.md):** rulebook resmi tetap 2027.3.2, tanpa perubahan source. Deteksi flare biru palsu dari halo tepi objek diperbaiki dengan kontras dua sisi. **194 tes**, 94 perturbasi dan replay 15 frame lulus. Tiga ARENA headless diterima: extended 0,05/m yang sebelumnya gagal, blue drum 0,05/m pada layout alternatif, serta extended 0,025/m; semuanya penalti nol dan shutdown bersih. Kualifikasi 0,10/m masih belum lulus dari tahap sebelumnya; belum diuji ulang di sini.
+
+**Ketahanan optik sebelumnya — [laporan 68](plan/68-ketahanan-optik-air-dan-depth-loss.md):** fallback keseimbangan warna memulihkan kualifikasi 0,05/m yang sebelumnya kehilangan gate. **193 tes**, 12 replay negatif, baseline dan ARENA extended 0,025/m lulus. Kehilangan depth selektif saat RGB terus mengalir membuktikan output berhenti, abort dan gaya nol. Kualifikasi 0,10/m serta ARENA 0,05/m **belum lulus**; profil ARENA ringan tetap direkomendasikan.
+
+**Mode optik air opsional:** pelemahan RGB dan haze berdasarkan depth per piksel kini tersedia untuk kedua kamera. Baseline tetap jernih (`water_attenuation=0`). Build dan **191 tes**, kualifikasi/ARENA extended dengan air ringan, baseline serta fault kehilangan kamera diterima. Depth render hanya untuk efek gambar, tidak dipakai navigasi. [Cara menjalankan, preview dan batas — laporan 67](plan/67-optik-air-kamera-berdasarkan-depth.md). Model optik ini belum dikalibrasi terhadap air kolam nyata.
+
+**Visual kolam diperbarui:** permukaan transparan bermaterial PBR dengan normal map riak statis, liner ubin mengikuti kedalaman dan tepi kolam. Collision serta model gaya tetap. Build, **185 tes Python**, kualifikasi dan ARENA extended GUI/dua POV lulus; satu percobaan ARENA terputus tetap dicatat. [Preview, hasil dan batas efek air — laporan 66](plan/66-visual-air-dan-kolam.md).
+
+**Penerimaan sebelum revisi visual kolam:** seluruh **18/18 kualifikasi** diulang pada source bridge terkelola yang sama dan diterima tanpa retry. Pelintasan kedua 22,696–23,760 s, surface 25,822–26,872 s, stop 29,788–32,192 s; galat XY maksimum 14,76 cm. Hold berarus drift 0,51 cm selama 29,988 s, kemudian fault disarm/gaya nol lulus. Ini menutup celah penerimaan bertahap, bukan peningkatan kecepatan. [Laporan 65](plan/65-penerimaan-penuh-bridge-terkelola.md).
+
+**Pembaruan 14 November:** rulebook resmi tetap 2027.3.2 (30 Oktober), tanpa delta terhadap arsip. Baseline konsistensi 18/18 lulus. Setelah perbaikan timestamp kamera, 18 misi selesai tetapi satu bridge crash saat shutdown; lifecycle bridge diperbaiki, kasus gagal dan GUI ulang lulus. Tiga ARENA final (redup, arus/hold, pinger/pickup) lulus. Tiga kandidat kecepatan ditolak karena regresi per kasus; kedalaman tetap 0,60 m. [Laporan 64 dan bukti](plan/64-konsistensi-dan-benchmark-setelah-collision.md). Kapal belum selesai; perangkat yang tersedia Raspberry Pi, Jetson dan DWE, belum bukti misi fisik.
 
 **ARENA dan kualifikasi autonomous visual kini memakai model gaya tujuh thruster dan estimator sensor virtual secara default.** Ground truth digunakan oleh referee/pencatat; profil ideal tersedia sebagai pembanding eksplisit. [Laporan 26](plan/26-arena-dinamika-dan-estimasi-sensor.md) mencatat penerimaan awal dinamis; [laporan 27](plan/27-kalibrasi-dvl-dan-penerimaan-gui.md) memuat kalibrasi DVL dan dua misi penuh dengan Gazebo serta kedua POV. Pinger adalah model geometrik TDOA, servo pelepas memakai respons ideal, dan pickup memakai latch fixed setelah kontak. Hasil ini belum membuktikan performa AUV fisik atau ketahanan pada seluruh kondisi kolam.
 
@@ -143,6 +159,8 @@ Gunakan [panduan SSH](CARA-OPERASI-SSH.md). Laptop membuka `/home/aero/AUV` pada
 **Model AUV — 11 November 2026:** FBX SAUVC 2027 v1 sudah menjadi visual default simulator, dengan collision dan dinamika yang ada tetap dipakai. Build dan 179 tes lulus; kualifikasi serta ARENA dinamis dengan dua POV lulus pada penerimaan akhir. [Laporan 57 dan screenshot Gazebo](plan/57-model-auv-fbx-simulator.md).
 
 **Regresi extended — 12 November 2026:** model AUV baru lulus satu run pinger/pickup extended, termasuk bola yang sama, retensi hingga stop, dua POV dan shutdown; skor 290,79888 tanpa penalti. 179 tes unit lulus kembali. Satu percobaan awal gagal karena viewer keluar. [Laporan 58](plan/58-regresi-pinger-model-auv.md).
+
+**Gripper tengah — 17 November 2026:** titik grip saat membawa kini `(0, 0, −0,18) m`, sekitar 8 cm di bawah hull. Payload awal terpasang pada carrier yang sama; slider memanjang 22 cm hanya saat pickup lalu retract. Bukaan release dikoreksi agar bola jatuh dengan collision aktif. 197 tes serta extended GUI/POV, blue drum dan kualifikasi dinamis lulus dengan shutdown bersih. [Render, diagnosis dan hasil](plan/74-gripper-tengah-pendek-dan-bola-awal.md).
 
 **Gripper pickup — 12 November 2026:** titik tangkap dinaikkan 5 cm ke z −0,40 m, dengan dudukan tersambung ke badan. 180 tes dan satu penerimaan extended GUI/POV lulus. Clearance hull–rim nominal 2 cm masih memerlukan validasi fisik. [Evaluasi dan pembanding](plan/59-posisi-gripper-lebih-dekat.md).
 

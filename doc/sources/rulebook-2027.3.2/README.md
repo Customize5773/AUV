@@ -19,3 +19,15 @@ Source diarsipkan tanpa mengubah teks. Gambar identik dengan arsip lama dan tida
 ## Pemeriksaan ulang 4 November 2026
 
 Halaman resmi masih menyatakan **2027.3.2**, diperbarui **30 Oktober 2026**. Source `master/rulebook.md` upstream identik byte demi byte dengan arsip ini (SHA-256 sama); tidak ditemukan perubahan teks aturan yang memerlukan migrasi simulator. Bukti pemeriksaan: [rulebook-check-20261104.json](../rulebook-check-20261104.json). Pemeriksaan ini tidak membuktikan tidak adanya pengumuman lain di luar halaman/source tersebut.
+
+## Pemeriksaan ulang 13 November 2026
+
+Halaman resmi tetap **2027.3.2**, diperbarui **30 Oktober 2026**. GitHub compare terhadap commit arsip `b7194b4c3efa542fd19b1efa15bc6ddc8f9ebbb1` menghasilkan `identical`, nol commit dan nol file berubah pada `master`; daftar PR terbuka kosong saat diperiksa. Jadi source aturan dan aset dalam repo resmi belum berubah dari arsip, dan migrasi simulator tidak diperlukan. [Bukti pemeriksaan](../rulebook-check-20261113.json). Label beranda v6.1.0 masih tertinggal meskipun tautannya menuju rulebook 2027. Tidak ditemukan guidebook 2027 terpisah pada halaman resmi/pencarian yang diperiksa; kanal privat panitia tidak diperiksa.
+
+## Pemeriksaan ulang 14 November 2026
+
+Versi publik tetap **2027.3.2**, diperbarui 30 Oktober. GitHub compare terhadap commit arsip menunjukkan `master` identik, tanpa commit/file berubah. [Bukti pemeriksaan](../rulebook-check-20261114.json). Tidak diperlukan migrasi aturan simulator; pemeriksaan ini tidak mencakup kanal privat panitia.
+
+## Pemeriksaan ulang 16 November 2026
+
+Halaman resmi masih 2027.3.2 (30 Oktober); GitHub compare `master` terhadap commit arsip identik, nol commit/file berubah. Tidak diperlukan migrasi simulator. [Bukti pemeriksaan](../rulebook-check-20261116.json). Kanal privat panitia tidak diperiksa.

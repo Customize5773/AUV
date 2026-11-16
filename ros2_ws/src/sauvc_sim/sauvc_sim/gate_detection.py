@@ -20,6 +20,20 @@ def detect_gate(data, width, height, step, encoding='rgb8'):
     rgb = decode_rgb(data, width, height, step, encoding)
     if rgb is None:
         return None
+    result = _detect_gate_rgb(rgb, width)
+    if result is not None:
+        return result
+    # Median limits the bright near-floor bias when the gate is in distant haze.
+    levels = np.median(rgb[::4, ::4], axis=(0, 1))
+    if not (levels[1] > levels[0]*1.1 and levels[2] > levels[0]*1.1):
+        return None
+    # Bounded grey-world fallback for blue/green casts; keep the original post geometry.
+    gains = np.clip(levels[1] / np.maximum(levels, 1.), .5, 2.)
+    balanced = np.clip(np.rint(rgb * gains.astype(np.float32)), 0, 255).astype(np.uint8)
+    return _detect_gate_rgb(balanced, width)
+
+
+def _detect_gate_rgb(rgb, width):
     r, g, b = (rgb[:, :, i].astype(np.int16) for i in range(3))
     # The reverse side is shaded; colour ratios survive the lower brightness.
     mask = (r > 40) & (g > 15) & (g < r * .8) & (r > b * 2) & (g > b * 1.5)

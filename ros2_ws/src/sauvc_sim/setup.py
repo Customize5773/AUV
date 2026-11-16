@@ -5,7 +5,7 @@ setup(
     name='sauvc_sim',
     version='0.1.0',
     packages=['sauvc_sim'],
-    package_data={'sauvc_sim': ['*.so', 'meshes/*.obj', 'meshes/*.mtl', 'meshes/*.json']},
+    package_data={'sauvc_sim': ['*.so', 'meshes/*.obj', 'meshes/*.mtl', 'meshes/*.json', 'pool_assets/*.obj', 'pool_assets/*.png']},
     data_files=[
         ('share/ament_index/resource_index/packages', ['resource/sauvc_sim']),
         ('share/sauvc_sim', ['package.xml']),
@@ -14,6 +14,7 @@ setup(
     ],
     install_requires=['setuptools'],
     entry_points={'console_scripts': [
+        'water_optics = sauvc_sim.water_optics:main',
         'qualification = sauvc_sim.runtime:mission_main',
         'qualification_referee = sauvc_sim.runtime:referee_main',
         'command_guard = sauvc_sim.runtime:guard_main',

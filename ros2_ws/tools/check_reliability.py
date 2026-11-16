@@ -73,7 +73,7 @@ def main():
     rows=[r for r in matrix(args.profile) if (args.suite=='all' or r['suite']==args.suite) and (not args.case or r['name']==args.case)]
     if not rows:parser.error('no matching cases')
     args.output.mkdir(parents=True,exist_ok=False)
-    paths=sorted(p for root in ('src/sauvc_sim','tools') for p in Path(root).rglob('*') if p.suffix in ('.py','.cc','.json','.yaml','.xml','.so'))
+    paths=sorted(p for root in ('src','tools') for p in Path(root).rglob('*') if p.suffix in ('.py','.cc','.hpp','.json','.yaml','.xml','.so') or p.name=='CMakeLists.txt')
     hashes={str(p):hashlib.sha256(p.read_bytes()).hexdigest() for p in paths}
     report=dict(profile=args.profile,started=datetime.now(ZoneInfo('Asia/Jakarta')).isoformat(),status='running',matrix=rows,source_sha256=hashes,runs=[])
     def save():

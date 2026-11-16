@@ -1,0 +1,29 @@
+{
+  "checked_on": "2026-11-14",
+  "timezone": "Asia/Jakarta",
+  "published_url": "https://sauvc.org/rulebook/",
+  "published_version": "2027.3.2",
+  "published_last_updated": "2026-10-30",
+  "comparison": {
+    "repository_full_name": "sauvc/rulebook",
+    "base": "b7194b4c3efa542fd19b1efa15bc6ddc8f9ebbb1",
+    "head": "master",
+    "status": "identical",
+    "ahead_by": 0,
+    "behind_by": 0,
+    "total_commits": 0,
+    "too_large": null,
+    "base_commit": {
+      "sha": "b7194b4c3efa542fd19b1efa15bc6ddc8f9ebbb1",
+      "url": "https://api.github.com/repos/sauvc/rulebook/commits/b7194b4c3efa542fd19b1efa15bc6ddc8f9ebbb1",
+      "html_url": "https://github.com/sauvc/rulebook/commit/b7194b4c3efa542fd19b1efa15bc6ddc8f9ebbb1"
+    },
+    "merge_base_commit": {
+      "sha": "b7194b4c3efa542fd19b1efa15bc6ddc8f9ebbb1",
+      "url": "https://api.github.com/repos/sauvc/rulebook/commits/b7194b4c3efa542fd19b1efa15bc6ddc8f9ebbb1",
+      "html_url": "https://github.com/sauvc/rulebook/commit/b7194b4c3efa542fd19b1efa15bc6ddc8f9ebbb1"
+    },
+    "files": []
+  },
+  "simulator_rule_migration_required": false
+}

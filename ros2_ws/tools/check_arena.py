@@ -45,7 +45,7 @@ def main():
     parser.add_argument('--output',type=Path,required=True)
     parser.add_argument('--surface-hold',action='store_true')
     parser.add_argument('--hold-duration',type=float,default=30.,help='Hold measurement window in simulation seconds (at least 30)')
-    parser.add_argument('--conditions',type=Path,help='JSON: sensor seed, world current, initial XY prior error, light scale')
+    parser.add_argument('--conditions',type=Path,help='JSON: sensor seed, world current, initial XY prior error, light scale, water attenuation (1/m)')
     parser.add_argument('--extended',action='store_true')
     parser.add_argument('--pinger-drum',type=int,choices=[0,1,2,3,4],default=0)
     parser.add_argument('--order',default='B-R-Y')

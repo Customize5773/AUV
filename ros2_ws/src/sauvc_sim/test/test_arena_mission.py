@@ -93,11 +93,11 @@ class ArenaMissionTest(unittest.TestCase):
     def test_alignment_centres_payload_offset_before_release(self):
         ctrl=ArenaController();ctrl.started=1.;ctrl.state='ALIGN_DRUM';ctrl.since=2.
         ctrl.goal=[24.,12.5,-.9]
-        cmd=ctrl.command((24.,12.5,-.12,0.),3.,{})
+        cmd=ctrl.command((24.2,12.5,-.12,0.),3.,{})
         self.assertLess(cmd[0],0.)
         self.assertFalse(ctrl.release)
-        self.assertEqual(ctrl.command((23.8,12.5,-.12,0.),4.,{}),(0.,0.,0.,0.))
-        ctrl.command((23.8,12.5,-.12,0.),5.1,{})
+        self.assertEqual(ctrl.command((24.,12.5,-.12,0.),4.,{}),(0.,0.,0.,0.))
+        ctrl.command((24.,12.5,-.12,0.),5.1,{})
         self.assertTrue(ctrl.release)
         self.assertEqual(ctrl.state,'WAIT_PAYLOAD')
 

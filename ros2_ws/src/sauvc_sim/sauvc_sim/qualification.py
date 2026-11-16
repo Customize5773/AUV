@@ -101,6 +101,9 @@ class QualificationController:
                 seen = True
             else:
                 seen = detection is not None and detection_age < .6
+                # A recently received pre-turn image still describes the old heading.
+                if seen and self.physical and self.edition=='2027' and self.state=='FIND_RETURN_GATE':
+                    seen = detection.get('stamp',t) >= self.since
                 bearing = detection['bearing'] if seen else 0.
                 distance = detection['distance'] if seen else math.inf
             if returning and self.edition=='2027' and self.gate is not None and seen:

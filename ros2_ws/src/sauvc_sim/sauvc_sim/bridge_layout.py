@@ -16,3 +16,15 @@ def camera_qos(entries):
             prefix='qos_overrides.'+row['ros_topic_name']+'.publisher.'
             result.update({prefix+'reliability':'best_effort',prefix+'history':'keep_last',prefix+'depth':1})
     return result
+
+
+def water_camera_bridges(entries):
+    result=[]
+    for row in entries:
+        camera=next((name for name in ('front','bottom') if row['ros_topic_name']==f'/sauvc/camera_{name}/image_raw'),None)
+        if camera:
+            prefix=f'/sauvc/optics/{camera}'
+            result.extend([{**row,'ros_topic_name':prefix+'/rgb','gz_topic_name':prefix+'/image'},
+                           {**row,'ros_topic_name':prefix+'/depth','gz_topic_name':prefix+'/depth_image'}])
+        else:result.append(dict(row))
+    return result

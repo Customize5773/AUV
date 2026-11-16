@@ -111,6 +111,17 @@ class JudgeTest(unittest.TestCase):
 
 
 class VisionTest(unittest.TestCase):
+    def test_distant_gate_in_dense_water_with_bright_near_floor(self):
+        from pathlib import Path
+        with np.load(Path(__file__).parent/'fixtures/gate-dense-water.npz') as capture:
+            clear=capture['clear'];water=capture['water']
+        reference=detect_gate(clear.tobytes(),640,480,1920)
+        detected=detect_gate(water.tobytes(),640,480,1920)
+        self.assertIsNotNone(reference)
+        self.assertIsNotNone(detected)
+        self.assertAlmostEqual(detected['span'],reference['span'],delta=1.)
+        self.assertAlmostEqual(detected['bearing'],reference['bearing'],delta=.003)
+
     def test_speed_scale_changes_motion_and_rejects_invalid_limits(self):
         judge = {'phase': 'OUTBOUND', 'events': []}
         slow = QualificationController(speed_scale=1)
@@ -155,6 +166,34 @@ class VisionTest(unittest.TestCase):
         rgb[rgb[:, :, 0] > 0] = (122, 82, 14)
         self.assertIsNotNone(detect_gate(rgb.tobytes(), 640, 480, 1920))
 
+    def test_gate_under_water_cast_keeps_range_bearing_and_encoding_contract(self):
+        from sauvc_sim.water_optics import attenuate
+        rgb=self.frame()
+        posts=rgb[:,:,0]>0
+        rgb[:]=(175,195,205);rgb[posts]=(180,95,8)
+        reference=detect_gate(rgb.tobytes(),640,480,1920)
+        for coefficient,distance in ((.05,12.),(.1,8.)):
+            frame=attenuate(rgb,np.full((480,640),distance),coefficient)
+            detected=detect_gate(frame.tobytes(),640,480,1920)
+            self.assertIsNotNone(detected)
+            self.assertAlmostEqual(detected['distance'],reference['distance'],places=6)
+            self.assertAlmostEqual(detected['bearing'],reference['bearing'],places=6)
+            padded=np.zeros((480,1940),dtype=np.uint8)
+            padded[:,:1920]=frame[:,:,::-1].reshape(480,1920)
+            self.assertEqual(detected,detect_gate(padded.tobytes(),640,480,1940,'bgr8'))
+
+    def test_water_cast_does_not_turn_single_post_or_neutral_tiles_into_gate(self):
+        from sauvc_sim.water_optics import attenuate
+        rgb=self.frame();posts=rgb[:,:,0]>0
+        rgb[:]=(175,195,205);rgb[posts]=(180,95,8)
+        rgb[:,370:373]=(175,195,205)
+        tile=np.full_like(rgb,(175,195,205))
+        tile[:,::50]=(90,110,115);tile[::50,:]=(90,110,115)
+        for original in (rgb,tile,np.full_like(rgb,(38,82,92))):
+            for coefficient in (.05,.1):
+                frame=attenuate(original,np.full((480,640),12.),coefficient)
+                self.assertIsNone(detect_gate(frame.tobytes(),640,480,1920))
+
     def test_controller_stops_after_failure_and_never_surfaces_early(self):
         c = QualificationController()
         j = {'phase': 'OUTBOUND', 'events': []}
@@ -195,6 +234,30 @@ class VisionTest(unittest.TestCase):
             self.assertAlmostEqual(cmd[3],.18*math.cos(.7))
             self.assertEqual(c.command(pose,10.1,None,100,j),(0.,0.,0.,0.))
             self.assertEqual(c.reason,'gate_lost')
+
+    def test_return_requires_image_captured_after_turn_even_if_recently_received(self):
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        from sensor_msgs.msg import Image
+        from sauvc_sim.runtime import Runtime
+        node=SimpleNamespace(drop=lambda key:False,received={},frames=0,detections=0)
+        c=QualificationController(physical=True,edition='2027')
+        c.started=0.;c.state='FIND_RETURN_GATE';c.since=5.;c.gate=(10.,3.5)
+        pose=(11.7,3.5,-.6,math.pi)
+        msg=Image(width=1,height=1,step=3,encoding='rgb8',data=bytes(3))
+        msg.header.stamp.sec=4;msg.header.stamp.nanosec=900000000
+        with patch('sauvc_sim.runtime.detect_gate',return_value=dict(bearing=.08,distance=1.4)):
+            Runtime.image(node,msg)
+        self.assertAlmostEqual(node.detection['stamp'],4.9)
+        command=c.command(pose,5.05,node.detection,.01,{})
+        self.assertEqual(c.state,'FIND_RETURN_GATE')
+        self.assertIsNone(c.target)
+        self.assertEqual(command[3],0.)
+        msg.header.stamp.sec=5;msg.header.stamp.nanosec=50000000
+        with patch('sauvc_sim.runtime.detect_gate',return_value=dict(bearing=0.,distance=1.38)):
+            Runtime.image(node,msg)
+        c.command(pose,5.1,node.detection,.01,{})
+        self.assertEqual(c.state,'PASS_BACK')
 
 
 if __name__ == '__main__':

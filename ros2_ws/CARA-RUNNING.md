@@ -215,6 +215,8 @@ Analyzer menolak capture yang tidak mencakup awal/akhir jendela. Untuk replay co
 
 Publisher `/sauvc/camera_front/image_raw` dan `/sauvc/camera_bottom/image_raw` memakai BEST_EFFORT, keep_last, depth 1. Gunakan subscriber sensor-data/BEST_EFFORT; klien yang mewajibkan RELIABLE tidak akan tersambung. Perintah POV berlabel di atas tidak berubah. Diagnosis native/ROS dengan metadata tanpa piksel dijelaskan pada [laporan 49](../plan/49-diagnosis-transport-kamera.md).
 
+Pada mode optik air, subscriber internal RGB/depth memakai depth 3 untuk mempertahankan pasangan capture yang tiba terpisah. Keluaran raw tetap depth 1, timestamp capture dan batas stale tetap dipertahankan. Reproduksi dan pengulangan GUI dicatat pada [laporan 72](../plan/72-antrean-pasangan-rgb-depth-dan-pov.md).
+
 ## Shared memory untuk gambar 640×480
 
 Setelah pembaruan profil gambar, jalankan sekali:
@@ -228,3 +230,21 @@ Launch memuat `config/fastdds-images.xml` secara otomatis untuk proses penerbit 
 ## Urutan menutup observer diagnostik
 
 Jika menjalankan observer native/ROS tambahan, akhiri pencatatan setelah misi DONE dan pastikan rekaman mencakup STOPPED; lalu hentikan observer sebelum menutup GUI/server Gazebo. Harness pada [laporan 51](../plan/51-regresi-pinger-dan-transport-jetson.md) menguji urutan ini sambil tetap mewajibkan shutdown bersih. Ini tidak mengubah cara menjalankan misi biasa tanpa observer.
+
+## Mode optik air pada kedua kamera
+
+Mode ini menambahkan pelemahan warna/kontras terhadap jarak render per piksel. Default tetap jernih; aktifkan profil ringan secara eksplisit:
+
+```bash
+cd /home/rasya/AUV/ros2_ws
+bash tools/ros.sh build --symlink-install
+
+# Pilih satu mode setiap kali
+bash tools/ros.sh launch sauvc_sim arena.launch.py edition:=2027 autonomous:=true conditions_file:="$PWD/src/sauvc_sim/config/water-light.json"
+# Atau ARENA
+bash tools/ros.sh launch sauvc_sim arena.launch.py edition:=2027 arena:=finals autonomous:=true conditions_file:="$PWD/src/sauvc_sim/config/water-light.json"
+```
+
+Topic POV annotated depan/bawah tetap sama. Efek hanya pada gambar kamera; overview arena mempertahankan visual kolam. Nilai latihan `water_attenuation=0.025` per meter bukan hasil kalibrasi air SAUVC. Nilai 0 menonaktifkan RGBD/filter dan memakai jalur kamera baseline. Resolusi, update rate dan batas freshness tetap. Model ini belum mencakup refraksi, partikel, gelombang fisik atau pemisahan medium udara–air. [Implementasi, preview dan bukti — laporan 67](../plan/67-optik-air-kamera-berdasarkan-depth.md).
+
+Batas pengujian terbaru: profil ringan 0,025/m dan dua fixture ARENA 0,05/m lulus setelah perbaikan halo biru; kualifikasi 0,05/m lulus pada kasus terpilih. Kualifikasi 0,10/m kini lulus pada tiga jalur terpilih setelah fallback median warna ([laporan 70](../plan/70-kualifikasi-optik-010-dan-median-warna.md)). Default/profil ringan tidak dinaikkan otomatis. Jangan menyamakan rentang parameter yang diterima parser dengan rentang keberhasilan seluruh misi. [Laporan 69](../plan/69-rulebook-dan-perbaikan-halo-biru-arena.md); riwayat batas sebelumnya pada [laporan 68](../plan/68-ketahanan-optik-air-dan-depth-loss.md).

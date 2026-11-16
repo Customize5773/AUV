@@ -10,6 +10,7 @@ from pathlib import Path
 import xml.etree.ElementTree as ET
 from sauvc_sim.arena_layout import layout
 from sauvc_sim.vehicle_geometry import HULL_SIZE, HULL_CENTER, qualification_start_x
+from sauvc_sim.vehicle_geometry import PICKUP_X, PICKUP_Z, BOTTOM_CAMERA_POSITION
 
 
 WHITE = '0.92 0.94 0.96 1'
@@ -19,11 +20,6 @@ BLUE = '0.025 0.2 0.85 1'
 YELLOW = '1 0.8 0.02 1'
 ORANGE = '1 0.35 0.02 1'
 POOL = '0.55 0.75 0.85 1'
-
-# Reach the 32 cm drum rim while keeping the hull 2 cm above it at pickup.
-PICKUP_X = -.2
-PICKUP_Z = -.4
-
 
 def tag(parent, element_name, text=None, **attrs):
     child = ET.SubElement(parent, element_name, attrs)
@@ -219,7 +215,7 @@ def auv(world, arena, cameras, lane=1, lateral_offset=0.0, yaw=0.0, physical=Fal
     tag(odom, 'odom_publish_frequency', 30)
     if cameras:
         for name, pose in [('front', (0.32, 0, 0, 0, 0, 0)),
-                           ('bottom', (0, 0, -0.12, 0, math.pi / 2, 0))]:
+                           ('bottom', (*BOTTOM_CAMERA_POSITION, 0, math.pi / 2, 0))]:
             sensor = tag(link, 'sensor', name=f'camera_{name}', type='camera')
             tag(sensor, 'pose', numbers(pose))
             tag(sensor, 'always_on', 'true')
@@ -303,6 +299,12 @@ def build_world(arena, cameras=True, lane=1, lateral_offset=0.0, yaw=0.0,
         pool(world)
         props(world, arena,scene_variant,blue_drum)
     auv(world, arena, cameras, lane, lateral_offset, yaw,physical,fault)
+    if test_conditions['water_attenuation']:
+        if not cameras:raise ValueError('water optics requires cameras')
+        for name in ('front','bottom'):
+            sensor=world.find(f"model[@name='sauvc_auv']/link/sensor[@name='camera_{name}']")
+            sensor.set('type','rgbd_camera')
+            sensor.find('topic').text=f'/sauvc/optics/{name}'
     if physical:
         plant=world.find("plugin[@name='sauvc::VehicleDynamics']")
         plant.find('seed').text=str(test_conditions['seed'])
@@ -324,15 +326,28 @@ def build_world(arena, cameras=True, lane=1, lateral_offset=0.0, yaw=0.0,
             from sauvc_sim.rules2027 import DRUM_U,DRUM_V,to_world,floor_z as depth2027
             px,py,_,_=to_world(DRUM_U,DRUM_V[pinger_drum-1])
             world.find("model[@name='pinger_source']/pose").text=numbers((px,py,depth2027(px)+.15,0,0,0))
-        body=world.find("model[@name='sauvc_auv']/link")
-        # Fixed capture fingers; close command latches only after payload contact.
-        for i,dy in enumerate((-.026,.026)):
-            part(body,f'pickup_finger_{i}',(PICKUP_X,dy,PICKUP_Z,0,0,0),'sphere',(.009,),WHITE)
-        roof_z=PICKUP_Z+.03
-        part(body,'pickup_roof',(PICKUP_X,0,roof_z,0,0,0),'box',(.06,.06,.01),WHITE)
-        top=-.09
-        part(body,'pickup_mount',(PICKUP_X,0,(top+roof_z)/2,0,0,0),
-             'box',(.016,.016,top-roof_z),WHITE)
+    vehicle=world.find("model[@name='sauvc_auv']")
+    body=vehicle.find('link')
+    # The short gripper is rigidly mounted at the body center.
+    part(body,'gripper_sleeve',(PICKUP_X,0,-.125,0,0,0),'box',(.024,.024,.07),WHITE)
+    carriage=tag(vehicle,'link',name='payload_gripper')
+    tag(carriage,'pose',numbers((PICKUP_X,0,PICKUP_Z,0,0,0)))
+    tag(carriage,'gravity','false')
+    inertial=tag(carriage,'inertial');tag(inertial,'mass',.05)
+    inertia=tag(inertial,'inertia')
+    for key in ('ixx','iyy','izz'):tag(inertia,key,.0001)
+    for i,dy in enumerate((-.027,.027)):
+        part(carriage,f'pickup_finger_{i}',(0,dy,0,0,0,0),'sphere',(.006,),WHITE)
+        part(carriage,f'pickup_stem_{i}',(0,dy,.012,0,0,0),'box',(.009,.009,.024),WHITE)
+    part(carriage,'pickup_roof',(0,0,.025,0,0,0),'box',(.06,.06,.01),WHITE)
+    part(carriage,'pickup_mount',(0,0,.065,0,0,0),'box',(.016,.016,.07),WHITE)
+    joint=tag(vehicle,'joint',name='pickup_mount_fixed',type='fixed')
+    tag(joint,'parent','base_link');tag(joint,'child','payload_gripper')
+    if arena=='finals':
+        # Spawn at the same loading point used by physics, before the first tick.
+        x,y,z,roll,pitch,heading=map(float,vehicle.findtext('pose').split())
+        world.find("model[@name='payload_ball']/pose").text=numbers((
+            x+PICKUP_X*math.cos(heading),y+PICKUP_X*math.sin(heading),z+PICKUP_Z,0,0,heading))
     ET.indent(sdf)
     return ET.tostring(sdf, encoding='unicode', xml_declaration=True)
 
@@ -360,7 +375,32 @@ def pool2027(world):
                            ('wall_port',(25,25.1,-1.25,0,0,0),(50,.2,3)),
                            ('wall_starboard',(25,-.1,-1.25,0,0,0),(50,.2,3))]:
         part(model(world,name,pose),'wall',(0,0,0,0,0,0),'box',size,WHITE)
-    part(model(world,'water_surface_visual_only',(25,12.5,.005,0,0,0)),'surface',(0,0,0,0,0,0),'box',(50,25,.005),'0.1 0.6 0.8 0.08',False)
+    assets=Path(__file__).resolve().parent/'pool_assets'
+    for name,mesh,z in [('water_surface_visual_only','water',.005),('pool_liner_visual_only','liner',0.)]:
+        link=model(world,name,(0,0,z,0,0,0))
+        visual=tag(link,'visual',name=mesh)
+        tag(tag(tag(visual,'geometry'),'mesh'),'uri',(assets/(mesh+'.obj')).as_uri())
+        tag(visual,'cast_shadows','false')
+        mat=tag(visual,'material')
+        water=mesh=='water'
+        tag(mat,'ambient','0.12 0.36 0.4 1' if water else '1 1 1 1')
+        tag(mat,'diffuse','0.18 0.55 0.6 1' if water else '1 1 1 1')
+        metal=tag(tag(mat,'pbr'),'metal')
+        tag(metal,'metalness',0)
+        tag(metal,'roughness',.18 if water else .85)
+        if water:
+            tag(visual,'transparency',.88)
+            tag(mat,'specular','0.7 0.8 0.85 1')
+            tag(metal,'normal_map',(assets/'water-normal.png').as_uri())
+        else:
+            tag(metal,'albedo_map',(assets/'tile.png').as_uri())
+    # Visual coping lies outside the pool; water and liner never create contacts.
+    coping=model(world,'pool_coping_visual_only',(0,0,0,0,0,0))
+    for name,pose,size in [('start',(-.55,12.5,.26,0,0,0),(1.1,27.2,.08)),
+                           ('end',(50.55,12.5,.26,0,0,0),(1.1,27.2,.08)),
+                           ('port',(25,25.55,.26,0,0,0),(50,1.1,.08)),
+                           ('starboard',(25,-.55,.26,0,0,0),(50,1.1,.08))]:
+        part(coping,name,pose,'box',size,'0.72 0.73 0.69 1',False)
 
 
 def props2027(world,arena,variant,blue_drum):

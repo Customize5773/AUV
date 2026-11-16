@@ -96,7 +96,7 @@ def main():
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--surface-hold',action='store_true')
     parser.add_argument('--hold-duration',type=float,default=30.,help='Hold measurement window in simulation seconds (at least 30)')
-    parser.add_argument('--conditions',type=Path,help='JSON: sensor seed, world current, initial XY prior error, light scale')
+    parser.add_argument('--conditions',type=Path,help='JSON: sensor seed, world current, initial XY prior error, light scale, water attenuation (1/m)')
     args = parser.parse_args()
     if args.surface_hold and (args.vehicle_model=='ideal' or args.fault not in ('','none')):parser.error('surface hold test requires dynamic vehicle and no early fault')
     if not math.isfinite(args.hold_duration) or args.hold_duration<30:parser.error('--hold-duration must be finite and at least 30')

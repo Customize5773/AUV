@@ -1,0 +1,46 @@
+digraph progress {
+  graph [rankdir=TB, newrank=true, bgcolor="#F7F9FC", pad="0.35", nodesep="0.38", ranksep="0.42", splines=ortho,
+         fontname="DejaVu Sans", labelloc=t,
+         label=<<FONT POINT-SIZE="25"><B>Posisi kita — simulasi ROS SAUVC</B></FONT><BR/><FONT POINT-SIZE="12">Ringkasan 17 November 2026 • acuan aktif SAUVC 2027.3.2</FONT>>];
+  node [shape=box, style="rounded,filled", fontname="DejaVu Sans", fontsize=13,
+        color="#CDD7E5", fillcolor="white", fontcolor="#172C47", margin="0.22,0.16", penwidth=1.3];
+  edge [color="#7D8DA5", arrowsize=0.7, penwidth=1.5];
+
+  goal [fillcolor="#172C47", fontcolor="white", color="#172C47",
+        label="TUJUAN BERSAMA\nMenguji misi autonomous berbasis rulebook\nsebelum dipindahkan ke AUV nyata.\nUntuk kualifikasi: mengejar waktu tercepat yang tetap sah."];
+  platform [label="PLATFORM SUDAH TERSEDIA\nKolam 2027 + model AUV tujuh thruster\nKamera depan/bawah, dinamika, estimator dan referee"];
+  goal -> platform;
+
+  subgraph cluster_q {
+    label="KUALIFIKASI"; fontname="DejaVu Sans"; fontsize=15; fontcolor="#165C51";
+    color="#B4DAD1"; style="rounded,filled"; fillcolor="#EDF7F4"; margin=18;
+    q1 [label="Menyelam"];
+    q2 [label="Lewati gate penuh → U-turn\n→ gate penuh kembali (finish resmi)"];
+    q3 [label="Surface → stop otomatis\n(penutup tambahan proyek)", fillcolor="#D8EFE6"];
+    q1 -> q2 -> q3;
+  }
+  subgraph cluster_a {
+    label="ARENA"; fontname="DejaVu Sans"; fontsize=15; fontcolor="#165C51";
+    color="#B4DAD1"; style="rounded,filled"; fillcolor="#EDF7F4"; margin=18;
+    a1 [label="Menyelam → hindari orange flare\n→ lewati gate"];
+    a2 [label="Jatuhkan bola dari ketiga flare\nsesuai urutan yang diberikan"];
+    a3 [label="Mode blue drum: drop payload\n\nMode extended: pinger → drop\n→ keluar zona → ambil bola yang sama"];
+    a4 [label="Surfacing Square → surface → stop", fillcolor="#D8EFE6"];
+    a1 -> a2 -> a3 -> a4;
+  }
+  platform -> q1; platform -> a1;
+  {rank=same; q1; a1; q1 -> a1 [style=invis];}
+
+  now [fillcolor="#DCEBFF", color="#2365B4", penwidth=2.5,
+       label=<<FONT POINT-SIZE="17" COLOR="#144D91"><B>KITA ADA DI SINI</B></FONT><BR/><BR/><B>Misi simulator sudah berjalan dan punya bukti uji.</B><BR/>Gripper di tengah; bola awal berada pada carrier yang sama.<BR/>Titik grip 8 cm di bawah hull; memanjang hanya saat pickup.<BR/>197 tes + 3 misi model baru: lulus, shutdown bersih.<BR/>Extended/POV, blue drum dan kualifikasi dinamis.<BR/><BR/><FONT COLOR="#52627A">Terbukti pada skenario uji; belum seluruh kondisi.</FONT>>];
+  q3 -> now; a4 -> now;
+
+  limit [fillcolor="#FFF3DB", color="#D6A445", fontsize=11,
+         label="BATAS BUKTI\nPengujian pada skenario terpilih.\nSlider dan latch adalah model latihan simulator.\nBelum seluruh kondisi; parameter air bukan NTU."];
+  {rank=same; now; limit;}
+  now -> limit [style=dotted, arrowhead=none, color="#D6A445", constraint=false];
+
+  real [fillcolor="#E9EDF3", color="#8491A5",
+        label="VALIDASI AUV NYATA — BELUM\nKapal belum selesai.\nKalibrasi thruster/sensor dan uji misi di kolam\nbelum dibuktikan pada kendaraan fisik."];
+  now -> real [style=dashed];
+}

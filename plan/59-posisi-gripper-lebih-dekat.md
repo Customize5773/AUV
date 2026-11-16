@@ -1,5 +1,7 @@
 # 59 — Gripper pickup lebih dekat ke badan AUV
 
+**Riwayat:** penempatan ini digantikan oleh [gripper tengah dengan slider, laporan 74](74-gripper-tengah-pendek-dan-bola-awal.md) pada 17 November. Perhitungan reach di bawah tetap menjelaskan kebutuhan posisi memanjang saat pickup.
+
 Tanggal: 12 November 2026. Lingkup: posisi alat pickup pada simulasi extended. Bukan perubahan titik pelepasan payload awal atau kalibrasi mekanisme fisik.
 
 ## Evaluasi penempatan

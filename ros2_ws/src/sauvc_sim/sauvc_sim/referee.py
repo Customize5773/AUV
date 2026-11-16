@@ -1,6 +1,6 @@
 """Independent qualification judge for the published 2026 training geometry."""
 import math
-from sauvc_sim.vehicle_geometry import HULL_CORNERS
+from sauvc_sim.vehicle_geometry import STOWED_CORNERS
 from sauvc_sim.arena import floor_z
 
 
@@ -14,7 +14,7 @@ def envelope(pose):
     c, s = math.cos(yaw), math.sin(yaw)
     cr, sr, cp, sp = math.cos(roll), math.sin(roll), math.cos(pitch), math.sin(pitch)
     corners = []
-    for a,b,d in HULL_CORNERS:
+    for a,b,d in STOWED_CORNERS:
         bx, by, bz = a, b*cr-d*sr, b*sr+d*cr
         bx, bz = bx*cp+bz*sp, -bx*sp+bz*cp
         corners.append((x+bx*c-by*s, y+bx*s+by*c, z+bz))

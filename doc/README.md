@@ -39,3 +39,5 @@ Label yang digunakan:
 - **Belum ditemukan:** tidak ditemukan dalam penelusuran ini; bukan bukti bahwa informasi tidak tersedia di semua kanal.
 
 Ringkasan disimpan sebagai parafrasa dengan tautan sumber. Sumber web tidak disalin utuh. Dua PDF yang diberikan pengguna disimpan utuh di `sources/` sebagai arsip lokal. Kode, dataset, dan simulator belum dijalankan atau divalidasi pada perangkat tim.
+
+[Kesiapan kalibrasi fisik — 13 November 2026](12-kesiapan-kalibrasi-fisik.md): komputer dan DWE tersedia, kapal belum selesai; data ukur propulsi/sensor yang diperlukan dan tool kalibrasi yang dapat dipakai kembali.

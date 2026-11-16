@@ -6,6 +6,30 @@ from sauvc_sim.arena import build_world, floor_z
 
 
 class ArenaTest(unittest.TestCase):
+    def test_pool_liner_follows_floor_and_visual_water_has_no_collision(self):
+        from pathlib import Path
+        from urllib.parse import unquote, urlparse
+        from sauvc_sim.rules2027 import floor_z as depth
+        world=ET.fromstring(build_world('finals')).find('world')
+        for name in ('water_surface_visual_only','pool_liner_visual_only','pool_coping_visual_only'):
+            item=world.find(f"model[@name='{name}']")
+            self.assertIsNotNone(item)
+            self.assertFalse(item.findall('.//collision'))
+        water=world.find("model[@name='water_surface_visual_only']/link/visual")
+        self.assertAlmostEqual(float(water.findtext('transparency')),.88)
+        for uri in world.findall('.//material/pbr/metal/*'):
+            if uri.tag.endswith('_map'):
+                path=Path(unquote(urlparse(uri.text).path))
+                self.assertTrue(path.is_file())
+                self.assertEqual(path.read_bytes()[:8],b'\x89PNG\r\n\x1a\n')
+        uri=world.findtext("model[@name='pool_liner_visual_only']/link/visual/geometry/mesh/uri")
+        mesh=Path(unquote(urlparse(uri).path)).read_text().splitlines()
+        vertices=[list(map(float,line.split()[1:])) for line in mesh if line.startswith('v ')]
+        self.assertEqual(len(vertices),12)
+        for x,y,z in vertices:
+            self.assertAlmostEqual(z,depth(x)+.001,places=7)
+            self.assertIn(y,(0.,25.))
+
     def world(self, arena):
         return ET.fromstring(build_world(arena,edition='2026')).find('world')
 
@@ -16,7 +40,7 @@ class ArenaTest(unittest.TestCase):
             world = ET.fromstring(build_world(arena)).find('world')
             link = world.find("model[@name='sauvc_auv']/link")
             self.assertEqual(link.findtext("collision[@name='hull']/geometry/box/size"), '0.518486 0.386876 0.2')
-            self.assertEqual(len(link.findall('collision')), 1)
+            self.assertEqual(len(link.findall('collision')), 2)
             uri = link.findtext('visual/geometry/mesh/uri')
             path = Path(unquote(urlparse(uri).path))
             self.assertTrue(path.is_file(), uri)
@@ -38,7 +62,7 @@ class ArenaTest(unittest.TestCase):
             self.assertTrue(all(p['area_error']<=.015+1e-9 and p['bound_error_m']<=.0005+1e-9
                                 for p in metadata['parts_quality']))
             self.assertEqual(link.findtext("sensor[@name='camera_front']/pose"), '0.32 0 0 0 0 0')
-            self.assertEqual(link.findtext("sensor[@name='camera_bottom']/pose"), '0 0 -0.12 0 1.57079633 0')
+            self.assertEqual(link.findtext("sensor[@name='camera_bottom']/pose"), '0.16 0 -0.12 0 1.57079633 0')
 
     def test_floor_collision_surfaces_match_depth_profile(self):
         world = self.world('finals')

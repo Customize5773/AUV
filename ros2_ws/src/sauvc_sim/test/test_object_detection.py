@@ -32,6 +32,16 @@ class ObjectsTest(unittest.TestCase):
         background[60:160,100:150]=(20,69,142)
         self.assertNotIn('blue_flare',[o['label'] for o in self.detect(background)['detections']])
 
+    def test_tinted_water_beside_coloured_poles_does_not_create_blue_halos(self):
+        for colour in ((140,40,40),(140,90,20),(150,140,20),(40,140,40),(40,60,70)):
+            image=np.full((240,320,3),(50,100,130),dtype=np.uint8)
+            image[60:160,100:112]=colour
+            self.assertNotIn('blue_flare',[o['label'] for o in self.detect(image)['detections']])
+            # This real local blue peak is too desaturated for the strict blue mask.
+            image[60:160,240:241]=(40,100,145)
+            blue=[o for o in self.detect(image)['detections'] if o['label']=='blue_flare']
+            self.assertEqual([o['bbox'] for o in blue],[[240,60,241,160]])
+
     def test_square_markers_do_not_become_flares_and_separate_flare_remains(self):
         image=self.frame()
         image[30:70,40:43]=(5,45,210);image[30:70,240:243]=(5,45,210)

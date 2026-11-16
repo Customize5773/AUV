@@ -6,6 +6,7 @@ defaults describe only arena.py, with zero distortion and square pixels.
 import math
 from dataclasses import dataclass
 from collections import deque
+from sauvc_sim.vehicle_geometry import BOTTOM_CAMERA_POSITION
 
 
 @dataclass(frozen=True)
@@ -33,7 +34,7 @@ class CameraModel:
         if camera == 'front':
             return (1., -a, -b), (.32, 0., 0.)
         if camera == 'bottom':
-            return (-b, -a, -1.), (0., 0., -.12)
+            return (-b, -a, -1.), BOTTOM_CAMERA_POSITION
         raise ValueError('unknown camera')
 
     def pixel(self, point, camera):
@@ -41,7 +42,8 @@ class CameraModel:
         if camera == 'front':
             depth, a, b = x-.32, -y, -z
         elif camera == 'bottom':
-            depth, a, b = -z-.12, -y, -x
+            ox,oy,oz=BOTTOM_CAMERA_POSITION
+            depth, a, b = oz-z, oy-y, ox-x
         else:
             raise ValueError('unknown camera')
         if depth <= 0:

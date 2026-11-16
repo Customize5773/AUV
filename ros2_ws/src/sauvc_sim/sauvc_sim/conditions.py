@@ -7,7 +7,7 @@ from sauvc_sim.dynamics import config
 
 def conditions(values=None):
     cfg=config()
-    defaults=dict(seed=cfg['seed'],current=cfg['current'],prior_error=[0.,0.],light_scale=1.)
+    defaults=dict(seed=cfg['seed'],current=cfg['current'],prior_error=[0.,0.],light_scale=1.,water_attenuation=0.)
     values={} if values is None else values
     if not isinstance(values,dict) or set(values)-defaults.keys():
         raise ValueError('unknown simulation conditions')
@@ -21,6 +21,8 @@ def conditions(values=None):
         result[key]=list(v)
     if type(result['light_scale']) not in (int,float) or not .25<=result['light_scale']<=1.5:
         raise ValueError('light_scale must be in [0.25, 1.5]')
+    if type(result['water_attenuation']) not in (int,float) or not 0<=result['water_attenuation']<=.5:
+        raise ValueError('water_attenuation must be in [0, 0.5] per metre')
     return result
 
 
