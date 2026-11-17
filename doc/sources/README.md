@@ -1,5 +1,7 @@
 # Arsip sumber dari pengguna
 
+**Pemeriksaan ulang 18 November 2026:** rulebook resmi tetap **2027.3.2**, diperbarui **30 Oktober 2026**. `master` repo resmi identik dengan commit arsip `b7194b4`: nol commit/file berubah. Tidak ada migrasi aturan baru yang diperlukan. [Bukti pemeriksaan](rulebook-check-20261118.json). Tipe gripper tidak ditentukan pada aturan reacquisition; keterbatasan jangkauan gripper fixed adalah persoalan geometri simulator, bukan perubahan aturan.
+
 **Pemeriksaan ulang 16 November 2026:** rulebook resmi tetap **2027.3.2**, diperbarui 30 Oktober. Repo master resmi identik dengan commit arsip: nol commit/file berubah. Tidak perlu migrasi aturan simulator. [Bukti pemeriksaan](rulebook-check-20261116.json).
 
 **Pemeriksaan ulang 14 November 2026:** halaman resmi tetap **2027.3.2** (30 Oktober). `master` repo resmi identik dengan commit arsip, nol commit/file berubah; tidak diperlukan migrasi aturan simulator. [Bukti](rulebook-check-20261114.json).

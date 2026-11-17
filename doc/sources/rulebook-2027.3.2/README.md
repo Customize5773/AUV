@@ -31,3 +31,11 @@ Versi publik tetap **2027.3.2**, diperbarui 30 Oktober. GitHub compare terhadap 
 ## Pemeriksaan ulang 16 November 2026
 
 Halaman resmi masih 2027.3.2 (30 Oktober); GitHub compare `master` terhadap commit arsip identik, nol commit/file berubah. Tidak diperlukan migrasi simulator. [Bukti pemeriksaan](../rulebook-check-20261116.json). Kanal privat panitia tidak diperiksa.
+
+## Pemeriksaan ulang 18 November 2026
+
+Halaman publik masih **2027.3.2**, diperbarui **30 Oktober 2026**. Perbandingan `master` dengan commit arsip tetap `identical`, nol commit dan nol file berubah, termasuk aset dalam repo. [Bukti pemeriksaan](../rulebook-check-20261118.json). Tidak diperlukan migrasi rulebook baru; ini tidak menyatakan revisi gripper fixed sudah lulus penerimaan simulator.
+
+Aturan reacquisition tetap mensyaratkan seluruh bagian AUV keluar target zone sebelum kembali mengambil bola yang sama, lalu mempertahankannya sampai akhir attempt. Bagian tersebut tidak menentukan gripper harus memanjang. Drum berdiameter 60 cm dan kedalaman 30 cm; bola tim berdiameter 3,5–4,5 cm dengan massa maksimal 200 g. Kontak aktuator pada bagian dalam drum saat deploy/retrieve tidak dipenalti; kontak bagian luar drum atau body kendaraan dapat terkena penalti yang sama dengan menyentuh dasar kolam. [Aturan resmi, bagian 9.2, 9.3 dan 9.9](https://sauvc.org/rulebook/).
+
+Cakupan pemeriksaan hanya halaman publik dan source repo resmi; pengumuman privat panitia tidak diperiksa.

@@ -1,0 +1,44 @@
+{
+  "checked_on": "2026-11-18",
+  "timezone": "Asia/Jakarta",
+  "published_url": "https://sauvc.org/rulebook/",
+  "published_version": "2027.3.2",
+  "published_last_updated": "2026-10-30",
+  "comparison": {
+    "repository_full_name": "sauvc/rulebook",
+    "base": "b7194b4c3efa542fd19b1efa15bc6ddc8f9ebbb1",
+    "head": "master",
+    "status": "identical",
+    "ahead_by": 0,
+    "behind_by": 0,
+    "total_commits": 0,
+    "too_large": null,
+    "base_commit": {
+      "sha": "b7194b4c3efa542fd19b1efa15bc6ddc8f9ebbb1",
+      "url": "https://api.github.com/repos/sauvc/rulebook/commits/b7194b4c3efa542fd19b1efa15bc6ddc8f9ebbb1",
+      "html_url": "https://github.com/sauvc/rulebook/commit/b7194b4c3efa542fd19b1efa15bc6ddc8f9ebbb1"
+    },
+    "merge_base_commit": {
+      "sha": "b7194b4c3efa542fd19b1efa15bc6ddc8f9ebbb1",
+      "url": "https://api.github.com/repos/sauvc/rulebook/commits/b7194b4c3efa542fd19b1efa15bc6ddc8f9ebbb1",
+      "html_url": "https://github.com/sauvc/rulebook/commit/b7194b4c3efa542fd19b1efa15bc6ddc8f9ebbb1"
+    },
+    "files": []
+  },
+  "simulator_rule_migration_required": false,
+  "relevant_rules": {
+    "drum_diameter_m": 0.6,
+    "drum_depth_m": 0.3,
+    "ball_diameter_m": [
+      0.035,
+      0.045
+    ],
+    "ball_max_mass_kg": 0.2,
+    "reacquisition_requires_full_target_zone_exit": true,
+    "reacquisition_requires_same_ball_held_until_attempt_end": true,
+    "mechanism_type_specified_in_reacquisition": false,
+    "actuator_inner_drum_contact_no_penalty": true,
+    "vehicle_body_or_outer_drum_contact_may_incur_pool_floor_penalty": true
+  },
+  "scope": "Published rulebook and official master repository compared to archived commit; no private committee announcements or simulator runtime validation."
+}
