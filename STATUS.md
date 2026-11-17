@@ -1,6 +1,6 @@
 # Posisi kita — simulasi ROS SAUVC
 
-Diperbarui **17 November 2026**. Ini ringkasan utama untuk mengikuti progres; laporan bernomor menyimpan rincian dan bukti historis.
+Diperbarui **18 November 2026**. Ini ringkasan utama untuk mengikuti progres; laporan bernomor menyimpan rincian dan bukti historis.
 
 **Tujuan:** menguji misi autonomous berdasarkan rulebook sebelum dipindahkan ke AUV nyata. Kualifikasi mengejar waktu tercepat dengan pelintasan yang sah; ARENA menyelesaikan tugas dan skor. Bukti saat ini masih pada simulator.
 
@@ -8,19 +8,29 @@ Diperbarui **17 November 2026**. Ini ringkasan utama untuk mengikuti progres; la
 
 [Unduh PNG](doc/diagrams/status-simulasi-sauvc.png) · [SVG untuk diperbesar](doc/diagrams/status-simulasi-sauvc.svg) · [Sumber diagram](doc/diagrams/status-simulasi-sauvc.dot)
 
-## Pegangan saat ini
+**Rulebook diperiksa ulang 18 November:** versi publik tetap 2027.3.2 (30 Oktober), repo resmi identik dengan arsip; tidak ada migrasi aturan baru. [Bukti](doc/sources/rulebook-check-20261118.json).
+
+## Status revisi fixed — 18 November 2026
+
+Pilihan pengguna: **gripper pendek dan tetap, tanpa mekanisme memanjang**. Kode geometri kini memakai dudukan fixed pada `(0, 0, −0,18) m`; payload awal ARENA memakai titik yang sama. Pemeriksaan statis mengonfirmasi tidak ada joint slider dan extended ditolak dengan `fixed_gripper_unreachable` karena clearance pickup −20 cm.
+
+**Revisi ini belum selesai diverifikasi:** build/runtime belum diuji ulang, dan koleksi tes pickup gagal karena masih mengimpor konstanta slider yang telah dihapus. Kualifikasi serta blue drum perlu penerimaan ulang; extended/pickup belum didukung dengan geometri sekarang. Panduan terbaru ada di [CARA-RUNNING](ros2_ws/CARA-RUNNING.md).
+
+Hasil 197 tes dan tiga misi di bawah adalah **riwayat versi slider 17 November**, bukan hasil gripper fixed. Pengujian kendaraan fisik tetap dikecualikan.
+
+## Riwayat sampai versi slider — 17 November 2026
 
 - **Berfungsi dan punya bukti:** kualifikasi otomatis, ARENA blue drum/extended, kamera dan deteksi, dinamika tujuh thruster, estimator serta pengaman. Hasil berlaku pada skenario yang diuji.
-- **Penerimaan terbaru:** gripper di tengah body, pendek saat membawa; bola awal terpasang pada carrier yang sama. Build, **197 tes** serta **tiga misi dinamis** (extended GUI/POV, blue drum dan kualifikasi) lulus dengan shutdown bersih. [Laporan 74](plan/74-gripper-tengah-pendek-dan-bola-awal.md).
+- **Penerimaan versi slider:** gripper di tengah body, pendek saat membawa; bola awal terpasang pada carrier yang sama. Build, **197 tes** serta **tiga misi dinamis** (extended GUI/POV, blue drum dan kualifikasi) lulus dengan shutdown bersih. [Laporan 74](plan/74-gripper-tengah-pendek-dan-bola-awal.md).
 - **Penerimaan sebelum perubahan gripper:** 13/13 pengulangan non-GUI lulus pada revisi antrean kamera: sembilan kualifikasi, arus/hold, prior posisi serta ARENA extended dan blue drum. Semua shutdown bersih; manifest 98 file cocok dengan laporan 72. Tiga GUI tanpa stale setelah gambar pertama serta respons kehilangan depth tetap merujuk bukti laporan 72.
-- **Tes unit terbaru:** 197 lulus setelah revisi gripper. Hasil 195 tes dan replay pada laporan 70/72 merupakan bukti sebelumnya. Penerimaan misi revisi gripper juga lulus pada tiga fixture yang diuji.
+- **Tes unit versi slider:** 197 lulus setelah revisi gripper. Hasil 195 tes dan replay pada laporan 70/72 merupakan bukti sebelumnya. Penerimaan misi revisi gripper juga lulus pada tiga fixture yang diuji.
 - **Perbaikan kamera terbaru:** kehilangan pasangan RGB–depth pada antrean satu frame direproduksi. Masukan optik kini mempertahankan tiga capture; keluaran tetap satu frame terbaru. Tiga pengulangan GUI lulus tanpa stale setelah gambar pertama masuk. Ini belum jaminan semua beban komputer bebas jeda.
 - **Kasus yang baru ditutup:** kualifikasi pada atenuasi sintetis 0,10/m yang sebelumnya `gate_lost` kini lulus di tiga jalur terpilih. Ini uji tambahan, bukan syarat rulebook. Perbaikannya memakai median warna pada fallback; kecepatan dan pengaman tetap.
 - **Belum dibuktikan:** seluruh kondisi kolam dan misi pada AUV fisik. Kapal belum selesai. Refraksi, partikel dan gelombang bukan pekerjaan wajib proyek saat ini.
 
-Bukti terbaru: [laporan 74](plan/74-gripper-tengah-pendek-dan-bola-awal.md) dan [verifikasi gripper](ros2_ws/evidence/gripper-centered-20261116/verification.json). Penerimaan 13 run sebelum perubahan gripper ada di [laporan 73](plan/73-konsistensi-setelah-perbaikan-antrean-kamera.md). Diagnosis kamera, tiga GUI dan depth fault ada di [laporan 72](plan/72-antrean-pasangan-rgb-depth-dan-pov.md). Riwayat demonstrasi dan batch 15 run ada pada [laporan 71](plan/71-demonstrasi-dan-konsistensi-revisi-optik.md). Perbaikan detektor ada pada [laporan 70](plan/70-kualifikasi-optik-010-dan-median-warna.md) dan [69](plan/69-rulebook-dan-perbaikan-halo-biru-arena.md). Acuan aktif 2027.3.2, terakhir dicek 16 November: [bukti rulebook](doc/sources/rulebook-check-20261116.json).
+Bukti versi slider: [laporan 74](plan/74-gripper-tengah-pendek-dan-bola-awal.md) dan [verifikasi gripper](ros2_ws/evidence/gripper-centered-20261116/verification.json). Penerimaan 13 run sebelum perubahan gripper ada di [laporan 73](plan/73-konsistensi-setelah-perbaikan-antrean-kamera.md). Diagnosis kamera, tiga GUI dan depth fault ada di [laporan 72](plan/72-antrean-pasangan-rgb-depth-dan-pov.md). Riwayat demonstrasi dan batch 15 run ada pada [laporan 71](plan/71-demonstrasi-dan-konsistensi-revisi-optik.md). Perbaikan detektor ada pada [laporan 70](plan/70-kualifikasi-optik-010-dan-median-warna.md) dan [69](plan/69-rulebook-dan-perbaikan-halo-biru-arena.md). Acuan aktif 2027.3.2, terakhir dicek 18 November: [bukti rulebook](doc/sources/rulebook-check-20261118.json).
 
-## Fokus terakhir — gripper tengah dan bola awal selesai pada simulator
+## Riwayat gripper dengan slider — digantikan pilihan fixed
 
 Titik gripper kini `(0, 0, −0,18) m`: pusat bola hanya **8 cm di bawah hull**, dibanding 30 cm sebelumnya. Slider memanjang 22 cm hanya saat pickup dan retract lagi bersama bola; kualifikasi mengunci posisi pendek tanpa payload. Spawn payload, joint pemuatan dan alignment drop memakai titik yang sama. Kamera bawah bergeser 16 cm ke depan dan proyeksinya diselaraskan.
 

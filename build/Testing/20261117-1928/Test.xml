@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Site BuildName="(empty)"
+	BuildStamp="20261117-1928-Experimental"
+	Name="rasya-Latitude-3450"
+	Generator="ctest-3.28.3"
+	CompilerName="/usr/lib/ccache/g++"
+	CompilerVersion="13.3.0"
+	OSName="Linux"
+	Hostname="rasya-Latitude-3450"
+	OSRelease="6.8.0-149-generic"
+	OSVersion="#149-Ubuntu SMP PREEMPT_DYNAMIC Fri Oct 23 13:21:10 UTC 2026"
+	OSPlatform="x86_64"
+	Is64Bits="1"
+	VendorString="GenuineIntel"
+	VendorID="Intel Corporation"
+	FamilyID="6"
+	ModelID="186"
+	ProcessorCacheSize="12288"
+	NumberOfLogicalCPU="12"
+	NumberOfPhysicalCPU="10"
+	TotalVirtualMemory="0"
+	TotalPhysicalMemory="15677"
+	LogicalProcessorsPerPhysical="1"
+	ProcessorClockFrequency="1543.72"
+	>
+	<Testing>
+		<StartDateTime>Nov 18 02:28 WIB</StartDateTime>
+		<StartTestTime>1794943683</StartTestTime>
+		<TestList/>
+		<EndDateTime>Nov 18 02:28 WIB</EndDateTime>
+		<EndTestTime>1794943683</EndTestTime>
+		<ElapsedMinutes>0</ElapsedMinutes>
+	</Testing>
+</Site>

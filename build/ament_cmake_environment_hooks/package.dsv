@@ -1,0 +1,4 @@
+source;share/sauvc_bridge/local_setup.bash
+source;share/sauvc_bridge/local_setup.dsv
+source;share/sauvc_bridge/local_setup.sh
+source;share/sauvc_bridge/local_setup.zsh
