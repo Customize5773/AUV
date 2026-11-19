@@ -75,17 +75,6 @@ class ArenaJudge:
         if not all(math.isfinite(v) for v in (*pose,t)):
             self.fail('nonfinite_pose',t);return
         lo,hi,yl,yh,zl,zh=envelope(pose)
-        # Include the fixed short gripper in the tool envelope.
-        roll,pitch=pose[3:5] if len(pose)==6 else (0.,0.)
-        cr,sr,cp,sp=math.cos(roll),math.sin(roll),math.cos(pitch),math.sin(pitch)
-        cy,sy=math.cos(pose[-1]),math.sin(pose[-1])
-        for a in (PICKUP_X-.04,PICKUP_X+.04):
-            for b in (-.04,.04):
-                for d in (PICKUP_Z-.009,-.09):
-                    bx,by,bz=a,b*cr-d*sr,b*sr+d*cr
-                    bx,bz=bx*cp+bz*sp,-bx*sp+bz*cp
-                    px,py,pz=pose[0]+bx*cy-by*sy,pose[1]+bx*sy+by*cy,pose[2]+bz
-                    lo,hi,yl,yh,zl,zh=min(lo,px),max(hi,px),min(yl,py),max(yh,py),min(zl,pz),max(zh,pz)
         kinds=set()
         for contact in contacts:
             if 'navigation_gate' in contact: kinds.add('gate')

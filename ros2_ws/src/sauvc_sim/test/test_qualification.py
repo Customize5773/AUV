@@ -111,6 +111,31 @@ class JudgeTest(unittest.TestCase):
 
 
 class VisionTest(unittest.TestCase):
+    def test_2027_cruise_keeps_fixed_tool_inside_gate(self):
+        pose=(10.,3.5,-.5,0.)
+        bounds=envelope(pose)
+        self.assertGreater(bounds[4],-1.)
+        self.assertLess(bounds[5],0.)
+        for physical in (False,True):
+            c=QualificationController(physical=physical,edition='2027')
+            c.started=0.;c.state='ALIGN'
+            self.assertAlmostEqual(c.command(pose,1.,dict(bearing=0.,distance=8.),0.,{})[2],0.)
+
+    def test_dynamic_2027_approaches_only_after_submerging_and_keeps_diving(self):
+        c=QualificationController(physical=True,edition='2027')
+        gate=dict(bearing=0.,distance=8.)
+        self.assertEqual(c.command((START_X,3.5,-.249,0.),0.,gate,0.,{})[0],0.)
+        self.assertEqual(c.state,'DIVE')
+        c.command((START_X,3.5,-.25,0.),.1,gate,0.,{})
+        self.assertEqual(c.state,'FIND_GATE')
+        command=c.command((START_X,3.5,-.26,0.),.2,gate,0.,{})
+        self.assertGreater(command[0],0.)
+        self.assertLess(command[2],0.)
+        for physical,edition in ((False,'2027'),(True,'2026')):
+            legacy=QualificationController(physical=physical,edition=edition)
+            legacy.command((START_X,3.5,-.26,0.),0.,gate,0.,{})
+            self.assertEqual(legacy.state,'DIVE')
+
     def test_distant_gate_in_dense_water_with_bright_near_floor(self):
         from pathlib import Path
         with np.load(Path(__file__).parent/'fixtures/gate-dense-water.npz') as capture:

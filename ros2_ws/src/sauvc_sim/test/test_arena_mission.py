@@ -120,7 +120,7 @@ class ArenaJudgeTest(unittest.TestCase):
         judge.update((.7,8.,-.05,0.),0.)
         judge.update((.7,8.,-.35,0.),.3)
         judge.update((.7,8.,-.65,0.),.6)
-        judge.update((.7,8.,-1.,0.),1.)
+        judge.update((.7,8.,-.75,0.),1.)
         return judge
 
     def test_partial_crossing_is_not_navigation_and_early_flare_aborts(self):
@@ -131,12 +131,12 @@ class ArenaJudgeTest(unittest.TestCase):
         judge.update((16.4,8.,-1.,0.),3.)
         self.assertTrue(judge.navigation)
         other=self.start()
-        other.update((.7,8.,-1.,0.),2.,['blue_flare::body::pole'])
+        other.update((.7,8.,-.75,0.),2.,['blue_flare::body::pole'])
         self.assertEqual(other.reason,'flare_before_navigation')
 
     def test_orange_and_premature_surface_fail(self):
         for contact in ('orange_flare::body::pole','wall_start::body::wall'):
-            judge=self.start();judge.update((.7,8.,-1.,0.),2.,[contact])
+            judge=self.start();judge.update((.7,8.,-.75,0.),2.,[contact])
             self.assertEqual(judge.phase,'FAILED')
         judge=self.start()
         judge.update((.7,8.,-.6,0.),1.3)

@@ -409,9 +409,11 @@ Model FBX pengguna kini menjadi visual default kendaraan pada kualifikasi dan AR
 
 Regresi pinger/pickup extended model baru juga diterima pada [laporan 58](../plan/58-regresi-pinger-model-auv.md): bola yang sama dipertahankan hingga stop, 290,79888 poin dan shutdown bersih. Satu percobaan awal terhenti karena viewer keluar; penyebabnya belum diketahui.
 
-### Gripper tengah dan pendek (17 November 2026)
+### Gripper pendek dan tetap (18 November 2026)
 
-Gripper memakai titik tengah body `(0, 0, −0,18) m` saat membawa payload, sekitar 8 cm di bawah hull. Slider hanya memanjang 22 cm ketika pickup, lalu retract dengan bola yang terpasang; kualifikasi memakai posisi pendek terkunci. Bola awal berada pada gripper yang sama sampai release. Origin kamera bawah bergeser 16 cm ke depan untuk menjaga pandangan dan ikut dipakai pada proyeksi pixel/ray. [Laporan 74 dan bukti penerimaan](../plan/74-gripper-tengah-pendek-dan-bola-awal.md).
+Gripper memakai fixed joint pada titik tengah `(0, 0, −0,18) m`, sekitar 8 cm di bawah hull, tanpa mekanisme memanjang. Bola awal berada pada gripper yang sama sampai release. Kamera bawah berada 16 cm di depan pusat body; origin ini juga dipakai dalam proyeksi pixel/ray.
+
+Build dan 197 tes lulus; tiga jalur kualifikasi dan dua fixture blue drum diterima, satu dengan GUI/dua POV. [Laporan 75](../plan/75-penerimaan-gripper-pendek-tetap.md). Extended/pickup ditolak dengan `fixed_gripper_unreachable` sebelum thrust: clearance pendekatan dasar drum bernilai −20 cm. Hasil slider sebelumnya disimpan sebagai [riwayat laporan 74](../plan/74-gripper-tengah-pendek-dan-bola-awal.md); lihat [status aktif](../STATUS.md).
 
 ### Posisi gripper sebelumnya (12 November 2026)
 
@@ -426,3 +428,12 @@ ARENA extended dengan revisi body 816.288 segitiga serta gripper z −0,40 m jug
 **Collision sesuai visual — 12 November 2026:** hull box kini 51,8486 × 38,6876 × 20 cm, mengikuti batas mesh. Start-wall, prior estimator dan envelope referee disinkronkan; frame kamera tidak dihitung sebagai benda fisik. Build, 183 tes, dua kualifikasi (termasuk start miring) dan satu ARENA extended lulus; GUI/dua POV serta shutdown bersih terverifikasi pada run nominal dan extended. Gripper tidak berubah. Collision tetap AABB, parameter fisika belum terkalibrasi pada AUV nyata. [Laporan 62](../plan/62-collision-sesuai-batas-visual.md).
 
 **Regresi collision — 12 November 2026:** kualifikasi jalur 2 dengan arus 0,02 m/s dan prior meleset lulus; drift hold aktif 0,52 cm dalam sekitar 30 s dan emergency stop lulus. Satu ARENA selesai tetapi gagal shutdown; kedua penguji kini pause sebelum GUI exit. Kualifikasi dan ARENA GUI/dua POV sesudah perbaikan diterima dengan shutdown bersih; ARENA blue drum 2 mencatat 210,40156 poin tanpa penalti. 183 tes unit lulus. Semua percobaan tetap dicatat; belum jaminan keandalan semua kondisi atau validasi fisik. [Laporan 63](../plan/63-regresi-collision-arus-dan-blue-drum.md).
+
+
+**Optimasi kualifikasi — 19 November 2026:** mulai pendekatan gate setelah terendam sambil melanjutkan penyelaman. 198 tes dan lima run dinamis lulus. Pada tiga run nominal per revisi, median gate kedua 23,678 → 21,802 s; surface 26,772 → 24,896 s. [Hasil, batas dan grafik](../plan/78-optimasi-awal-kualifikasi-dinamis.md).
+
+
+**Gripper tetap diperpanjang — 19 November 2026:** pengguna mengizinkan titik grip `(0, 0, −0,40) m`, 30 cm di bawah hull dan tanpa slider. Build serta 200 tes lulus; extended/pickup GUI/dua POV, blue drum dan kualifikasi diterima. Kualifikasi 2027 memakai kedalaman kerja −0,50 m agar seluruh alat masuk gate. Pickup berhasil pada fixture simulator; mekanisme masih latch ideal dengan syarat kontak. [Hasil dan batas bukti](../plan/79-gripper-fixed-panjang-dan-pickup-selesai.md).
+
+
+**Gripper ringkas bergaya Newton — 19 November 2026:** mengikuti revisi pengguna, batang di bawah hull kini 8 cm, tetap di tengah dan tanpa slider. Kepala memakai dua rahang capit berongga/bergigi dengan rumah aktuator hitam dan pin biru. Bentuk awal dan penerimaan dengan rahang rigid tercatat pada [laporan 80](../plan/80-gripper-ringkas-bergaya-newton.md). Rahang kini bergerak melalui dua sendi revolute; release memerlukan posisi buka aktual dan uji macet mempertahankan bola. Build dan 202 tes lulus. Pickup dasar drum tetap belum didukung pada batang pendek. [Gerak rahang, video dan batas fungsi](../plan/81-aktuasi-rahang-dan-release-terukur.md).

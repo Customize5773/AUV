@@ -1,46 +1,46 @@
 digraph progress {
   graph [rankdir=TB, newrank=true, bgcolor="#F7F9FC", pad="0.35", nodesep="0.38", ranksep="0.42", splines=ortho,
          fontname="DejaVu Sans", labelloc=t,
-         label=<<FONT POINT-SIZE="25"><B>Posisi kita — simulasi ROS SAUVC</B></FONT><BR/><FONT POINT-SIZE="12">Status 18 November 2026 • profil simulator SAUVC 2027.3.2</FONT>>];
+         label=<<FONT POINT-SIZE="25"><B>Posisi kita — simulasi ROS SAUVC</B></FONT><BR/><FONT POINT-SIZE="12">Status 19 November 2026 • profil simulator SAUVC 2027.3.2</FONT>>];
   node [shape=box, style="rounded,filled", fontname="DejaVu Sans", fontsize=13,
         color="#CDD7E5", fillcolor="white", fontcolor="#172C47", margin="0.22,0.16", penwidth=1.3];
   edge [color="#7D8DA5", arrowsize=0.7, penwidth=1.5];
 
   goal [fillcolor="#172C47", fontcolor="white", color="#172C47",
         label="TUJUAN BERSAMA\nMenguji misi autonomous berbasis rulebook\nsebelum dipindahkan ke AUV nyata.\nKualifikasi: mengejar waktu tercepat yang tetap sah."];
-  platform [label="KONFIGURASI YANG DIPILIH\nKolam 2027 + model AUV tujuh thruster\nGripper tetap di tengah: (0, 0, −0,18) m\nTitik grip 8 cm di bawah hull; tanpa slider\nPayload awal ARENA pada titik gripper yang sama"];
+  platform [label="KONFIGURASI YANG DIPILIH\nKolam 2027 + model AUV tujuh thruster\nGripper tetap di tengah: (0, 0, −0,21) m\nBatang 8 cm • kepala bergaya Newton • tanpa slider\nPayload awal ARENA pada titik gripper yang sama"];
   goal -> platform;
 
   subgraph cluster_q {
-    label="KUALIFIKASI — perlu uji ulang revisi fixed"; fontname="DejaVu Sans"; fontsize=15; fontcolor="#144D91";
+    label="KUALIFIKASI — regresi gripper ringkas lulus"; fontname="DejaVu Sans"; fontsize=15; fontcolor="#144D91";
     color="#BED2EB"; style="rounded,filled"; fillcolor="#EEF4FC"; margin=18;
-    q1 [label="Menyelam\nGripper pendek dan kosong"];
+    q1 [label="Menyelam sampai estimasi −0,25 m\nMulai pendekatan sambil menuju −0,50 m\nGripper tetap dan kosong"];
     q2 [label="Lewati gate penuh → U-turn\n→ gate penuh kembali (finish resmi)"];
-    q3 [label="Surface → stop otomatis\n(penutup tambahan proyek)", fillcolor="#DCEBFF"];
+    q3 [label="Jalur 3 • air sintetis 0,10/m\nGate kedua 22,994 s\nSurface 25,578 s • stop 30,542 s", fillcolor="#DCEBFF"];
     q1 -> q2 -> q3;
   }
   subgraph cluster_a {
-    label="ARENA BLUE DRUM — perlu uji ulang revisi fixed"; fontname="DejaVu Sans"; fontsize=15; fontcolor="#144D91";
+    label="ARENA BLUE DRUM — fixture terpilih lulus"; fontname="DejaVu Sans"; fontsize=15; fontcolor="#144D91";
     color="#BED2EB"; style="rounded,filled"; fillcolor="#EEF4FC"; margin=18;
     a1 [label="Menyelam → hindari orange flare\n→ lewati gate"];
     a2 [label="Jatuhkan bola dari ketiga flare\nsesuai urutan yang diberikan"];
-    a3 [label="Drop payload ke blue drum\nGripper tetap pendek"];
-    a4 [label="Surfacing Square → surface → stop", fillcolor="#DCEBFF"];
+    a3 [label="Drop payload ke blue drum\nGripper tetap di tengah"];
+    a4 [label="Surfacing Square → surface → stop\nBlue drum 210,14284 poin • penalti nol\nThrust–surface 228,572 s", fillcolor="#DCEBFF"];
     a1 -> a2 -> a3 -> a4;
   }
   blocked [fillcolor="#FFF3DB", color="#D6A445", fontsize=12,
-           label="EXTENDED / PICKUP — TERBLOKIR\nBody menyentuh bibir drum sebelum\ngripper pendek mencapai bola di dasar.\nClearance hitungan: −20 cm\nABORT: fixed_gripper_unreachable\nPratinjau pinger: autonomous=false"];
+           label="EXTENDED — BELUM DIDUKUNG BATANG PENDEK\nClearance pickup mendatar: −17 cm\nDitolak sebelum thrust: fixed_gripper_unreachable\nPickup laporan 79 memakai batang panjang lama"];
   platform -> q1; platform -> a1;
   platform -> blocked [style=dashed, color="#D6A445"];
   {rank=same; q1; a1; q1 -> a1 [style=invis];}
   {rank=same; a3; blocked;}
 
   now [fillcolor="#DCEBFF", color="#2365B4", penwidth=2.5,
-       label=<<FONT POINT-SIZE="17" COLOR="#144D91"><B>KITA ADA DI SINI</B></FONT><BR/><BR/><B>Gripper pendek dan tetap sudah masuk kode.</B><BR/>Dudukan fixed dan penolakan extended: cek statis lulus.<BR/>Build dan penerimaan runtime revisi fixed belum diverifikasi ulang.<BR/>Koleksi tes pickup gagal: masih mengimpor konstanta slider.<BR/><BR/><FONT COLOR="#52627A">Alur di atas adalah sasaran uji, bukan hasil lulus revisi fixed.</FONT>>];
+       label=<<FONT POINT-SIZE="17" COLOR="#144D91"><B>KITA ADA DI SINI</B></FONT><BR/><BR/><B>Gripper ringkas bergaya Newton sudah diterapkan.</B><BR/>Batang 8 cm • build selesai • 202 tes lulus.<BR/>Release fisika, ARENA blue drum dan kualifikasi: diterima.<BR/>Bola awal tetap pada titik grip yang sama.<BR/>Rahang bergerak buka–tutup; release menunggu bukaan aktual.<BR/>Uji normal dan macet lulus; video tersimpan.<BR/><BR/><FONT COLOR="#52627A">Retensi masih latch ideal; bukan aktuator Newton asli. Hardware belum diuji.</FONT>>];
   q3 -> now; a4 -> now;
 
   history [fillcolor="#E9EDF3", color="#8491A5", fontsize=11,
-           label="BUKTI RIWAYAT — 17 NOVEMBER\n197 tes + tiga misi lulus pada versi slider.\nHasil itu tetap disimpan di laporan 74,\nbukan penerimaan gripper tetap sekarang."];
+           label="BUKTI RIWAYAT — LAPORAN 79\nPickup lulus dengan batang panjang.\nHasil itu bukan penerimaan pickup\npada gripper pendek sekarang."];
   {rank=same; now; history;}
   now -> history [style=dotted, arrowhead=none, constraint=false];
 

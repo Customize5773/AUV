@@ -23,6 +23,9 @@
 #include <ignition/gazebo/components/DetachableJoint.hh>
 #include <ignition/gazebo/components/Link.hh>
 #include <algorithm>
+#include <ignition/gazebo/components/Joint.hh>
+#include <ignition/gazebo/components/JointPosition.hh>
+#include <ignition/msgs/double.pb.h>
 
 namespace sauvc {
 using namespace ignition::gazebo;
@@ -70,6 +73,10 @@ class ArenaPhysics : public System, public ISystemPreUpdate, public ISystemPostU
   std::vector<Entity> fingers;
   bool pickupContact{false};
   double servoAngle{0};
+  std::array<Entity,2> jaws{{kNullEntity,kNullEntity}};
+  std::array<double,2> jawPosition{{0,0}},jawTarget{{0,0}};
+  std::array<ignition::transport::Node::Publisher,2> jawPublishers;
+  bool jawReady{false},jawsOpen{false};
   std::mt19937 rng{42};
   std::normal_distribution<double> acousticNoise{0,2e-7};
   ignition::transport::Node::Publisher acousticPublisher;
@@ -87,9 +94,11 @@ public:
       node.Subscribe("/sauvc/payload/release", &ArenaPhysics::Release, this);
       node.Subscribe("/sauvc/payload/grip", &ArenaPhysics::Grip, this);
       acousticPublisher=node.Advertise<ignition::msgs::StringMsg>("/sauvc/acoustics");
+      for (size_t i=0;i<2;++i)
+        jawPublishers[i]=node.Advertise<ignition::msgs::Double>("/sauvc/gripper/"+std::to_string(i)+"/target");
       configured=true;
     }
-    if (auv==kNullEntity || payload==kNullEntity || hull==kNullEntity || gripper==kNullEntity) {
+    if (auv==kNullEntity || payload==kNullEntity || hull==kNullEntity || gripper==kNullEntity || jaws[0]==kNullEntity || jaws[1]==kNullEntity) {
       ecm.Each<components::Model,components::Name>([&](const Entity &e,const components::Model *,const components::Name *n) {
         if (n->Data()=="sauvc_auv") auv=e;
         if (n->Data()=="payload_ball") payload=e;
@@ -109,6 +118,13 @@ public:
         }
         return true;
       });
+      ecm.Each<components::Joint,components::Name>([&](const Entity &e,const components::Joint *,const components::Name *n) {
+        for (size_t i=0;i<2;++i) if (n->Data()=="pickup_hinge_"+std::to_string(i) && scopedName(e,ecm).find("sauvc_auv")!=std::string::npos) {
+          jaws[i]=e;
+          if (!ecm.Component<components::JointPosition>(e)) ecm.CreateComponent(e,components::JointPosition());
+        }
+        return true;
+      });
       ecm.Each<components::Link,components::Name>([&](const Entity &e,const components::Link *,const components::Name *n) {
         if (n->Data()=="payload_gripper" && scopedName(e,ecm).find("sauvc_auv")!=std::string::npos) {
           gripper=e;
@@ -117,6 +133,20 @@ public:
       });
     }
     if (info.paused || auv==kNullEntity || payload==kNullEntity || gripper==kNullEntity) return;
+    jawReady=true;
+    jawsOpen=true;
+    for (size_t i=0;i<2;++i) {
+      const double open=i==0?-.35:.35;
+      jawTarget[i]=(request.load() && !gripRequest.load())?open:0.;
+      const auto *position=jaws[i]==kNullEntity?nullptr:ecm.Component<components::JointPosition>(jaws[i]);
+      const bool valid=position && !position->Data().empty() && std::isfinite(position->Data()[0]);
+      jawPosition[i]=valid?position->Data()[0]:0.;
+      jawReady=jawReady && valid;
+      jawsOpen=jawsOpen && valid && std::abs(jawPosition[i]-open)<.015;
+      if (info.simTime-last>=std::chrono::milliseconds(50)) {
+        ignition::msgs::Double target;target.set_data(jawTarget[i]);jawPublishers[i].Publish(target);
+      }
+    }
     if (!dropped && loadingJoint==kNullEntity) {
       loadingJoint=ecm.CreateEntity();
       ecm.CreateComponent(loadingJoint,components::DetachableJoint({
@@ -129,7 +159,7 @@ public:
     // Ideal servo slew: 120 degrees in 0.4 s; no direct PWM/hardware control.
     if (request.load()) servoAngle=std::min(2.094395102,servoAngle+5.235987756*std::chrono::duration<double>(info.dt).count());
     if (!dropped) {
-      if (servoAngle>=2.094395) {
+      if (servoAngle>=2.094395 && jawsOpen) {
         dropped=true;
         ecm.RequestRemoveEntity(loadingJoint);loadingJoint=kNullEntity;
         Free(payload,ecm);
@@ -147,7 +177,7 @@ public:
       ecm.CreateComponent(attachment,components::DetachableJoint({
         gripper,Model(payload).CanonicalLink(ecm),"fixed"}));
     }
-    if (!gripRequest.load() && attachment!=kNullEntity) {
+    if (!gripRequest.load() && jawsOpen && attachment!=kNullEntity) {
       ecm.RequestRemoveEntity(attachment);attachment=kNullEntity;
     }
     const auto *contacts=ecm.Component<components::ContactSensorData>(hull);
@@ -179,7 +209,7 @@ public:
     if (nudge) Link(link).SetLinearVelocity(ecm,ignition::math::Vector3d(.2,0,0));
   }
   void PostUpdate(const UpdateInfo &info,const EntityComponentManager &ecm) override {
-    if (info.paused || payload==kNullEntity || info.simTime-last<std::chrono::milliseconds(50)) return;
+    if (info.paused || payload==kNullEntity || gripper==kNullEntity || info.simTime-last<std::chrono::milliseconds(50)) return;
     last=info.simTime;
     std::ostringstream out;
     const auto capture=worldPose(gripper,ecm).Pos();
@@ -187,6 +217,10 @@ public:
        <<",\"pickup_position\":["<<capture.X()<<','<<capture.Y()<<','<<capture.Z()<<']'
        <<",\"payload_released\":"<<(dropped?"true":"false")
        <<",\"servo_angle_rad\":"<<servoAngle
+       <<",\"jaw_ready\":"<<(jawReady?"true":"false")
+       <<",\"jaws_open\":"<<(jawsOpen?"true":"false")
+       <<",\"jaw_position_rad\":["<<jawPosition[0]<<','<<jawPosition[1]<<']'
+       <<",\"jaw_target_rad\":["<<jawTarget[0]<<','<<jawTarget[1]<<']'
        <<",\"pickup_contact\":"<<(pickupContact?"true":"false")
        <<",\"payload_attached\":"<<(attachment!=kNullEntity || loadingJoint!=kNullEntity?"true":"false")<<",\"balls\":{";
     auto emit=[&](const std::string &name,Entity e,bool freed) {

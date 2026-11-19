@@ -1,5 +1,7 @@
 # 74 — Gripper di tengah, pendek saat membawa, dan bola awal
 
+> Riwayat versi slider. Pada 18 November pengguna memilih gripper pendek dan tetap, tanpa mekanisme memanjang. Hasil di bawah berlaku pada versi slider; status revisi aktif ada di [STATUS](../STATUS.md).
+
 16–17 November 2026. Permintaan pengguna: tempatkan gripper di tengah body, rapatkan ke AUV, dan perbaiki bola awal yang terlihat berada di tempat lain. Pekerjaan dibatasi pada simulator.
 
 ## Penyebab posisi bola lama

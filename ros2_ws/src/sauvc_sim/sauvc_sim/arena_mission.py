@@ -121,7 +121,7 @@ class ArenaController:
             self.change('ABORT',t,'mission_or_state_timeout')
             return zero
         x,y,z,yaw = pose
-        nav_depth=-1. if self.edition=='2027' else ((-.65 if x<3 or x>22 else -.8) if self.extended else -1.)
+        nav_depth=-1. if self.edition=='2027' else (-.65 if x<3 or x>22 else -.8)
         if self.state == 'DIVE':
             if z < nav_depth+.06:
                 self.change('NAVIGATE',t)

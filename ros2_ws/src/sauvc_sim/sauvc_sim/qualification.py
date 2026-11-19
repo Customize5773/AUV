@@ -50,10 +50,12 @@ class QualificationController:
             self.change('ABORT', t, judge.get('reason') or 'mission_timeout')
             return (0., 0., 0., 0.)
         vx = vy = yaw_rate = 0.
-        vz = clamp((-0.6-z)*1.5, .2)
+        depth = -.5 if self.edition=='2027' else -.6
+        vz = clamp((depth-z)*1.5, .2)
         if self.physical:vz/=self.speed_scale
         if self.state == 'DIVE':
-            if abs(z+.6) < .025:
+            # Approach once submerged; keep regulating depth during the transit.
+            if abs(z-depth) < .025 or (self.physical and self.edition=='2027' and z<=-.25):
                 self.change('FIND_GATE', t)
         elif self.state == 'TURN':
             if self.last_yaw is not None:

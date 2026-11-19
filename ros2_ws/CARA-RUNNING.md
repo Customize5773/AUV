@@ -1,16 +1,10 @@
 # Cara menjalankan kualifikasi dan ARENA SAUVC 2027
 
-Diperbarui **18 November 2026**. Rulebook juga diperiksa ulang pada tanggal ini: profil aktif tetap SAUVC **2027.3.2**, diperbarui penyelenggara 30 Oktober; repo resmi identik dengan arsip. [Bukti pemeriksaan](../doc/sources/rulebook-check-20261118.json).
+Diperbarui **19 November 2026**. Halaman rulebook resmi dicek 19 November dan masih menampilkan **2027.3.2**, diperbarui penyelenggara 30 Oktober. Pemeriksaan repo resmi terhadap arsip dilakukan 18 November: [bukti repo/arsip](../doc/sources/rulebook-check-20261118.json); [pemeriksaan halaman 19 November](evidence/qualification-start-20261119/rulebook-check.json).
 
-**Konfigurasi yang diminta sekarang: gripper pendek dan tetap di tengah body, tanpa slider.** Titik grip `(0, 0, −0,18) m`, sekitar 8 cm di bawah hull; payload awal ARENA berada pada titik yang sama. Kamera bawah berada 16 cm di depan pusat body untuk menjaga pandangan.
+**Konfigurasi terbaru:** batang gripper 8 cm dari bawah hull ke atas telapak, titik grip `(0, 0, −0,21) m`. Tetap di tengah dan tanpa slider. Kepala terinspirasi Newton memakai dua rahang capit berongga, gigi kecil, rumah aktuator hitam serta pin biru. Bentuk ini bukan emulasi aktuator Newton asli. Kamera bawah tetap 16 cm di depan pusat body.
 
-**Status verifikasi:** geometri fixed dan penolakan extended sudah diperiksa secara statis. Build dan penerimaan runtime revisi fixed belum diverifikasi ulang. Tes pickup masih mengimpor konstanta slider yang sudah dihapus (`PICKUP_STOW_Z`, `PICKUP_STROKE`), sehingga koleksi tes saat ini gagal. Angka **197 tes/tiga misi pada laporan 74 adalah hasil versi slider sebelumnya**, bukan hasil revisi fixed. [Status proyek](../STATUS.md) · [Riwayat versi slider](../plan/74-gripper-tengah-pendek-dan-bola-awal.md).
-
-| Mode | Pemakaian pada revisi fixed |
-|---|---|
-| Kualifikasi | Perintah uji tersedia di bawah; gripper tetap pendek dan kosong. Penerimaan perlu diulang. |
-| ARENA blue drum | Perintah uji tersedia di bawah; membawa dan drop payload. Penerimaan perlu diulang. |
-| ARENA extended/pickup | Belum didukung: controller menolak dengan `ABORT: fixed_gripper_unreachable`. |
+Dua rahang kini bergerak saat release/grip; release menunggu posisi buka aktual. Build, **202 tes** serta uji native normal/macet lulus. [Aktuasi dan video](../plan/81-aktuasi-rahang-dan-release-terukur.md). Regresi dinamis blue drum dan kualifikasi jalur 3 juga diterima pada laporan 81; hasil rahang rigid sebelumnya tersimpan pada laporan 80. Pickup dasar drum belum didukung dengan batang pendek ini; clearance −17 cm. Hasil extended laporan 79 adalah versi panjang sebelumnya.
 
 Gunakan **tiga terminal**: satu untuk simulator, satu untuk POV depan, dan satu untuk POV bawah. Pilih salah satu misi pada Terminal 1.
 
@@ -25,7 +19,7 @@ cd /home/rasya/AUV/ros2_ws
 bash tools/ros.sh build --symlink-install
 ```
 
-**Build wajib setelah perubahan gripper fixed**, karena plugin C++ dan geometri berubah. Perbaikan fixture tes dan penerimaan ulang masih diperlukan sebelum revisi ini dinyatakan lulus. Tidak perlu build ulang setiap kali menjalankan misi pada source yang sama. Virtualenv HydroShips boleh tetap aktif; wrapper `tools/ros.sh` memilih Python ROS sendiri.
+**Build wajib setelah perubahan gripper fixed**, karena plugin C++ dan geometri berubah. Fixture tes sudah diselaraskan; penerimaan versi panjang tersimpan pada laporan 79; versi ringkas bergaya Newton ada pada laporan 80. Tidak perlu build ulang setiap kali menjalankan misi pada source yang sama. Virtualenv HydroShips boleh tetap aktif; wrapper `tools/ros.sh` memilih Python ROS sendiri.
 
 ## 2. Terminal 1 — pilih misi
 
@@ -55,20 +49,18 @@ bash tools/ros.sh launch sauvc_sim arena.launch.py edition:=2027 arena:=finals a
 
 `B-R-Y` berarti biru → merah → kuning. Masukan urutan ini mewakili urutan yang diberikan penyelenggara simulasi sesudah Navigation.
 
-### ARENA extended/pickup — belum didukung gripper tetap
+### ARENA extended/pickup — pratinjau dengan batang pendek
 
-Mode extended mencakup red drum berpinger, drop payload, keluar target zone, lalu mengambil bola yang sama dari dasar drum. Dengan gripper tetap pendek, body menyentuh bibir drum sebelum alat mencapai bola; clearance hitungan pada target pickup adalah **−20 cm**. Ini batas geometri model sekarang, bukan larangan rulebook.
-
-`autonomous:=true extended:=true` saat ini menghasilkan `ABORT: fixed_gripper_unreachable` sebelum misi bergerak. Jangan menganggapnya sebagai misi lengkap yang lulus. Untuk **melihat properti arena/pinger tanpa menjalankan misi**, gunakan:
+Gripper pendek saat ini memiliki clearance pickup −17 cm. `autonomous:=true extended:=true` ditolak dengan `fixed_gripper_unreachable` sebelum bergerak. Untuk melihat arena/pinger tanpa menjalankan misi:
 
 ```bash
 cd /home/rasya/AUV/ros2_ws
 export ROS_DOMAIN_ID=86
 export IGN_PARTITION=sauvc_practice
-bash tools/ros.sh launch sauvc_sim arena.launch.py edition:=2027 arena:=finals autonomous:=false extended:=true vehicle_model:=dynamic
+bash tools/ros.sh launch sauvc_sim arena.launch.py edition:=2027 arena:=finals autonomous:=false extended:=true vehicle_model:=dynamic scene_variant:=1 blue_drum:=3 pinger_drum:=4 flare_order:=Y-B-R
 ```
 
-Kedua POV tetap dapat dibuka dengan Terminal 2/3. Mode ini hanya pratinjau; kendaraan tidak menjalankan pickup.
+Pickup yang lulus pada laporan 79 memakai titik grip z = −0,40 m; hasil itu tidak berlaku pada batang pendek sekarang. Jangan menonaktifkan collision atau pemeriksaan jangkauan untuk memaksa pickup.
 
 ## 3. Terminal 2 — POV kamera depan
 
@@ -128,7 +120,7 @@ bash tools/ros.sh topic info /sauvc/perception/bottom/image_annotated
 
 ### ABORT: fixed_gripper_unreachable
 
-Pesan ini menandai mode extended/pickup yang belum didukung geometri gripper tetap pendek. Pilih ARENA blue drum tanpa `extended:=true`, atau gunakan `autonomous:=false` untuk pratinjau. Mengulang launch extended dengan konfigurasi sama tidak memperbaiki batas jangkauan ini.
+Pesan ini sesuai batas batang pendek saat ini: titik grip z = −0,21 m menghasilkan clearance nominal −17 cm. Gunakan blue drum tanpa extended, atau pratinjau `autonomous:=false`. Mengulang misi dengan geometri yang sama tidak menambah jangkauan.
 
 ### Misi abort karena stale_front / stale_bottom
 
@@ -141,7 +133,7 @@ Panduan ini untuk simulator. Kualifikasi dan ARENA autonomous visual memakai mod
 
 ## 7. Verifikasi otomatis dengan Gazebo dan kedua POV
 
-Perintah berikut adalah **cara menjalankan pemeriksa**, bukan klaim bahwa revisi fixed sudah lulus. Penguji menyimpan bukti dan menutup simulator/viewer. Gunakan folder output baru dan hentikan launch lain pada domain/partition yang sama dahulu. `--pov` memerlukan `--gui`.
+Perintah berikut menjalankan pemeriksa untuk **pengulangan baru**. Penerimaan terpilih revisi fixed terbaru ada pada laporan 79; contoh lane/kondisi di bawah tidak semuanya dijalankan ulang. Penguji menyimpan bukti dan menutup simulator/viewer. Gunakan folder output baru dan hentikan launch lain pada domain/partition yang sama dahulu. `--pov` memerlukan `--gui`.
 
 Kualifikasi dengan Gazebo dan kedua POV:
 
@@ -161,7 +153,7 @@ export IGN_PARTITION=sauvc_gui_verification
 bash tools/ros.sh python tools/check_arena.py --edition 2027 --vehicle-model dynamic --gui --pov --output evidence/gui-fixed-blue-01/check.json
 ```
 
-Viewer yang keluar selama run menggagalkan verifikasi tampilan. Jangan tambahkan `--extended` untuk penerimaan misi lengkap pada gripper fixed; kasus itu berhenti dengan `fixed_gripper_unreachable`.
+Viewer yang keluar selama run menggagalkan verifikasi tampilan. Extended tidak dapat dipakai sebagai penerimaan misi lengkap pada batang pendek ini; kasus tersebut ditolak sebelum thrust.
 
 Model dinamis kini memakai penahan fisik virtual saat preflight. Kalibrasi bias DVL horizontal memerlukan sinyal `deployment_held=true`; penahan dilepas pada thrust pertama dan tidak dipasang kembali saat stop. Setelah DIVE, perintah gerak atau pelepasan penahan, estimasi bias dibekukan. Sampel tidak cukup berarti koreksi tidak diterapkan. Ini memodelkan kendaraan yang benar-benar ditahan saat penempatan, bukan kalibrasi saat bebas hanyut. Perintah launch tetap sama. Rincian: [laporan 31](../plan/31-kalibrasi-dvl-dalam-arus.md). Prosedur serta konfirmasi penahan belum divalidasi pada AUV fisik.
 
@@ -175,7 +167,7 @@ bash tools/ros.sh build --symlink-install
 bash tools/ros.sh python tools/check_reliability.py --output evidence/reliability-run-01
 ```
 
-**Matriks penuh mencakup kasus `a-pinger-91` yang tidak didukung gripper fixed.** Karena itu, hasil seluruh matriks tidak dapat dinyatakan lulus pada konfigurasi ini. Untuk uji terpilih, tambahkan `--suite qualification` atau `--case a-nominal-7`.
+Matriks penuh mencakup `a-pinger-91`, yang belum didukung batang pendek. Hasil seluruh matriks karena itu tidak dapat dinyatakan lulus pada konfigurasi ini; gunakan `--suite qualification` atau `--case a-nominal-7` untuk uji terpilih.
 
 Folder output wajib baru. `summary.json` menyimpan seluruh hasil, termasuk kegagalan; exit code 1 berarti ada kasus yang tidak diterima. Gunakan `--suite qualification`, `--suite arena`, atau `--case q-prior-91` untuk membatasi pengujian. Ctrl+C menghentikan harness aktif dan mencatat kasus terputus. Hasil dan batas pembuktian ada pada [laporan 30](../plan/30-pengujian-keandalan-berulang.md).
 

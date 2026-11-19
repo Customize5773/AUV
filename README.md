@@ -160,7 +160,7 @@ Gunakan [panduan SSH](CARA-OPERASI-SSH.md). Laptop membuka `/home/aero/AUV` pada
 
 **Regresi extended — 12 November 2026:** model AUV baru lulus satu run pinger/pickup extended, termasuk bola yang sama, retensi hingga stop, dua POV dan shutdown; skor 290,79888 tanpa penalti. 179 tes unit lulus kembali. Satu percobaan awal gagal karena viewer keluar. [Laporan 58](plan/58-regresi-pinger-model-auv.md).
 
-**Gripper tengah — 17 November 2026:** titik grip saat membawa kini `(0, 0, −0,18) m`, sekitar 8 cm di bawah hull. Payload awal terpasang pada carrier yang sama; slider memanjang 22 cm hanya saat pickup lalu retract. Bukaan release dikoreksi agar bola jatuh dengan collision aktif. 197 tes serta extended GUI/POV, blue drum dan kualifikasi dinamis lulus dengan shutdown bersih. [Render, diagnosis dan hasil](plan/74-gripper-tengah-pendek-dan-bola-awal.md).
+**Gripper tetap — 18 November 2026:** mengikuti pilihan pengguna, titik grip tetap di tengah `(0, 0, −0,18) m`, sekitar 8 cm di bawah hull, tanpa slider. Payload awal terpasang pada titik yang sama. Build dan 197 tes lulus; tiga jalur kualifikasi dan dua fixture blue drum diterima, satu dengan GUI/dua POV; extended/pickup ditolak sebelum bergerak karena gripper pendek belum menjangkau dasar drum dengan body bebas bibir drum. Hasil slider 17 November tetap menjadi [riwayat](plan/74-gripper-tengah-pendek-dan-bola-awal.md). [Status aktif](STATUS.md).
 
 **Gripper pickup — 12 November 2026:** titik tangkap dinaikkan 5 cm ke z −0,40 m, dengan dudukan tersambung ke badan. 180 tes dan satu penerimaan extended GUI/POV lulus. Clearance hull–rim nominal 2 cm masih memerlukan validasi fisik. [Evaluasi dan pembanding](plan/59-posisi-gripper-lebih-dekat.md).
 
@@ -171,3 +171,12 @@ Gunakan [panduan SSH](CARA-OPERASI-SSH.md). Laptop membuka `/home/aero/AUV` pada
 **Collision sesuai visual — 12 November 2026:** hull box kini 51,8486 × 38,6876 × 20 cm, mengikuti batas mesh. Start-wall, prior estimator dan envelope referee disinkronkan; frame kamera tidak dihitung sebagai benda fisik. Build, 183 tes, dua kualifikasi (termasuk start miring) dan satu ARENA extended lulus; GUI/dua POV serta shutdown bersih terverifikasi pada run nominal dan extended. Gripper tidak berubah. Collision tetap AABB, parameter fisika belum terkalibrasi pada AUV nyata. [Laporan 62](plan/62-collision-sesuai-batas-visual.md).
 
 **Regresi collision — 12 November 2026:** kualifikasi jalur 2 dengan arus 0,02 m/s dan prior meleset lulus; drift hold aktif 0,52 cm dalam sekitar 30 s dan emergency stop lulus. Satu ARENA selesai tetapi gagal shutdown; kedua penguji kini pause sebelum GUI exit. Kualifikasi dan ARENA GUI/dua POV sesudah perbaikan diterima dengan shutdown bersih; ARENA blue drum 2 mencatat 210,40156 poin tanpa penalti. 183 tes unit lulus. Semua percobaan tetap dicatat; belum jaminan keandalan semua kondisi atau validasi fisik. [Laporan 63](plan/63-regresi-collision-arus-dan-blue-drum.md).
+
+
+**Optimasi kualifikasi — 19 November 2026:** mulai pendekatan gate setelah terendam sambil melanjutkan penyelaman. 198 tes dan lima run dinamis lulus. Pada tiga run nominal per revisi, median gate kedua 23,678 → 21,802 s; surface 26,772 → 24,896 s. [Hasil, batas dan grafik](plan/78-optimasi-awal-kualifikasi-dinamis.md).
+
+
+**Gripper tetap diperpanjang — 19 November 2026:** pengguna mengizinkan titik grip `(0, 0, −0,40) m`, 30 cm di bawah hull dan tanpa slider. Build serta 200 tes lulus; extended/pickup GUI/dua POV, blue drum dan kualifikasi diterima. Kualifikasi 2027 memakai kedalaman kerja −0,50 m agar seluruh alat masuk gate. Pickup berhasil pada fixture simulator; mekanisme masih latch ideal dengan syarat kontak. [Hasil dan batas bukti](plan/79-gripper-fixed-panjang-dan-pickup-selesai.md).
+
+
+**Gripper ringkas bergaya Newton — 19 November 2026:** mengikuti revisi pengguna, batang di bawah hull kini 8 cm, tetap di tengah dan tanpa slider. Kepala memakai dua rahang capit berongga/bergigi dengan rumah aktuator hitam dan pin biru. Rahang kini membuka/menutup melalui dua sendi revolute; release menunggu posisi buka aktual. Uji native normal dan macet, build serta 202 tes lulus. Pickup dasar drum tetap belum didukung pada batang pendek. [Video, hasil dan batas fungsi](plan/81-aktuasi-rahang-dan-release-terukur.md).

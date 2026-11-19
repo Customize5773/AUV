@@ -328,19 +328,58 @@ def build_world(arena, cameras=True, lane=1, lateral_offset=0.0, yaw=0.0,
             world.find("model[@name='pinger_source']/pose").text=numbers((px,py,depth2027(px)+.15,0,0,0))
     vehicle=world.find("model[@name='sauvc_auv']")
     body=vehicle.find('link')
-    # The short gripper is rigidly mounted at the body center.
-    part(body,'gripper_sleeve',(PICKUP_X,0,-.125,0,0,0),'box',(.024,.024,.07),WHITE)
+    # The gripper is rigidly mounted at the body center.
+    metal='0.65 0.69 0.73 1'
+    dark='0.055 0.065 0.075 1'
+    cyan='0.02 0.65 0.76 1'
+    part(body,'gripper_sleeve',(PICKUP_X,0,-.105,0,0,0),'cylinder',(.022,.014),dark)
     carriage=tag(vehicle,'link',name='payload_gripper')
     tag(carriage,'pose',numbers((PICKUP_X,0,PICKUP_Z,0,0,0)))
     tag(carriage,'gravity','false')
-    inertial=tag(carriage,'inertial');tag(inertial,'mass',.05)
+    inertial=tag(carriage,'inertial');tag(inertial,'mass',.03)
     inertia=tag(inertial,'inertia')
     for key in ('ixx','iyy','izz'):tag(inertia,key,.0001)
-    for i,dy in enumerate((-.027,.027)):
-        part(carriage,f'pickup_finger_{i}',(0,dy,0,0,0,0),'sphere',(.006,),WHITE)
-        part(carriage,f'pickup_stem_{i}',(0,dy,.012,0,0,0),'box',(.009,.009,.024),WHITE)
-    part(carriage,'pickup_roof',(0,0,.025,0,0,0),'box',(.06,.06,.01),WHITE)
-    part(carriage,'pickup_mount',(0,0,.065,0,0,0),'box',(.016,.016,.07),WHITE)
+    # Open-frame jaws inspired by Newton; the opening stays clear for payload release.
+    outline=[(.030,.025),(.039,.025),(.048,.018),(.055,.007),(.057,-.006),
+             (.054,-.022),(.046,-.037),(.030,-.050),(.031,-.039),(.033,-.027),
+             (.033,-.013),(.033,0.),(.033,.012)]
+    for i,side in enumerate((-1,1)):
+        pivot_y,pivot_z=side*.030,.025
+        jaw=tag(vehicle,'link',name=f'pickup_jaw_{i}')
+        tag(jaw,'pose',numbers((0,pivot_y,pivot_z,-side*.35,0,0)),relative_to='payload_gripper')
+        tag(jaw,'gravity','false')
+        jaw_mass=tag(jaw,'inertial');tag(jaw_mass,'mass',.01)
+        jaw_inertia=tag(jaw_mass,'inertia')
+        for key in ('ixx','iyy','izz'):tag(jaw_inertia,key,.00001)
+        part(jaw,f'pickup_finger_{i}',(0,0,-.075,0,0,0),'sphere',(.0035,),dark)
+        for j,((y0,z0),(y1,z1)) in enumerate(zip(outline,outline[1:]+outline[:1])):
+            y0*=side;y1*=side
+            angle=-math.atan2(y1-y0,z1-z0)
+            part(jaw,f'pickup_stem_{i}_{j}',(0,(y0+y1)/2-pivot_y,(z0+z1)/2-pivot_z,angle,0,0),
+                 'box',(.012,.007,math.hypot(y1-y0,z1-z0)),dark)
+            part(jaw,f'pickup_joint_{i}_{j}',(0,y0-pivot_y,z0-pivot_z,0,math.pi/2,0),'cylinder',(.0035,.012),dark)
+        for j,z in enumerate((.007,-.002,-.011,-.020)):
+            part(jaw,f'pickup_tooth_{i}_{j}',(0,side*.029-pivot_y,z-pivot_z,0,0,0),'box',(.013,.0025,.003),dark)
+        hinge=tag(vehicle,'joint',name=f'pickup_hinge_{i}',type='revolute')
+        tag(hinge,'parent','payload_gripper');tag(hinge,'child',f'pickup_jaw_{i}')
+        tag(hinge,'pose',numbers((0,pivot_y,pivot_z,0,0,0)),relative_to='payload_gripper')
+        axis=tag(hinge,'axis');tag(axis,'xyz','1 0 0',expressed_in='payload_gripper')
+        limits=tag(axis,'limit');tag(limits,'lower',min(0,side*.35));tag(limits,'upper',max(0,side*.35))
+        tag(limits,'effort',.04);tag(limits,'velocity',.5)
+        tag(tag(axis,'dynamics'),'damping',.001)
+        servo=plugin(vehicle,'joint-position-controller','JointPositionController')
+        for name,value in [('joint_name',f'pickup_hinge_{i}'),('topic',f'/sauvc/gripper/{i}/target'),
+                           ('initial_position',0),('p_gain',.02),('i_gain',0),('d_gain',.001),
+                           ('cmd_max',.04),('cmd_min',-.04)]:tag(servo,name,value)
+        part(carriage,f'pickup_ear_{i}',(0,side*.023,.025,0,0,0),'box',(.014,.022,.010),dark)
+        part(carriage,f'pickup_pivot_{i}',(0,side*.030,.025,0,math.pi/2,0),'cylinder',(.006,.024),cyan)
+        for end in (-1,1):
+            part(carriage,f'pickup_bolt_{i}_{end}',(end*.013,side*.030,.025,0,math.pi/2,0),'cylinder',(.004,.002),metal)
+    part(carriage,'pickup_roof',(0,0,.025,0,0,0),'cylinder',(.022,.010),dark)
+    part(carriage,'pickup_linkage',(.015,0,.026,0,0,0),'box',(.006,.018,.008),cyan)
+    mount_top=HULL_CENTER[2]-HULL_SIZE[2]/2+.02-PICKUP_Z
+    part(carriage,'pickup_mount',(0,0,(mount_top+.03)/2,0,0,0),'cylinder',(.018,mount_top-.03),dark)
+    part(carriage,'pickup_front_flange',(0,0,.036,0,0,0),'cylinder',(.021,.008),metal)
     joint=tag(vehicle,'joint',name='pickup_mount_fixed',type='fixed')
     tag(joint,'parent','base_link');tag(joint,'child','payload_gripper')
     if arena=='finals':

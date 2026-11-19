@@ -13,11 +13,11 @@ HULL_SIZE=tuple(b-a for a,b in zip(HULL_MIN,HULL_MAX))
 HULL_CENTER=tuple((a+b)/2 for a,b in zip(HULL_MIN,HULL_MAX))
 HULL_CORNERS=tuple(product(*zip(HULL_MIN,HULL_MAX)))
 PICKUP_X=0.
-PICKUP_Z=-.18
+PICKUP_Z=-.21
 # Settled ball center 4 cm above floor; drum rim 32 cm above floor.
 PICKUP_RIM_CLEARANCE=.04-PICKUP_Z+HULL_MIN[2]-.32
 BOTTOM_CAMERA_POSITION=(.16,0.,-.12)
-STOWED_CORNERS=HULL_CORNERS+tuple(product((PICKUP_X-.04,PICKUP_X+.04),(-.04,.04),(PICKUP_Z-.009,-.09)))
+STOWED_CORNERS=HULL_CORNERS+tuple(product((PICKUP_X-.062,PICKUP_X+.062),(-.062,.062),(PICKUP_Z-.054,-.09)))
 
 
 def qualification_start_x(yaw):

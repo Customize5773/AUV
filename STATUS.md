@@ -1,6 +1,6 @@
 # Posisi kita — simulasi ROS SAUVC
 
-Diperbarui **18 November 2026**. Ini ringkasan utama untuk mengikuti progres; laporan bernomor menyimpan rincian dan bukti historis.
+Diperbarui **19 November 2026**. Ini ringkasan utama untuk mengikuti progres; laporan bernomor menyimpan rincian dan bukti historis.
 
 **Tujuan:** menguji misi autonomous berdasarkan rulebook sebelum dipindahkan ke AUV nyata. Kualifikasi mengejar waktu tercepat dengan pelintasan yang sah; ARENA menyelesaikan tugas dan skor. Bukti saat ini masih pada simulator.
 
@@ -8,15 +8,57 @@ Diperbarui **18 November 2026**. Ini ringkasan utama untuk mengikuti progres; la
 
 [Unduh PNG](doc/diagrams/status-simulasi-sauvc.png) · [SVG untuk diperbesar](doc/diagrams/status-simulasi-sauvc.svg) · [Sumber diagram](doc/diagrams/status-simulasi-sauvc.dot)
 
-**Rulebook diperiksa ulang 18 November:** versi publik tetap 2027.3.2 (30 Oktober), repo resmi identik dengan arsip; tidak ada migrasi aturan baru. [Bukti](doc/sources/rulebook-check-20261118.json).
+**Rulebook: halaman resmi dicek 19 November tetap 2027.3.2.** Pemeriksaan repo/arsip pada 18 November: versi publik tetap 2027.3.2 (30 Oktober), repo resmi identik dengan arsip; tidak ada migrasi aturan baru. [Bukti](doc/sources/rulebook-check-20261118.json).
 
-## Status revisi fixed — 18 November 2026
+## Revisi aktif — rahang bergerak, batang tetap 8 cm
+
+Dua rahang kini memakai sendi revolute dengan controller posisi berbasis torsi. Payload awal dibawa dalam rahang tertutup; release menunggu bukaan aktual. Uji normal dan rahang macet lulus, termasuk render buka–lepas–tutup. Build dan **202 tes** lulus. Regresi dinamis diterima: blue drum **210,14284 poin / 228,572 s** tanpa penalti; kualifikasi jalur 3 mencatat gate kedua **22,994 s**, surface **25,578 s** dan stop **30,542 s**, keduanya stationary dan shutdown bersih. Retensi masih latch ideal dan pickup dasar drum tetap belum didukung. [Video](ros2_ws/evidence/gripper-joints-20261119/preview/jaw-motion.mp4) · [Laporan 81](plan/81-aktuasi-rahang-dan-release-terukur.md).
+
+## Riwayat bentuk — laporan 80
+
+Sesuai revisi pengguna, batang gripper dipendekkan menjadi **8 cm dari bawah hull ke atas telapak**. Kepala bergaya Newton memakai dua rahang capit berongga, gigi kecil, rumah aktuator hitam dan pin biru; posisi tetap di tengah, tanpa slider. Titik grip kini `(0, 0, −0,21) m`.
+
+Build serta **201 tes lulus**. Release native dengan collision aktif, ARENA blue drum dan kualifikasi jalur 3 diterima; semua stop dan shutdown bersih. Blue drum **210,1426 poin / 228,580 s**, penalti nol. Kualifikasi: gate kedua **22,792 s**, surface **25,376 s**, stop **29,796 s**. [Laporan 80](plan/80-gripper-ringkas-bergaya-newton.md) · [Tampilan keseluruhan](ros2_ws/evidence/gripper-newton-20261119/initial.png) · [Detail telapak](ros2_ws/evidence/gripper-newton-20261119/empty/initial.png).
+
+Pada laporan 80, rahang masih terbuka dan rigid. Aktuasi berikutnya ada pada laporan 81; keduanya tidak mengemulasikan mekanisme/performa Newton asli.
+
+**Konsekuensi jangkauan:** clearance pickup dasar drum menjadi −17 cm pada pendekatan mendatar sekarang. Pengaman extended tetap menolak konfigurasi ini; keberhasilan pickup laporan 79 berlaku pada batang panjang sebelumnya.
+
+## Riwayat gripper panjang — laporan 79
+
+### Penerimaan versi panjang sebelumnya
+
+Perubahan panjang **disetujui pengguna dan selesai diuji**: gripper di tengah `(0, 0, −0,40) m`, 30 cm di bawah hull, tanpa slider. Build selesai, **200 tes lulus**, dan tiga fixture 2027 diterima:
+
+| Misi | Hasil terkini |
+|---|---|
+| Extended/pinger/pickup, Gazebo dan dua POV | **290,8026 poin**, thrust–surface **206,580 s**, penalti nol; bola yang sama dipertahankan sampai stop |
+| ARENA blue drum | **210,15928 poin**, thrust–surface **228,024 s**, penalti nol |
+| Kualifikasi jalur 3, air 0,10/m | Gate kedua **22,234 s**, surface **24,818 s**, stop **29,272 s** |
+
+Semua stop dan shutdown bersih. Target kedalaman kualifikasi 2027 kini **−0,50 m** agar alat tetap berada dalam bukaan gate. Regresi pertama pada kedalaman lama gagal dan disimpan; pengulangan setelah koreksi lulus. ARENA memakai geometri/controller yang sama dengan revisi sekarang; patch kedalaman terakhir hanya mengenai kualifikasi.
+
+Bola awal berada pada gripper. Retensi pickup terverifikasi pada 1.340 snapshot native, dengan jarak maksimum 4,71 cm terhadap titik grip, di bawah batas 7,5 cm. **Pickup selesai pada fixture simulator ini**; mekanisme jepit masih latch ideal dengan syarat collision, bukan pembuktian jari/servo nyata. Seluruh kondisi dan kendaraan fisik belum terbukti; pengujian fisik tetap dikecualikan.
+
+[Laporan 79 dan bukti](plan/79-gripper-fixed-panjang-dan-pickup-selesai.md) · [Render alat dan bola awal](ros2_ws/evidence/gripper-fixed-040-20261119/initial.png) · [Video extended](ros2_ws/evidence/gripper-fixed-040-20261119/extended-1/pov.mp4) · [Cara running](ros2_ws/CARA-RUNNING.md).
+
+## Riwayat sebelum penambahan panjang yang disetujui
+
+## Status revisi fixed — 19 November 2026
 
 Pilihan pengguna: **gripper pendek dan tetap, tanpa mekanisme memanjang**. Kode geometri kini memakai dudukan fixed pada `(0, 0, −0,18) m`; payload awal ARENA memakai titik yang sama. Pemeriksaan statis mengonfirmasi tidak ada joint slider dan extended ditolak dengan `fixed_gripper_unreachable` karena clearance pickup −20 cm.
 
-**Revisi ini belum selesai diverifikasi:** build/runtime belum diuji ulang, dan koleksi tes pickup gagal karena masih mengimpor konstanta slider yang telah dihapus. Kualifikasi serta blue drum perlu penerimaan ulang; extended/pickup belum didukung dengan geometri sekarang. Panduan terbaru ada di [CARA-RUNNING](ros2_ws/CARA-RUNNING.md).
+**Kualifikasi sebelum penambahan panjang — optimasi 19 November:** pendekatan gate dimulai setelah estimasi kedalaman −0,25 m sambil melanjutkan penyelaman menuju −0,60 m. **198 tes lulus dan lima run controller baru diterima**, mencakup tiga jalur. Batas thrust/kecepatan, referee, U-turn dan pengaman tetap sama.
 
-Hasil 197 tes dan tiga misi di bawah adalah **riwayat versi slider 17 November**, bukan hasil gripper fixed. Pengujian kendaraan fisik tetap dikecualikan.
+Pada tiga run nominal identik per revisi, median gate kedua **23,678 → 21,802 s**, surface **26,772 → 24,896 s**, stop **32,280 → 29,554 s**. Seluruh tiga baseline dan lima run baru stop/shutdown bersih. Ini hasil simulator pada fixture terpilih, bukan jaminan semua kondisi. [Laporan 78 dan grafik perbandingan](plan/78-optimasi-awal-kualifikasi-dinamis.md).
+
+**ARENA:** dua layout blue drum lulus pada run 18 November: baseline **210,14872 poin / 228,376 s**, alternatif **210,37852 poin / 220,716 s**, penalti nol. Satu memiliki bukti Gazebo/dua POV. Controller ARENA tidak diubah pada optimasi ini dan run ARENA belum diulang. [Penerimaan fixed awal](plan/75-penerimaan-gripper-pendek-tetap.md) · [Fixture tambahan](plan/76-diagnosis-reach-fixed-dan-fixture-tambahan.md).
+
+**Yang masih kurang:** pickup dasar drum dengan gripper pendek tetap belum didukung. Diagnosis box collision mendatar menunjukkan kekurangan clearance 20 cm; pencarian pose statis diskret pada enam posisi bola juga belum menemukan pose bebas benturan. Ini belum bukti untuk semua lintasan atau geometri fisik. Extended tetap ditolak sebelum thrust; penolakannya bukan kelulusan misi pickup. [Gambar diagnosis](ros2_ws/evidence/gripper-fixed-reach-20261118/reach.png). Validasi seluruh kondisi dan AUV nyata belum dilakukan; pengujian fisik tetap dikecualikan. [Cara running](ros2_ws/CARA-RUNNING.md).
+
+**Diagnosis tambahan 19 November:** titik mesh asli juga berbenturan dengan lantai/dinding pada seluruh grid pose yang diuji di enam posisi bola. Contoh vertex asli berada sekitar 9,99 mm di dalam salah satu solid dinding drum. Ini menutup dugaan bahwa hasil grid sebelumnya semata-mata berasal dari ruang kosong dalam AABB; belum membuktikan seluruh kemungkinan lintasan. Diagnosis tersebut tidak mengubah geometri; optimasi dan misi kualifikasi sesudahnya dicatat pada laporan 78. [Laporan 77 dan gambar](plan/77-diagnosis-pickup-dengan-titik-mesh-asli.md).
+
+Hasil tiga misi pada bagian riwayat di bawah adalah **versi slider 17 November**. Revisi fixed memiliki hasil 197 tes dan penerimaan sendiri pada laporan 75. Pengujian kendaraan fisik tetap dikecualikan.
 
 ## Riwayat sampai versi slider — 17 November 2026
 
