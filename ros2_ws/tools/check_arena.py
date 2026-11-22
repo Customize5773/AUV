@@ -10,6 +10,7 @@ import time
 
 import rclpy
 from rclpy.qos import qos_profile_sensor_data
+from ros_gz_interfaces.msg import Contacts
 from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
 from std_msgs.msg import String
@@ -35,6 +36,21 @@ def stop_viewers(viewers):
     return forced
 
 
+def payload_retained(physics, judgement):
+    """Check the final released payload against the referee and native jaw evidence."""
+    if not physics or judgement.get('payload_retrieved') is not True:
+        return False
+    sample = physics[-1]
+    ball = sample.get('balls', {}).get('payload', {})
+    if ball.get('released') is not True:
+        return False
+    if not (sample.get('payload_attached') is True or
+            sample.get('unlatched_bilateral_grip') is True):
+        return False
+    point, grip = ball.get('position', ()), sample.get('pickup_position', ())
+    return len(point) == len(grip) == 3 and math.dist(point, grip) < .075
+
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--bridge-layout',choices=['single','isolated'],default=None,help='Override bridge process isolation; omit to use launch default')
@@ -46,6 +62,8 @@ def main():
     parser.add_argument('--surface-hold',action='store_true')
     parser.add_argument('--hold-duration',type=float,default=30.,help='Hold measurement window in simulation seconds (at least 30)')
     parser.add_argument('--conditions',type=Path,help='JSON: sensor seed, world current, initial XY prior error, light scale, water attenuation (1/m)')
+    parser.add_argument('--prefer-pinger',action='store_true')
+    parser.add_argument('--compact',action='store_true')
     parser.add_argument('--extended',action='store_true')
     parser.add_argument('--pinger-drum',type=int,choices=[0,1,2,3,4],default=0)
     parser.add_argument('--order',default='B-R-Y')
@@ -81,6 +99,17 @@ def main():
             row['confirmed_frames']+=1
             row['max_hits']=max(row['max_hits'],obj['track_hits'])
             if obj['track_id'] not in row['ids']: row['ids'].append(obj['track_id'])
+    if args.compact:
+        observed['pickup_contacts']={}
+        def pickup_contact(msg):
+            if observed['state'] not in ('ALIGN_PICKUP','DESCEND_PICKUP','LIFT_PICKUP'):return
+            stamp=msg.header.stamp.sec+msg.header.stamp.nanosec*1e-9
+            for contact in msg.contacts:
+                pair=' | '.join(sorted((contact.collision1.name,contact.collision2.name)))
+                row=observed['pickup_contacts'].setdefault(pair,{'first':stamp,'last':stamp,'samples':0})
+                row['last']=stamp
+                row['samples']+=1
+        node.create_subscription(Contacts,'/sauvc/contacts',pickup_contact,qos_profile_sensor_data)
     node.create_subscription(String,'/sauvc/arena/result',result,STATUS_QOS)
     node.create_subscription(String,'/sauvc/arena/state',state,STATUS_QOS)
     node.create_subscription(String,'/sauvc/arena/physics',physics,10)
@@ -96,15 +125,15 @@ def main():
     node.create_subscription(String,'/sauvc/sensors',lambda m:observed['sensors'].append(json.loads(m.data)),10)
     node.create_subscription(String,'/sauvc/dynamics/telemetry',lambda m:observed['dynamics'].append(json.loads(m.data)),10)
     node.create_subscription(String,'/sauvc/surface_hold/status',lambda m:observed['hold_status'].append(json.loads(m.data)),10)
-    report={'bridge_layout':args.bridge_layout,'vehicle_model':args.vehicle_model,'passed':False,'edition':args.edition,'order':args.order,'fault':args.fault,
+    report={'compact':args.compact,'bridge_layout':args.bridge_layout,'vehicle_model':args.vehicle_model,'passed':False,'edition':args.edition,'order':args.order,'fault':args.fault,
             'scene_variant':args.scene_variant,'blue_drum':args.blue_drum,
-            'extended':args.extended,'pinger_drum':args.pinger_drum,'conditions':test_conditions,'surface_hold':args.surface_hold}
+            'prefer_pinger':args.prefer_pinger,'extended':args.extended,'pinger_drum':args.pinger_drum,'conditions':test_conditions,'surface_hold':args.surface_hold}
     viewers=[];viewer_logs=[];pov_windows=[]
     with args.output.with_suffix('.log').open('w') as log:
         process=subprocess.Popen(['bash','tools/ros.sh','launch','sauvc_sim','arena.launch.py',
-            'arena:=finals',f'vehicle_model:={args.vehicle_model}',f'edition:={args.edition}','autonomous:=true',f'headless:={str(not args.gui).lower()}',f'flare_order:={args.order}',
+            'arena:=finals',f'compact:={str(args.compact).lower()}',f'vehicle_model:={args.vehicle_model}',f'edition:={args.edition}','autonomous:=true',f'headless:={str(not args.gui).lower()}',f'flare_order:={args.order}',
             f'scene_variant:={args.scene_variant}',f'blue_drum:={args.blue_drum}',
-            f'extended:={str(args.extended).lower()}',f'pinger_drum:={args.pinger_drum}',
+            f'prefer_pinger:={str(args.prefer_pinger).lower()}', f'extended:={str(args.extended).lower()}',f'pinger_drum:={args.pinger_drum}',
             f'surface_hold:={str(args.surface_hold).lower()}',
             *([f'conditions_file:={args.conditions.resolve()}'] if args.conditions else []),
             *([f'bridge_layout:={args.bridge_layout}'] if args.bridge_layout else []),
@@ -200,8 +229,8 @@ def main():
             report['passed']=False
             report['error']=str(exc)
         finally:
-            # Pause rendering before GUI exit triggers launch-wide SIGINT.
-            if process.poll() is None:
+            # Keep sensors publishing while the GUI handles its close request.
+            if not args.gui and process.poll() is None:
                 try:
                     pause=subprocess.run(['ign','service','-s','/world/sauvc_finals/control',
                         '--reqtype','ignition.msgs.WorldControl','--reptype','ignition.msgs.Boolean',
@@ -238,13 +267,30 @@ def main():
     report['passed']=report['passed'] and report['shutdown_clean']
     if args.vehicle_model!='ideal':report['passed']=report['passed'] and all(report.get(k,False) for k in ('sensor_only_control','referee_pose_isolated','sensor_contract_valid','estimated_state_available','dvl_calibration_valid','seven_thrusters')) and (args.surface_hold or report.get('thrusters_zero',False))
     report['tracking']=tracks
+    required_drum={'blue_drum'}
+    if args.extended:
+        required_drum=set()
+    elif args.prefer_pinger and args.fault=='none':
+        controller_file=args.output.with_name(args.output.stem+'-controller.json')
+        controller=json.loads(controller_file.read_text()) if controller_file.exists() else {}
+        selected=controller.get('selected_drum')
+        result=observed['result']
+        points=result.get('score',{}).get('target_acquisition')
+        if selected=='pinger':
+            required_drum=set()
+            proof=result.get('payload_in_pinger') and points==50 and acoustic['samples']>20 and acoustic['contract_valid']
+        else:
+            proof=selected=='blue' and result.get('payload_in_blue') and points==30
+        proof=proof and not controller.get('grip_requested',True) and result.get('score',{}).get('target_reacquisition')==0
+        report.update(selected_drum=selected,acoustics=acoustic,drop_verified=bool(proof))
+        report['passed']=report['passed'] and bool(proof)
     if args.fault=='none':
-        required={'navigation_gate','orange_flare','blue_flare','red_flare','yellow_flare'} | (set() if args.extended else {'blue_drum'})
+        required={'navigation_gate','orange_flare','blue_flare','red_flare','yellow_flare'} | required_drum
         report['confirmed_all_targets']=required<=tracks.keys()
         report['passed']=report['passed'] and report['confirmed_all_targets']
     if args.extended and args.fault=='none':
         report['acoustics']=acoustic
-        report['physical_retention']=bool(observed['physics']) and observed['physics'][-1].get('payload_attached',False)
+        report['physical_retention']=payload_retained(observed['physics'], observed['result'])
         score=observed['result'].get('score',{})
         report['extended_proof']=report['physical_retention'] and acoustic['samples']>20 and acoustic['contract_valid'] and score.get('target_acquisition')==50 and score.get('target_reacquisition')==60 and (args.edition!='2027' or observed['result'].get('target_zone_exited'))
         report['passed']=report['passed'] and report['extended_proof']

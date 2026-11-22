@@ -3,7 +3,7 @@ import unittest
 from sauvc_sim.acoustics import AcousticTracker
 from sauvc_sim.arena import build_world,PICKUP_X,PICKUP_Z
 from sauvc_sim.vehicle_geometry import PICKUP_RIM_CLEARANCE
-from sauvc_sim.arena_referee import ArenaJudge
+from sauvc_sim.arena_referee import ArenaJudge, MISSION_STATUS_FIELDS
 from sauvc_sim.arena_mission import ArenaController
 
 
@@ -40,6 +40,43 @@ class AcousticPickupTest(unittest.TestCase):
                 self.assertGreater(2*(dy-radius),.04)
         pixel=CameraModel().pixel((0.,0.,PICKUP_Z),'bottom')
         self.assertGreater(pixel[1],480)
+
+    def test_pinger_drop_uses_fresh_fix_then_falls_back_before_release(self):
+        c=ArenaController(prefer_pinger=True,edition='2027',physical=True)
+        pose=(22.,15.,-.3,0.)
+        c.command(pose,0.,{})
+        self.assertEqual(c.state,'DIVE')
+        c.change('SCAN_DRUMS',1.)
+        c.goal=[22.,16.]
+        c.targets['blue_drum']=[21.,17.,-.3]
+        c.acoustic_time=1.
+        c.acoustic_target=[22.,15.]
+        c.command(pose,1.1,{})
+        self.assertEqual(c.selected_drum,'pinger')
+        c.command(pose,1.8,{})
+        self.assertEqual(c.state,'SCAN_DRUMS')
+        self.assertFalse(c.release)
+        self.assertEqual(c.goal,[22.,16.])
+        c.command(pose,1.9,{})
+        self.assertEqual(c.selected_drum,'blue')
+        self.assertEqual(c.goal,c.targets['blue_drum'])
+
+    def test_pinger_drop_requires_correct_drum_and_skips_pickup(self):
+        judge=ArenaJudge(blue_drum=1,pinger_drum=3,prefer_pinger=True,edition='2027')
+        judge.score.acquisition=1
+        self.assertFalse(judge.drop_task_complete())
+        judge.score.acquisition=2
+        self.assertTrue(judge.drop_task_complete())
+        c=ArenaController(prefer_pinger=True,edition='2027')
+        c.started=0.
+        c.selected_drum='pinger'
+        c.change('WAIT_PAYLOAD',1.)
+        c.command((22.,15.,-.3,0.),2.,{'payload_acquired':True})
+        self.assertEqual(c.state,'WAIT_PAYLOAD')
+        result=judge.result()
+        c.command((22.,15.,-.3,0.),3.,{key:result[key] for key in MISSION_STATUS_FIELDS})
+        self.assertEqual(c.state,'TO_SQUARE')
+        self.assertFalse(c.grip)
 
     def test_fixed_gripper_rejects_unreachable_pickup_before_motion(self):
         self.assertAlmostEqual(PICKUP_RIM_CLEARANCE,-.17)
@@ -199,6 +236,28 @@ class AcousticPickupTest(unittest.TestCase):
         j.physics(frame(7,True,x=23.));self.assertFalse(j.payload_retrieved)
         self.assertEqual(j.score.result()['target_reacquisition'],0)
 
+    def test_contact_only_retrieval_requires_lifting_the_ball(self):
+        j=ArenaJudge(extended=True,edition='2027')
+        j.score.retrieval_crossing=True
+        def sample(t,z,grip,dy=0.):
+            j.previous=(22.,19.,z-PICKUP_Z,0.)
+            j.physics(dict(time=t,payload_attached=False,unlatched_bilateral_grip=grip,
+                           balls={'payload':dict(position=[22.,19.+dy,z],released=True)}))
+        sample(1,-1.96,True)
+        sample(2,-1.96,True)
+        self.assertTrue(j.payload_grasped)
+        self.assertFalse(j.payload_retrieved)
+        sample(3,-1.6,True)
+        self.assertTrue(j.payload_retrieved)
+        sample(3.2,-1.96,True)
+        self.assertFalse(j.payload_retrieved)
+        sample(3.8,-1.6,True)
+        self.assertTrue(j.payload_retrieved)
+        sample(4,-1.6,True,.09)
+        self.assertFalse(j.payload_retrieved)
+        sample(5,-1.6,False)
+        self.assertFalse(j.payload_grasped)
+
     def test_only_aperture_crossing_after_acquisition_qualifies(self):
         for y,expected in ((4.,False),(8.,True)):
             j=ArenaJudge(extended=True);j.started=0.;j.phase='RUNNING';j.navigation=True
@@ -223,3 +282,56 @@ class AcousticPickupTest(unittest.TestCase):
         c.acoustic_target=[24.,9.5];c.acoustic_time=1.
         self.assertEqual(c.command((23.8,9.5,-.12,0.),2.,{}),(0.,0.,0.,0.))
         self.assertEqual(c.reason,'stale_acoustics');self.assertFalse(c.release)
+
+
+def test_compact_release_needs_low_pose_and_pickup_needs_visible_ball():
+    ctrl=ArenaController(extended=True,edition='2027',physical=True,compact=True)
+    ctrl.started=0.
+    ctrl.state='ALIGN_DRUM'
+    ctrl.acoustic_target=(22.,17.)
+    def command(t,z):
+        ctrl.acoustic_time=t
+        return ctrl.command((22.,17.,z,0.),t,{})
+    assert command(1.,-.3)[2]<0
+    command(3.,-.3)
+    assert not ctrl.release
+    command(4.,-1.4)
+    command(5.1,-1.4)
+    assert ctrl.release
+    ctrl.change('ALIGN_PICKUP',6.)
+    command(47.,-1.4)
+    assert ctrl.reason=='pickup_ball_not_visible'
+    assert not ctrl.grip
+
+
+def test_compact_pickup_pauses_then_aborts_on_sustained_tilt():
+    ctrl=ArenaController(extended=True,edition='2027',physical=True,compact=True)
+    ctrl.started=0.
+    ctrl.state='DESCEND_PICKUP'
+    ctrl.goal=ctrl.ball_fix=[22.,17.,-1.96]
+    ctrl.ball_fix_time=2.5
+    pose=(22.,17.,-1.5,0.)
+    ctrl.attitude=(.18,0.)
+    assert ctrl.command(pose,1.,{})[2]==0.
+    ctrl.attitude=(0.,0.)
+    assert ctrl.command(pose,1.4,{})[2]==-.04
+    ctrl.attitude=(0.,-.18)
+    assert ctrl.command(pose,2.,{})[2]==0.
+    assert ctrl.command(pose,2.6,{})==(0.,0.,0.,0.)
+    assert ctrl.reason=='pickup_excess_tilt'
+
+
+def test_compact_lift_requires_sustained_grasp_and_retention():
+    ctrl=ArenaController(extended=True,edition='2027',physical=True,compact=True)
+    ctrl.started=0.
+    ctrl.state='DESCEND_PICKUP'
+    ctrl.goal=ctrl.ball_fix=[22.,17.,-1.96]
+    ctrl.grip=True
+    pose=(22.,17.,-1.71,0.)
+    held={'payload_grasped':True}
+    assert ctrl.command(pose,1.,held)==(0.,0.,0.,0.)
+    assert ctrl.command(pose,2.9,held)==(0.,0.,0.,0.)
+    assert ctrl.command(pose,3.1,held)[2]==.08
+    assert ctrl.state=='LIFT_PICKUP'
+    assert ctrl.command(pose,3.2,{})==(0.,0.,0.,0.)
+    assert ctrl.reason=='pickup_lost_during_lift'

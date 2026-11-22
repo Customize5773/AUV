@@ -37,6 +37,7 @@ def start(context):
         raise ValueError('visual autonomous requires cameras; finals also requires perception and vision mode')
     directory = tempfile.TemporaryDirectory(prefix='sauvc-')
     world = Path(directory.name) / f'{arena}.sdf'
+    compact = LaunchConfiguration('compact').perform(context) == 'true'
     world.write_text(build_world(arena, cameras, lane,
                                 float(LaunchConfiguration('lateral_offset').perform(context)),
                                 float(LaunchConfiguration('yaw').perform(context)),
@@ -44,7 +45,8 @@ def start(context):
                                 int(LaunchConfiguration('blue_drum').perform(context)),physical,
                                 LaunchConfiguration('fault').perform(context),
                                 LaunchConfiguration('extended').perform(context)=='true',
-                                int(LaunchConfiguration('pinger_drum').perform(context)),edition,conditions))
+                                int(LaunchConfiguration('pinger_drum').perform(context)),edition,conditions,
+                                prefer_pinger=LaunchConfiguration('prefer_pinger').perform(context)=='true', compact=compact))
     actions = [
         RegisterEventHandler(OnShutdown(on_shutdown=[
             OpaqueFunction(function=lambda context: directory.cleanup()),
@@ -72,7 +74,7 @@ def start(context):
                                       output='screen', on_exit=Shutdown()))
     if cameras and perception:
         actions.append(Node(package='sauvc_sim', executable='perception',
-                            parameters=[{'arena': arena}], additional_env=image_env, output='screen', on_exit=Shutdown()))
+                            parameters=[{'arena': arena,'compact':compact}], additional_env=image_env, output='screen', on_exit=Shutdown()))
     if physical:
         for executable in ('state_estimator','propulsion'):
             actions.append(Node(package='sauvc_sim',executable=executable,parameters=[dict(
@@ -89,11 +91,14 @@ def start(context):
         if arena == 'finals':
             params={'mission':'finals','physical':physical,'edition':edition,'output':LaunchConfiguration('output').perform(context),
                     'flare_order':LaunchConfiguration('flare_order').perform(context),
+                    'prefer_pinger':LaunchConfiguration('prefer_pinger').perform(context)=='true',
                     'extended':LaunchConfiguration('extended').perform(context)=='true',
                     'fault':LaunchConfiguration('fault').perform(context)}
             executables=('arena_referee','command_guard','arena_mission')
         for executable in executables:
             node_params=dict(params)
+            if executable=='arena_mission':
+                node_params['compact'] = compact
             if executable=='arena_referee':
                 node_params.update(surface_hold=surface_hold,scene_variant=int(LaunchConfiguration('scene_variant').perform(context)),
                                    blue_drum=int(LaunchConfiguration('blue_drum').perform(context)),
@@ -122,6 +127,8 @@ def generate_launch_description():
         DeclareLaunchArgument('output', default_value=''),
         DeclareLaunchArgument('surface_hold',default_value='false',choices=['true','false']),
         DeclareLaunchArgument('conditions_file',default_value=''),
+        DeclareLaunchArgument('prefer_pinger',default_value='false',choices=['true','false']),
+        DeclareLaunchArgument('compact',default_value='false',choices=['true','false']),
         DeclareLaunchArgument('extended',default_value='false',choices=['true','false']),
         DeclareLaunchArgument('pinger_drum',default_value='0',choices=['0','1','2','3','4']),
         DeclareLaunchArgument('flare_order', default_value='B-R-Y'),

@@ -1,118 +1,105 @@
-# Cara akses Jetson dari laptop lewat Wi-Fi (SSH)
+# Akses Jetson langsung dari laptop — AUV-Link
 
-Alur: **laptop → Wi-Fi/router → Jetson**. Jalankan perintah di laptop, kecuali ditandai **di Jetson**.
+Laptop membuat hotspot **AUV-Link**, Jetson menyambung ke laptop. Tidak memerlukan router, hotspot HP, atau internet untuk SSH.
 
-## 1. Siapkan koneksi
+| Perangkat | Alamat |
+| --- | --- |
+| Laptop (hotspot) | `10.42.77.1` |
+| Jetson (Wi-Fi) | `10.42.77.2` |
+| Jetson (Ethernet cadangan) | `192.168.2.2` |
 
-- Nyalakan Jetson dan hubungkan laptop serta Jetson ke jaringan Wi-Fi yang sama. Jaringan harus mengizinkan komunikasi antarperangkat (bukan guest Wi-Fi dengan client isolation).
-- Akun Jetson proyek ini: `aero`; folder proyek: `/home/aero/AUV`.
-- Alias SSH laptop: `auv-wifi`. Konfigurasi laptop saat panduan dibuat menunjuk ke `192.168.67.167`. Ini alamat DHCP, sehingga dapat berubah; bukan jaminan IP Jetson saat ini.
+Profil sudah disiapkan. Akun Jetson: `aero`; alias SSH laptop: `auv-wifi`.
 
-Jika IP berubah, lihat daftar perangkat/DHCP pada router. Alternatif melalui terminal lokal Jetson atau koneksi yang masih tersedia, jalankan **di Jetson**:
+## 1. Aktifkan koneksi
+
+**Matikan hotspot HP "Realme" selama pengujian/akses.** Jangan sambungkan Wi-Fi laptop ke jaringan lain: itu menghentikan AUV-Link. Chat internet dapat offline selama akses berlangsung.
+
+Jalankan dari terminal **laptop**:
 
 ```bash
-ip -4 addr
+nmcli --wait 20 connection up AUV-Link
 ```
 
-Gunakan alamat `inet` pada antarmuka Wi-Fi, bukan `127.0.0.1` atau alamat Docker.
+Nyalakan Jetson setelah hotspot siap, lalu tunggu koneksi otomatis. Jika Jetson sudah menyala dan masih memakai jaringan lain, gunakan langkah Ethernet di bawah.
 
-## 2. Masuk dari terminal laptop
+Uji sebelum membuka VS Code:
 
-Pada laptop yang sudah dikonfigurasi:
+```bash
+ssh -o ConnectTimeout=10 auv-wifi 'hostname; ls -ld /home/aero/AUV'
+```
+
+Lanjut hanya jika muncul `aero` dan informasi folder `/home/aero/AUV`.
+
+## 2. Buka VS Code
+
+Pasang extension **Remote - SSH** dari Microsoft, lalu jalankan di laptop:
+
+```bash
+code --new-window --remote ssh-remote+auv-wifi /home/aero/AUV
+```
+
+Indikator kiri bawah harus **SSH: auv-wifi**. Jika folder belum terbuka: **File → Open Folder…** → `/home/aero/AUV`.
+
+**Terminal → New Terminal** menjalankan perintah di Jetson. File yang diedit berada di Jetson; salinan laptop tidak otomatis berubah. Pertahankan AUV-Link selama bekerja.
+
+Untuk terminal saja:
 
 ```bash
 ssh auv-wifi
-```
-
-Tanpa alias, gunakan perintah berikut dengan IP Wi-Fi Jetson yang benar:
-
-```bash
-ssh aero@192.168.67.167
-```
-
-Pada koneksi pertama, cocokkan fingerprint host key dengan Jetson sebelum menerima. Fingerprint dapat dilihat melalui terminal tepercaya **di Jetson**:
-
-```bash
-ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub
-```
-
-Masukkan password akun `aero` jika diminta. Karakter password memang tidak terlihat saat diketik. Jika memakai SSH key, yang mungkin diminta adalah passphrase key laptop.
-
-Setelah berhasil masuk, jalankan **di Jetson**:
-
-```bash
-whoami
-hostname
 cd /home/aero/AUV
-pwd
 ```
 
-`whoami` harus menghasilkan `aero`, dan `pwd` harus `/home/aero/AUV`. Untuk keluar:
+## 3. Jika Jetson belum tersambung
+
+Pasang Ethernet laptop–Jetson sementara. Pastikan hotspot HP mati, lalu jalankan berurutan dari laptop:
 
 ```bash
-exit
+nmcli --wait 20 connection up AUV-Link
+ssh -t aero@192.168.2.2 'sudo nmcli --wait 60 connection up AUV-Link'
+ssh -o ConnectTimeout=10 auv-wifi 'hostname; ls -ld /home/aero/AUV'
 ```
 
-## 3. Siapkan alias pada laptop baru
+Masukkan password `sudo` akun `aero`. Pesan `Connection to 192.168.2.2 closed` setelah aktivasi berhasil adalah normal.
 
-Edit `~/.ssh/config` di laptop. Tambahkan blok berikut jika belum ada; jika sudah ada, perbarui blok yang sama. Sesuaikan `HostName` dengan IP Wi-Fi Jetson:
+Setelah SSH wireless berhasil, cabut Ethernet dan ulangi tes SSH sebelum membuka VS Code. Jangan mengaktifkan ulang hotspot laptop di antara aktivasi Jetson dan tes SSH.
+
+Jika masih gagal, periksa:
+
+```bash
+nmcli device status
+ip route get 10.42.77.2
+ssh aero@192.168.2.2 'nmcli device status; ip -4 addr show wlP1p1s0'
+```
+
+Kedua perangkat harus memakai `AUV-Link`. Rute laptop ke Jetson harus langsung melalui `wlp0s20f3` dari `10.42.77.1`, bukan melalui gateway Realme atau Wi-Fi lab.
+
+## Konfigurasi alias laptop
+
+Blok yang sudah disiapkan di `~/.ssh/config`:
 
 ```sshconfig
 Host auv-wifi
-    HostName 192.168.67.167
+    HostName 10.42.77.2
+    HostKeyAlias 192.168.2.2
     User aero
+    IdentityFile ~/.ssh/id_ed25519
+    IdentitiesOnly yes
     ServerAliveInterval 15
     ServerAliveCountMax 3
 ```
 
-Laptop proyek yang sudah disiapkan juga memakai pengaturan berikut di dalam blok tersebut:
+`HostKeyAlias` memakai identitas Jetson yang sudah dikenal melalui Ethernet pada laptop ini. Jika ada peringatan perubahan host key, verifikasi identitas Jetson; jangan menonaktifkan pemeriksaannya.
 
-```sshconfig
-    IdentityFile ~/.ssh/id_ed25519
-    IdentitiesOnly yes
-```
+## Selesai bekerja
 
-Tambahkan dua baris itu hanya jika key tersebut tersedia dan public key-nya sudah terdaftar di `~/.ssh/authorized_keys` akun `aero` pada Jetson. Private key tetap di laptop, jangan disalin ke repository.
-
-## 4. Buka proyek melalui VS Code
-
-Jalankan langkah berikut di **VS Code laptop**. Tidak perlu masuk lewat `ssh` di terminal terlebih dahulu.
-
-1. Buka Extensions (`Ctrl+Shift+X`), cari **Remote - SSH** dari **Microsoft**, lalu klik **Install**.
-2. Tekan `Ctrl+Shift+P`, pilih **Remote-SSH: Connect to Host…**.
-3. Pilih `auv-wifi`; pilih platform **Linux** jika diminta.
-4. Masukkan password akun `aero` atau passphrase SSH key jika diminta, lalu tunggu koneksi selesai.
-5. Pilih **Open Folder…**, masukkan `/home/aero/AUV`, lalu klik **OK**.
-6. Pilih menu **Terminal → New Terminal** untuk menjalankan perintah langsung di Jetson.
-
-Jika `auv-wifi` belum muncul, pilih **Remote-SSH: Open SSH Configuration File…** dari `Ctrl+Shift+P`, buka `~/.ssh/config`, lalu tambahkan alias pada bagian 3. Ulangi langkah koneksi.
-
-Alternatif dari terminal laptop jika perintah `code` tersedia:
+Ketik `exit` untuk menutup SSH, atau pilih **Remote: Close Remote Connection** di VS Code. Untuk kembali ke internet melalui hotspot HP, hidupkan hotspot HP lalu jalankan:
 
 ```bash
-code --remote ssh-remote+auv-wifi /home/aero/AUV
+nmcli connection up "realme Note 60"
 ```
 
-Pastikan indikator koneksi di pojok kiri bawah VS Code menunjukkan `SSH: auv-wifi`. File yang diedit adalah file di Jetson; folder `/home/rasya/AUV` di laptop tidak otomatis ikut berubah.
+Ini menghentikan AUV-Link dan memutus SSH. Jika perlu internet bersamaan dengan AUV-Link, gunakan jalur internet lain, misalnya USB tethering HP ke laptop; pengaturan tersebut belum diuji di sini.
 
-Untuk memutus koneksi, pilih **Remote: Close Remote Connection** dari `Ctrl+Shift+P` atau tutup jendela VS Code remote.
+**Status 20 November 2026:** pengguna mengonfirmasi alur AUV-Link berhasil setelah hotspot HP dimatikan. Pemulihan otomatis setelah reboot dan keberhasilan tanpa Ethernet belum dikonfirmasi secara terpisah.
 
-## 5. Jika gagal tersambung
-
-| Gejala | Pemeriksaan |
-| --- | --- |
-| `Connection timed out` / `No route to host` | Periksa daya Jetson, jaringan Wi-Fi, IP terbaru, dan client isolation pada router. |
-| `Connection refused` | Periksa layanan SSH **di Jetson** dengan `sudo systemctl status ssh`. Jika sudah terpasang tetapi berhenti, jalankan `sudo systemctl enable --now ssh`. |
-| `Permission denied` | Pastikan user `aero`, password benar, atau public key laptop sudah terdaftar di Jetson. |
-| `REMOTE HOST IDENTIFICATION HAS CHANGED` | Verifikasi IP dan fingerprint Jetson melalui akses tepercaya. Jangan menonaktifkan pemeriksaan host key atau menghapus key lama tanpa verifikasi. |
-| Terputus setelah Wi-Fi hilang/reboot | Tunggu Jetson kembali ke Wi-Fi, periksa IP, lalu ulangi `ssh auv-wifi` atau sambungkan kembali Remote-SSH. |
-
-Untuk diagnosis dari laptop:
-
-```bash
-ssh -v -o ConnectTimeout=10 auv-wifi
-```
-
-Keberhasilan login SSH adalah bukti akses; balasan ping saja belum memastikan SSH siap.
-
-Panduan operasi setelah tersambung: [CARA-OPERASI-SSH.md](CARA-OPERASI-SSH.md).
+Panduan operasi: [CARA-OPERASI-SSH.md](CARA-OPERASI-SSH.md).

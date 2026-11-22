@@ -14,6 +14,7 @@ from std_msgs.msg import String
 from sauvc_sim.object_detection import detect_objects
 from sauvc_sim.detection_overlay import annotate, unavailable_image
 from sauvc_sim.camera_geometry import CameraModel
+from sauvc_sim.vehicle_geometry import COMPACT_CAMERA_TILT
 from sauvc_sim.tracking import Tracker
 
 
@@ -21,6 +22,7 @@ class Perception(Node):
     def __init__(self):
         super().__init__('sauvc_perception')
         self.declare_parameter('arena', 'qualification')
+        self.bottom_tilt=COMPACT_CAMERA_TILT if self.declare_parameter('compact',False).value else 0.
         self.arena = self.get_parameter('arena').value
         if self.arena not in ('qualification', 'finals'):
             raise ValueError('unknown arena')
@@ -53,7 +55,7 @@ class Perception(Node):
                                 msg.encoding, camera, self.arena)
         stamp = msg.header.stamp.sec+msg.header.stamp.nanosec*1e-9
         if result['valid_image']:
-            model = CameraModel(msg.width,msg.height)
+            model = CameraModel(msg.width,msg.height,bottom_tilt=self.bottom_tilt)
             for obj in result['detections']:
                 metric = model.locate(obj,camera)
                 if metric:

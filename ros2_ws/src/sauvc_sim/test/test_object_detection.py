@@ -13,6 +13,14 @@ class ObjectsTest(unittest.TestCase):
         json.dumps(result)
         return result
 
+    def test_payload_ball_requires_one_complete_round_candidate(self):
+        frame=self.frame()
+        y,x=np.ogrid[:240,:320]
+        frame[(x-120)**2+(y-100)**2<16**2]=220
+        self.assertEqual([o['label'] for o in self.detect(frame,'bottom')['detections']],['payload_ball'])
+        frame[(x-180)**2+(y-100)**2<16**2]=220
+        self.assertEqual(self.detect(frame,'bottom')['detections'],[])
+
     def gate(self, colours=((210, 5, 5),(5, 190, 15))):
         a = self.frame()
         for x, colour in zip((80,240), colours):

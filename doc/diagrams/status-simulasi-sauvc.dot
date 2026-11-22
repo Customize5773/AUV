@@ -25,7 +25,7 @@ digraph progress {
     a1 [label="Menyelam → hindari orange flare\n→ lewati gate"];
     a2 [label="Jatuhkan bola dari ketiga flare\nsesuai urutan yang diberikan"];
     a3 [label="Drop payload ke blue drum\nGripper tetap di tengah"];
-    a4 [label="Surfacing Square → surface → stop\nBlue drum 210,14284 poin • penalti nol\nThrust–surface 228,572 s", fillcolor="#DCEBFF"];
+    a4 [label="Surfacing Square → surface → stop\nBlue drum 210,14494 poin • penalti nol\nThrust–surface 228,502 s", fillcolor="#DCEBFF"];
     a1 -> a2 -> a3 -> a4;
   }
   blocked [fillcolor="#FFF3DB", color="#D6A445", fontsize=12,
@@ -36,7 +36,7 @@ digraph progress {
   {rank=same; a3; blocked;}
 
   now [fillcolor="#DCEBFF", color="#2365B4", penwidth=2.5,
-       label=<<FONT POINT-SIZE="17" COLOR="#144D91"><B>KITA ADA DI SINI</B></FONT><BR/><BR/><B>Gripper ringkas bergaya Newton sudah diterapkan.</B><BR/>Batang 8 cm • build selesai • 202 tes lulus.<BR/>Release fisika, ARENA blue drum dan kualifikasi: diterima.<BR/>Bola awal tetap pada titik grip yang sama.<BR/>Rahang bergerak buka–tutup; release menunggu bukaan aktual.<BR/>Uji normal dan macet lulus; video tersimpan.<BR/><BR/><FONT COLOR="#52627A">Retensi masih latch ideal; bukan aktuator Newton asli. Hardware belum diuji.</FONT>>];
+       label=<<FONT POINT-SIZE="17" COLOR="#144D91"><B>KITA ADA DI SINI</B></FONT><BR/><BR/><B>Gripper ringkas bergaya Newton sudah diterapkan.</B><BR/>Batang 8 cm • build selesai • 202 tes lulus.<BR/>Release fisika, ARENA blue drum dan kualifikasi: diterima.<BR/>Bola awal tetap pada titik grip yang sama.<BR/>Rahang bergerak buka–tutup; release menunggu bukaan aktual.<BR/>Uji normal dan macet lulus; video tersimpan.<BR/>Pengulangan ARENA exit 0; 98 hash source/aset cocok.<BR/><BR/><FONT COLOR="#52627A">Retensi masih latch ideal; bukan aktuator Newton asli. Hardware belum diuji.</FONT>>];
   q3 -> now; a4 -> now;
 
   history [fillcolor="#E9EDF3", color="#8491A5", fontsize=11,

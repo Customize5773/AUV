@@ -4,7 +4,7 @@ Diperbarui **19 November 2026**. Halaman rulebook resmi dicek 19 November dan ma
 
 **Konfigurasi terbaru:** batang gripper 8 cm dari bawah hull ke atas telapak, titik grip `(0, 0, −0,21) m`. Tetap di tengah dan tanpa slider. Kepala terinspirasi Newton memakai dua rahang capit berongga, gigi kecil, rumah aktuator hitam serta pin biru. Bentuk ini bukan emulasi aktuator Newton asli. Kamera bawah tetap 16 cm di depan pusat body.
 
-Dua rahang kini bergerak saat release/grip; release menunggu posisi buka aktual. Build, **202 tes** serta uji native normal/macet lulus. [Aktuasi dan video](../plan/81-aktuasi-rahang-dan-release-terukur.md). Regresi dinamis blue drum dan kualifikasi jalur 3 juga diterima pada laporan 81; hasil rahang rigid sebelumnya tersimpan pada laporan 80. Pickup dasar drum belum didukung dengan batang pendek ini; clearance −17 cm. Hasil extended laporan 79 adalah versi panjang sebelumnya.
+Dua rahang kini bergerak saat release/grip; release menunggu posisi buka aktual. Build, **202 tes** serta uji native normal/macet lulus. [Aktuasi dan video](../plan/81-aktuasi-rahang-dan-release-terukur.md). ARENA blue drum terbaru lulus dengan exit 0; bukti kualifikasi jalur 3 dan 202 tes pada source/aset yang sama diverifikasi ulang melalui [verifikasi akhir](evidence/gripper-completion-20261119/verification.json). Rincian pada laporan 81; hasil rahang rigid sebelumnya tersimpan pada laporan 80. Pickup dasar drum belum didukung dengan batang pendek ini; clearance −17 cm. Hasil extended laporan 79 adalah versi panjang sebelumnya.
 
 Gunakan **tiga terminal**: satu untuk simulator, satu untuk POV depan, dan satu untuk POV bawah. Pilih salah satu misi pada Terminal 1.
 
@@ -50,6 +50,29 @@ bash tools/ros.sh launch sauvc_sim arena.launch.py edition:=2027 arena:=finals a
 `B-R-Y` berarti biru → merah → kuning. Masukan urutan ini mewakili urutan yang diberikan penyelenggara simulasi sesudah Navigation.
 
 ### ARENA extended/pickup — pratinjau dengan batang pendek
+
+Untuk mengulang uji lokal pickup sampai permukaan dengan tujuh thruster, jalankan dari `ros2_ws` pada laptop yang menyimpan fixture badan kompak dan plugin uji tanpa pengunci. Uji ini dimulai di drum dan menyimpan hasil di bawah `evidence/pickup-hull-25cm/unlatched/lip/pocket/firm/`.
+
+```bash
+PICKUP_OFFSET_MM=20 IGN_PARTITION=sauvc_pickup_live ROS_DOMAIN_ID=116 \
+  bash tools/ros.sh python evidence/pickup-hull-25cm/native.py \
+    --approach --firm --lip --pocket --unlatched --correct --live \
+    --calibrate --surface --dynamic --track --tilted
+```
+
+Gunakan `PICKUP_OFFSET_MM=-20` untuk pendekatan dari sisi lain. Pengulangan live dengan argumen yang sama masuk ke subfolder baru berawalan `repeat-`. Ringkasan hasil normal ada di `native_result.json`; timeout sebelum perintah jepit menyimpan `native_rows.json` dan `detections.json`. [Perbandingan hasil](evidence/pickup-hull-25cm/live-comparison.json).
+
+
+Untuk menguji posisi bola dari laporan sebelumnya, tambahkan variabel lingkungan `PICKUP_DROP_CASE=1`, `2`, `3` atau `4` pada perintah di atas. Fixture memakai perpindahan XY dari pusat drum pada run historis. Tambahan `--lower-drop` memakai koordinat saat bola dilepas dan memulai kendaraan pada ketinggian pelepasan rendah. Tambahan `--lower-drop --deliver` mengawali kendaraan sekitar 1,43 m di atas pusat bola yang sudah mengendap dan menguji penurunan sebelum release. Tambahkan `--exit-zone` untuk keluar dan kembali sebelum mencari bola, kemudian `--carry-square` untuk menguji retensi saat membawa bola ke koordinat Square latihan. Untuk mengulang seluruh segmen uji dengan kedua kamera, gunakan perintah berikut dari `ros2_ws`. Kamera depan memperbaiki posisi Square setelah pendekatan menghadap satu sisi. Opsi `--settled-close` juga memeriksa kecepatan vertikal sebelum menutup rahang.
+
+```bash
+PICKUP_DROP_CASE=3 PICKUP_OFFSET_MM=20 IGN_PARTITION=sauvc_pickup_square ROS_DOMAIN_ID=116 \
+  bash tools/ros.sh python evidence/pickup-hull-25cm/native.py \
+    --approach --firm --lip --pocket --unlatched --correct --live --calibrate \
+    --surface --dynamic --track --tilted --lower-drop --deliver --exit-zone \
+    --carry-square --visual-square --face-square --native-contact --settled-close
+```
+
 
 Gripper pendek saat ini memiliki clearance pickup −17 cm. `autonomous:=true extended:=true` ditolak dengan `fixed_gripper_unreachable` sebelum bergerak. Untuk melihat arena/pinger tanpa menjalankan misi:
 
@@ -117,6 +140,16 @@ export IGN_PARTITION=sauvc_practice
 bash tools/ros.sh topic info /sauvc/perception/front/image_annotated
 bash tools/ros.sh topic info /sauvc/perception/bottom/image_annotated
 ```
+
+### Drop ke drum merah berpinger dengan gripper 8 cm
+
+Dari folder `ros2_ws`, jalankan strategi pinger tanpa pickup:
+
+```bash
+bash tools/ros.sh launch sauvc_sim arena.launch.py edition:=2027 arena:=finals autonomous:=true vehicle_model:=dynamic prefer_pinger:=true extended:=false
+```
+
+Kontrol memilih estimasi posisi dari hidrofon virtual ketika masih segar. Jika estimasi kedaluwarsa saat alignment, AUV kembali mencari drum biru sebelum melepas bola. Setelah drop terkonfirmasi, AUV menuju Surfacing Square. Untuk strategi blue drum biasa gunakan `prefer_pinger:=false` (default). Parameter `pinger_drum` menentukan penempatan pinger untuk dunia latihan dan referee saja.
 
 ### ABORT: fixed_gripper_unreachable
 
@@ -273,3 +306,11 @@ bash tools/ros.sh launch sauvc_sim arena.launch.py edition:=2027 arena:=finals a
 Topic POV annotated depan/bawah tetap sama. Efek hanya pada gambar kamera; overview arena mempertahankan visual kolam. Nilai latihan `water_attenuation=0.025` per meter bukan hasil kalibrasi air SAUVC. Nilai 0 menonaktifkan RGBD/filter dan memakai jalur kamera baseline. Resolusi, update rate dan batas freshness tetap. Model ini belum mencakup refraksi, partikel, gelombang fisik atau pemisahan medium udara–air. [Implementasi, preview dan bukti — laporan 67](../plan/67-optik-air-kamera-berdasarkan-depth.md).
 
 Bukti optik sebelum revisi gripper fixed: profil ringan 0,025/m dan dua fixture ARENA 0,05/m lulus setelah perbaikan halo biru; kualifikasi 0,05/m lulus pada kasus terpilih. Kualifikasi 0,10/m kini lulus pada tiga jalur terpilih setelah fallback median warna ([laporan 70](../plan/70-kualifikasi-optik-010-dan-median-warna.md)). Default/profil ringan tidak dinaikkan otomatis. Jangan menyamakan rentang parameter yang diterima parser dengan rentang keberhasilan seluruh misi. [Laporan 69](../plan/69-rulebook-dan-perbaikan-halo-biru-arena.md); riwayat batas sebelumnya pada [laporan 68](../plan/68-ketahanan-optik-air-dan-depth-loss.md).
+
+### Uji integrasi badan kompak dari starting zone
+
+Jalankan dari folder `ros2_ws`. Profil eksperimen ini memakai badan bawah radius 25 cm dan gripper tetap 8 cm. Pemeriksa merekam hasil misi termasuk alasan abort.
+
+```bash
+bash tools/ros.sh python tools/check_arena.py --compact --extended --vehicle-model dynamic --pinger-drum 3 --output evidence/compact-start/local/mission.json
+```

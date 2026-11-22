@@ -10,7 +10,7 @@ from sauvc_sim.tracking import Tracker
 
 class PovTest(TestCase):
     def node(self):
-        node=SimpleNamespace(arena='finals',last_received={},last_overlay={},
+        node=SimpleNamespace(arena='finals',bottom_tilt=0.,last_received={},last_overlay={},
             trackers={'front':Tracker()},info={'front':Mock()},
             publishers_by_camera={'front':Mock()},annotated={'front':Mock()},
             unavailable=Mock())

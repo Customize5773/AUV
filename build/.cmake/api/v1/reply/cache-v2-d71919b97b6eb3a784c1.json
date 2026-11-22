@@ -3767,7 +3767,7 @@
 				}
 			],
 			"type" : "FILEPATH",
-			"value" : "/opt/ros/humble/lib/libvision_msgs__rosidl_typesupport_fastrtps_cpp.so"
+			"value" : "/opt/ros/humble/lib/libvision_msgs__rosidl_typesupport_cpp.so"
 		},
 		{
 			"name" : "action_msgs_DIR",

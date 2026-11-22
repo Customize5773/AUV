@@ -29,31 +29,42 @@
 
 namespace sauvc {
 using namespace ignition::gazebo;
+static std::vector<Entity> observeHull(EntityComponentManager &ecm) {
+  std::vector<Entity> parts;
+  ecm.Each<components::Collision, components::Name>(
+    [&](const Entity &entity, const components::Collision *, const components::Name *name) {
+      if ((name->Data() == "hull" || name->Data() == "hull_upper") &&
+          scopedName(entity, ecm, "::", false).find("sauvc_auv::") != std::string::npos) {
+        parts.push_back(entity);
+        if (!ecm.Component<components::ContactSensorData>(entity))
+          ecm.CreateComponent(entity, components::ContactSensorData());
+      }
+      return true;
+    });
+  return parts;
+}
+
 class ContactMonitor : public System, public ISystemPreUpdate, public ISystemPostUpdate {
   ignition::transport::Node node;
   ignition::transport::Node::Publisher publisher;
-  Entity hull{kNullEntity};
+  std::vector<Entity> hullParts;
   std::chrono::steady_clock::duration last{};
 public:
   void PreUpdate(const UpdateInfo &, EntityComponentManager &ecm) override {
-    if (hull != kNullEntity) return;
-    ecm.Each<components::Collision, components::Name>(
-      [&](const Entity &entity, const components::Collision *, const components::Name *name) {
-        if (name->Data() == "hull" && scopedName(entity, ecm).find("sauvc_auv") != std::string::npos) {
-          hull = entity;
-          ecm.CreateComponent(hull, components::ContactSensorData());
-          publisher = node.Advertise<ignition::msgs::Contacts>("/sauvc/contacts");
-          return false;
-        }
-        return true;
-      });
+    if (!hullParts.empty()) return;
+    hullParts = observeHull(ecm);
+    if (!hullParts.empty())
+      publisher = node.Advertise<ignition::msgs::Contacts>("/sauvc/contacts");
   }
   void PostUpdate(const UpdateInfo &info, const EntityComponentManager &ecm) override {
-    if (info.paused || hull == kNullEntity) return;
-    const auto *data = ecm.Component<components::ContactSensorData>(hull);
-    if (!data) return;
-    if (data->Data().contact_size() == 0 && info.simTime-last < std::chrono::milliseconds(33)) return;
-    auto message = data->Data();
+    if (info.paused || hullParts.empty()) return;
+    ignition::msgs::Contacts message;
+    for (auto part : hullParts) {
+      const auto *data = ecm.Component<components::ContactSensorData>(part);
+      if (data) for (const auto &contact : data->Data().contact())
+        *message.add_contact() = contact;
+    }
+    if (!message.contact_size() && info.simTime-last < std::chrono::milliseconds(33)) return;
     auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(info.simTime).count();
     message.mutable_header()->mutable_stamp()->set_sec(ns / 1000000000);
     message.mutable_header()->mutable_stamp()->set_nsec(ns % 1000000000);
@@ -64,14 +75,15 @@ public:
 
 // Training mechanism: a real hull/pole contact releases the supported ball.
 // Gravity and collisions then move it; a release request alone never earns points.
-class ArenaPhysics : public System, public ISystemPreUpdate, public ISystemPostUpdate {
+class ArenaPhysics : public System, public ISystemConfigure, public ISystemPreUpdate, public ISystemPostUpdate {
   ignition::transport::Node node;
   ignition::transport::Node::Publisher publisher;
   std::atomic<bool> request{false}, gripRequest{false};
   Entity attachment{kNullEntity}, loadingJoint{kNullEntity}, pinger{kNullEntity};
   Entity gripper{kNullEntity};
-  std::vector<Entity> fingers;
-  bool pickupContact{false};
+  std::array<std::vector<Entity>,2> fingers;
+  std::array<bool,2> jawContact{};
+  bool pickupContact{false}, usePickupJoint{true}, bilateralWitness{false};
   double servoAngle{0};
   std::array<Entity,2> jaws{{kNullEntity,kNullEntity}};
   std::array<double,2> jawPosition{{0,0}},jawTarget{{0,0}};
@@ -80,7 +92,8 @@ class ArenaPhysics : public System, public ISystemPreUpdate, public ISystemPostU
   std::mt19937 rng{42};
   std::normal_distribution<double> acousticNoise{0,2e-7};
   ignition::transport::Node::Publisher acousticPublisher;
-  Entity auv{kNullEntity}, hull{kNullEntity}, payload{kNullEntity};
+  Entity auv{kNullEntity}, payload{kNullEntity};
+  std::vector<Entity> hullParts;
   std::array<Entity,3> balls{{kNullEntity,kNullEntity,kNullEntity}};
   std::array<bool,3> released{{false,false,false}};
   std::array<ignition::math::Pose3d,3> supports;
@@ -88,6 +101,10 @@ class ArenaPhysics : public System, public ISystemPreUpdate, public ISystemPostU
   bool dropped{false}, configured{false};
   std::chrono::steady_clock::duration last{};
 public:
+  void Configure(const Entity &, const std::shared_ptr<const sdf::Element> &sdf,
+                 EntityComponentManager &, EventManager &) override {
+    usePickupJoint = sdf->Get<bool>("use_pickup_joint", true).first;
+  }
   void PreUpdate(const UpdateInfo &info, EntityComponentManager &ecm) override {
     if (!configured) {
       publisher=node.Advertise<ignition::msgs::StringMsg>("/sauvc/arena/physics");
@@ -98,7 +115,8 @@ public:
         jawPublishers[i]=node.Advertise<ignition::msgs::Double>("/sauvc/gripper/"+std::to_string(i)+"/target");
       configured=true;
     }
-    if (auv==kNullEntity || payload==kNullEntity || hull==kNullEntity || gripper==kNullEntity || jaws[0]==kNullEntity || jaws[1]==kNullEntity) {
+    if (auv==kNullEntity || payload==kNullEntity || hullParts.empty() || gripper==kNullEntity || jaws[0]==kNullEntity || jaws[1]==kNullEntity) {
+      if (hullParts.empty()) hullParts = observeHull(ecm);
       ecm.Each<components::Model,components::Name>([&](const Entity &e,const components::Model *,const components::Name *n) {
         if (n->Data()=="sauvc_auv") auv=e;
         if (n->Data()=="payload_ball") payload=e;
@@ -109,10 +127,13 @@ public:
         return true;
       });
       ecm.Each<components::Collision,components::Name>([&](const Entity &e,const components::Collision *,const components::Name *n) {
-        if (n->Data()=="hull" && scopedName(e,ecm).find("sauvc_auv")!=std::string::npos) hull=e;
-        if (n->Data().find("pickup_")==0 && scopedName(e,ecm).find("sauvc_auv")!=std::string::npos) {
-          if (std::find(fingers.begin(),fingers.end(),e)==fingers.end()) {
-            fingers.push_back(e);
+        const auto scope=scopedName(e,ecm,"::",false);
+        for (size_t i=0;i<fingers.size();++i) {
+          const auto jawScope="sauvc_auv::pickup_jaw_"+std::to_string(i)+"::";
+          auto &collisions=fingers[i];
+          if (scope.find(jawScope)!=std::string::npos &&
+              std::find(collisions.begin(),collisions.end(),e)==collisions.end()) {
+            collisions.push_back(e);
             ecm.CreateComponent(e,components::ContactSensorData());
           }
         }
@@ -165,14 +186,21 @@ public:
         Free(payload,ecm);
       }
     } else Free(payload,ecm);
-    pickupContact=false;
-    for (auto finger:fingers) {
+    jawContact.fill(false);
+    for (size_t i=0;i<fingers.size();++i) for (auto finger:fingers[i]) {
       const auto *data=ecm.Component<components::ContactSensorData>(finger);
       if (data) for (const auto &c:data->Data().contact())
         if (c.collision1().name().find("payload_ball::")!=std::string::npos ||
-            c.collision2().name().find("payload_ball::")!=std::string::npos) pickupContact=true;
+            c.collision2().name().find("payload_ball::")!=std::string::npos) jawContact[i]=true;
     }
-    if (gripRequest.load() && dropped && pickupContact && attachment==kNullEntity && gripper!=kNullEntity) {
+    pickupContact=jawContact[0] || jawContact[1];
+    const bool gripping = gripRequest.load() && dropped && jawReady && !jawsOpen;
+    const bool bilateral = gripping && jawContact[0] && jawContact[1];
+    if (!usePickupJoint && gripper!=kNullEntity && payload!=kNullEntity) {
+      const double gap=worldPose(gripper,ecm).Pos().Distance(worldPose(payload,ecm).Pos());
+      bilateralWitness=gripping && gap<.075 && (bilateral || bilateralWitness);
+    }
+    if (usePickupJoint && bilateral && attachment==kNullEntity && gripper!=kNullEntity) {
       attachment=ecm.CreateEntity();
       ecm.CreateComponent(attachment,components::DetachableJoint({
         gripper,Model(payload).CanonicalLink(ecm),"fixed"}));
@@ -180,13 +208,15 @@ public:
     if (!gripRequest.load() && jawsOpen && attachment!=kNullEntity) {
       ecm.RequestRemoveEntity(attachment);attachment=kNullEntity;
     }
-    const auto *contacts=ecm.Component<components::ContactSensorData>(hull);
-    if (contacts) for (const auto &c:contacts->Data().contact()) {
-      auto a=c.collision1().name(),b=c.collision2().name();
-      for (size_t i=0;i<3;++i) if (!released[i] && balls[i]!=kNullEntity &&
-          (a.find(names[i]+"::")!=std::string::npos || b.find(names[i]+"::")!=std::string::npos)) {
-        released[i]=true;
-        Enable(balls[i],ecm,true);
+    for (auto part : hullParts) {
+      const auto *contacts=ecm.Component<components::ContactSensorData>(part);
+      if (contacts) for (const auto &c:contacts->Data().contact()) {
+        auto a=c.collision1().name(),b=c.collision2().name();
+        for (size_t i=0;i<3;++i) if (!released[i] && balls[i]!=kNullEntity &&
+            (a.find(names[i]+"::")!=std::string::npos || b.find(names[i]+"::")!=std::string::npos)) {
+          released[i]=true;
+          Enable(balls[i],ecm,true);
+        }
       }
     }
   }
@@ -221,6 +251,7 @@ public:
        <<",\"jaws_open\":"<<(jawsOpen?"true":"false")
        <<",\"jaw_position_rad\":["<<jawPosition[0]<<','<<jawPosition[1]<<']'
        <<",\"jaw_target_rad\":["<<jawTarget[0]<<','<<jawTarget[1]<<']'
+       <<",\"unlatched_bilateral_grip\":"<<(bilateralWitness?"true":"false")
        <<",\"pickup_contact\":"<<(pickupContact?"true":"false")
        <<",\"payload_attached\":"<<(attachment!=kNullEntity || loadingJoint!=kNullEntity?"true":"false")<<",\"balls\":{";
     auto emit=[&](const std::string &name,Entity e,bool freed) {
@@ -251,4 +282,4 @@ public:
 IGNITION_ADD_PLUGIN(sauvc::ContactMonitor, ignition::gazebo::System,
                    sauvc::ContactMonitor::ISystemPreUpdate, sauvc::ContactMonitor::ISystemPostUpdate)
 IGNITION_ADD_PLUGIN(sauvc::ArenaPhysics, ignition::gazebo::System,
-                   sauvc::ArenaPhysics::ISystemPreUpdate, sauvc::ArenaPhysics::ISystemPostUpdate)
+                   sauvc::ArenaPhysics::ISystemConfigure, sauvc::ArenaPhysics::ISystemPreUpdate, sauvc::ArenaPhysics::ISystemPostUpdate)

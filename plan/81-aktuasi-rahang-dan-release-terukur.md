@@ -46,3 +46,28 @@ Pemeriksaan ulang bukti tersimpan:
 cd /home/rasya/AUV/ros2_ws
 bash tools/ros.sh python evidence/gripper-joints-20261119/verify.py
 ```
+
+## Pemeriksaan lanjutan pada geometri 8 cm
+
+Pencarian OBB diulang dari source aktif `(0, 0, −0,21) m`, dengan box hull dan 32 box dinding drum yang dihasilkan generator misi. Grid 395.304 orientasi per posisi bola mencakup enam posisi bola; 15.768 orientasi per posisi lolos syarat lantai, tetapi **tidak ada yang bebas benturan hull–dinding drum**. Clearance mendatar tetap −17 cm. Ini pemeriksaan statis diskret pada collision produksi, bukan bukti seluruh orientasi kontinu, lintasan atau kendaraan fisik.
+
+Bukaan rahang tidak menambah jangkauan dudukan. Pickup dasar drum tetap ditolak sebelum thrust; panjang batang, dimensi drum, ukuran hull serta collision tidak diubah untuk meloloskan misi. Keberhasilan pickup versi panjang pada laporan 79 tetap hasil historis.
+
+[Grid dan hash geometri aktif](../ros2_ws/evidence/gripper-completion-20261119/reach.json) · [skrip perhitungan](../ros2_ws/evidence/gripper-completion-20261119/check_reach.py).
+
+## Penutupan bukti proses ARENA
+
+Uji ulang fixture yang sama pada source/aset yang sama selesai dengan **exit code 0** dari proses checker yang ditunggu langsung oleh runner. Hasil: **210,14494 poin**, thrust–surface **228,502 s**, penalti nol, estimator XY maksimum 7,20 cm; DONE, stationary, command/thrust akhir nol dan shutdown tanpa pemaksaan. Pada snapshot pertama payload released, kedua sendi terukur −0,342066 / +0,339706 rad, `jaws_open=true`, dan bola sudah tidak attached.
+
+Celah exit code pada run sebelumnya ditutup oleh penerimaan baru ini. **Penyebab exit 143 historis belum diketahui**; pengulangan yang bersih tidak membuktikan penyebab itu sudah diperbaiki. Satu pemanggilan runner tambahan ditolak karena direktori hasil sudah ada; tidak menjalankan misi kedua dan tidak dihitung sebagai penerimaan.
+
+Bukti kualifikasi, native normal/macet dan 202 tes dipakai ulang setelah **98 hash source/aset cocok** dengan run tersebut. Ini bukan klaim pengulangan kualifikasi atau suite unit baru. Verifikasi gabungan mengonfirmasi exit 0 ARENA terbaru serta exit 0 kualifikasi yang sudah tersimpan. Tidak ada perubahan kode produksi pada penutupan bukti ini.
+
+[Verifikasi akhir](../ros2_ws/evidence/gripper-completion-20261119/verification.json) · [exit code checker](../ros2_ws/evidence/gripper-completion-20261119/acceptance.json) · [misi ARENA baru](../ros2_ws/evidence/gripper-completion-20261119/blue/mission.json) · [manifest source/aset](../ros2_ws/evidence/gripper-completion-20261119/source-sha256.json).
+
+```bash
+cd /home/rasya/AUV/ros2_ws
+bash tools/ros.sh python evidence/gripper-completion-20261119/verify.py
+```
+
+**Selesai pada tahap ini:** gripper tetap 8 cm, gerak rahang, release terukur, uji macet, blue drum dan bukti kualifikasi pada revisi yang sama. **Tetap belum didukung:** pickup dasar drum dengan gripper pendek; retensi masih latch ideal dan pengujian kendaraan fisik dikecualikan.

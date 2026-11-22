@@ -55,3 +55,30 @@ class VehicleGeometryTest(unittest.TestCase):
         self.assertTrue(j.qualified)
         old=QualificationJudge();old.update((.3,4.,-.05,0.),0.)
         self.assertEqual(old.reason,'invalid_start')
+
+
+def test_compact_extended_hull_and_preflight():
+    import xml.etree.ElementTree as ET
+    from sauvc_sim.arena import build_world
+    from sauvc_sim.arena_mission import ArenaController
+
+    world = ET.fromstring(build_world('finals', extended=True, compact=True))
+    body = world.find(".//model[@name='sauvc_auv']/link[@name='base_link']")
+    assert body.find("collision[@name='hull_upper']") is not None
+    assert body.findtext('visual/geometry/mesh/uri').endswith('/compact.obj')
+    assert world.findtext(".//plugin[@name='sauvc::ArenaPhysics']/use_pickup_joint") == 'false'
+    ctrl = ArenaController(extended=True, edition='2027', physical=True, compact=True)
+    ctrl.command((0., 0., -.05, 0.), 0., {})
+    assert ctrl.state == 'DIVE'
+
+
+def test_compact_camera_projects_gripper_at_pickup_height():
+    from sauvc_sim.camera_geometry import CameraModel
+    from sauvc_sim.vehicle_geometry import COMPACT_CAMERA_TILT, PICKUP_Z
+    camera=CameraModel(bottom_tilt=COMPACT_CAMERA_TILT)
+    ball=(0.,0.,PICKUP_Z-.04)
+    pixel=camera.pixel(ball,'bottom')
+    assert 0<pixel[0]<camera.width and 0<pixel[1]<camera.height
+    ray,origin=camera.ray(pixel,'bottom')
+    scale=(ball[2]-origin[2])/ray[2]
+    assert max(abs(o+scale*r-b) for o,r,b in zip(origin,ray,ball))<1e-9

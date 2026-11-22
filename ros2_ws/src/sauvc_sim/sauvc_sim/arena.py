@@ -10,7 +10,7 @@ from pathlib import Path
 import xml.etree.ElementTree as ET
 from sauvc_sim.arena_layout import layout
 from sauvc_sim.vehicle_geometry import HULL_SIZE, HULL_CENTER, qualification_start_x
-from sauvc_sim.vehicle_geometry import PICKUP_X, PICKUP_Z, BOTTOM_CAMERA_POSITION
+from sauvc_sim.vehicle_geometry import COMPACT_CAMERA_TILT, COMPACT_RADIUS, COMPACT_SPLIT_Z, PICKUP_X, PICKUP_Z, BOTTOM_CAMERA_POSITION
 
 
 WHITE = '0.92 0.94 0.96 1'
@@ -163,7 +163,7 @@ def ball(world, name, position, radius):
     part(link,'sphere',(0,0,0,0,0,0),'sphere',(radius,),WHITE)
 
 
-def auv(world, arena, cameras, lane=1, lateral_offset=0.0, yaw=0.0, physical=False, fault='none'):
+def auv(world, arena, cameras, lane=1, lateral_offset=0.0, yaw=0.0, physical=False, fault='none', compact=False):
     vehicle = tag(world, 'model', name='sauvc_auv')
     # Keep the collision hull touching the start wall even with a yaw offset.
     start_x = qualification_start_x(yaw)
@@ -185,10 +185,19 @@ def auv(world, arena, cameras, lane=1, lateral_offset=0.0, yaw=0.0, physical=Fal
     # Hull is the visual mesh AABB; cameras are non-solid sensor frames.
     solid = tag(link, 'collision', name='hull')
     tag(solid, 'pose', numbers((*HULL_CENTER,0,0,0)))
-    geometry(solid, 'box', HULL_SIZE)
+    if compact:
+        length, width, height = HULL_SIZE
+        scale = COMPACT_RADIUS / math.hypot(length/2, width/2)
+        solid.find('pose').text = numbers((0, 0, (COMPACT_SPLIT_Z-height/2)/2, 0, 0, 0))
+        geometry(solid, 'box', (length*scale, width*scale, COMPACT_SPLIT_Z+height/2))
+        upper = tag(link, 'collision', name='hull_upper')
+        tag(upper, 'pose', numbers((0, 0, (COMPACT_SPLIT_Z+height/2)/2, 0, 0, 0)))
+        geometry(upper, 'box', (length, width, height/2-COMPACT_SPLIT_Z))
+    else:
+        geometry(solid, 'box', HULL_SIZE)
     visual = tag(link, 'visual', name='sauvc_2027_v1_visual')
     mesh = tag(tag(visual, 'geometry'), 'mesh')
-    tag(mesh, 'uri', (Path(__file__).parent/'meshes'/'sauvc_2027_v1.obj').resolve().as_uri())
+    tag(mesh, 'uri', (Path(__file__).parent/'meshes'/('compact.obj' if compact else 'sauvc_2027_v1.obj')).resolve().as_uri())
     tag(visual, 'cast_shadows', 'false')
     contact = tag(link, 'sensor', name='hull_contacts', type='contact')
     tag(contact, 'always_on', 'true')
@@ -215,7 +224,7 @@ def auv(world, arena, cameras, lane=1, lateral_offset=0.0, yaw=0.0, physical=Fal
     tag(odom, 'odom_publish_frequency', 30)
     if cameras:
         for name, pose in [('front', (0.32, 0, 0, 0, 0, 0)),
-                           ('bottom', (*BOTTOM_CAMERA_POSITION, 0, math.pi / 2, 0))]:
+                           ('bottom', (*BOTTOM_CAMERA_POSITION, 0, math.pi / 2 + (COMPACT_CAMERA_TILT if compact else 0.), 0))]:
             sensor = tag(link, 'sensor', name=f'camera_{name}', type='camera')
             tag(sensor, 'pose', numbers(pose))
             tag(sensor, 'always_on', 'true')
@@ -233,7 +242,7 @@ def auv(world, arena, cameras, lane=1, lateral_offset=0.0, yaw=0.0, physical=Fal
 
 
 def build_world(arena, cameras=True, lane=1, lateral_offset=0.0, yaw=0.0,
-                scene_variant=0, blue_drum=1, physical=False, fault='none', extended=False, pinger_drum=0, edition='2027', test_conditions=None):
+                scene_variant=0, blue_drum=1, physical=False, fault='none', extended=False, pinger_drum=0, edition='2027', test_conditions=None, prefer_pinger=False, compact=False):
     from sauvc_sim.conditions import conditions
     test_conditions=conditions(test_conditions)
     if not physical and any(test_conditions['current']+list(test_conditions['prior_error'])):
@@ -259,7 +268,9 @@ def build_world(arena, cameras=True, lane=1, lateral_offset=0.0, yaw=0.0,
     tag(world, 'plugin', filename=str(Path(__file__).parent / 'libsauvc_contact_monitor.so'),
         name='sauvc::ContactMonitor')
     if cameras:
-        tag(plugin(world, 'sensors', 'Sensors'), 'render_engine', 'ogre2')
+        sensors = tag(world, 'plugin', filename=str(Path(__file__).parent / 'libsauvc_sensors.so'),
+                      name='ignition::gazebo::systems::Sensors')
+        tag(sensors, 'render_engine', 'ogre2')
     scene = tag(world, 'scene')
     light_scale=test_conditions['light_scale']
     tag(scene, 'ambient', numbers([v*light_scale for v in (.65,.7,.75)]+[1]))
@@ -288,7 +299,7 @@ def build_world(arena, cameras=True, lane=1, lateral_offset=0.0, yaw=0.0,
         for key, value, kind in [('state', 'floating', 'string'), ('width', '5', 'double'),
                                  ('height', '5', 'double'), ('showTitleBar', 'false', 'bool')]:
             tag(appearance, 'property', value, key=key, type=kind)
-    if extended and arena!='finals': raise ValueError('extended tasks require finals')
+    if (extended or prefer_pinger) and arena!='finals': raise ValueError('extended tasks require finals')
     if pinger_drum==0: pinger_drum=next(i for i in range(1,5) if i!=blue_drum)
     if pinger_drum not in (1,2,3,4) or pinger_drum==blue_drum:
         raise ValueError('pinger must be in a red drum')
@@ -298,7 +309,11 @@ def build_world(arena, cameras=True, lane=1, lateral_offset=0.0, yaw=0.0,
     else:
         pool(world)
         props(world, arena,scene_variant,blue_drum)
-    auv(world, arena, cameras, lane, lateral_offset, yaw,physical,fault)
+    if compact:
+        if arena != 'finals' or not extended or edition != '2027':
+            raise ValueError('compact hull requires 2027 extended finals')
+        tag(world.find("plugin[@name='sauvc::ArenaPhysics']"), 'use_pickup_joint', 'false')
+    auv(world, arena, cameras, lane, lateral_offset, yaw,physical,fault,compact)
     if test_conditions['water_attenuation']:
         if not cameras:raise ValueError('water optics requires cameras')
         for name in ('front','bottom'):
@@ -320,7 +335,7 @@ def build_world(arena, cameras=True, lane=1, lateral_offset=0.0, yaw=0.0,
         # No collision geometry: this fixed support models the operator holding the AUV before thrust.
         pose=tuple(map(float,world.find("model[@name='sauvc_auv']/pose").text.split()))
         model(world,'sauvc_deployment_anchor',pose)
-    if extended:
+    if extended or prefer_pinger:
         model(world,'pinger_source',(24,(12.5,9.5,6.5,3.5)[pinger_drum-1],floor_z(24)+.15,0,0,0))
         if edition=='2027':
             from sauvc_sim.rules2027 import DRUM_U,DRUM_V,to_world,floor_z as depth2027
@@ -352,6 +367,11 @@ def build_world(arena, cameras=True, lane=1, lateral_offset=0.0, yaw=0.0,
         jaw_inertia=tag(jaw_mass,'inertia')
         for key in ('ixx','iyy','izz'):tag(jaw_inertia,key,.00001)
         part(jaw,f'pickup_finger_{i}',(0,0,-.075,0,0,0),'sphere',(.0035,),dark)
+        if compact:
+            part(jaw,f'pickup_lip_{i}',(0,-side*.003,-.078,0,0,0),'box',(.032,.012,.003),dark)
+            for end in (-1,1):
+                part(jaw,f'lip_end_{i}_{end}',(end*.016,-side*.003,-.070,0,0,0),
+                     'box',(.004,.012,.016),dark)
         for j,((y0,z0),(y1,z1)) in enumerate(zip(outline,outline[1:]+outline[:1])):
             y0*=side;y1*=side
             angle=-math.atan2(y1-y0,z1-z0)
@@ -369,7 +389,7 @@ def build_world(arena, cameras=True, lane=1, lateral_offset=0.0, yaw=0.0,
         tag(tag(axis,'dynamics'),'damping',.001)
         servo=plugin(vehicle,'joint-position-controller','JointPositionController')
         for name,value in [('joint_name',f'pickup_hinge_{i}'),('topic',f'/sauvc/gripper/{i}/target'),
-                           ('initial_position',0),('p_gain',.02),('i_gain',0),('d_gain',.001),
+                           ('initial_position',0),('p_gain',.3 if compact else .02),('i_gain',0),('d_gain',.008 if compact else .001),
                            ('cmd_max',.04),('cmd_min',-.04)]:tag(servo,name,value)
         part(carriage,f'pickup_ear_{i}',(0,side*.023,.025,0,0,0),'box',(.014,.022,.010),dark)
         part(carriage,f'pickup_pivot_{i}',(0,side*.030,.025,0,math.pi/2,0),'cylinder',(.006,.024),cyan)

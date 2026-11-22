@@ -196,6 +196,8 @@ Pemeriksa independen membaca odometri simulator dan kontak; envelope mencakup ba
 
 Stock Contact system Fortress hanya menerbitkan ketika benturan. Plugin kecil `contact_monitor.cc` membaca komponen kontak fisika hull dan juga menerbitkan frame kosong agar kesiapan serta putusnya sensor dapat diuji. Wrapper membangunnya sebelum colcon; `.so` hasil build tidak disimpan di Git. Plugin wajib tersedia untuk kedua arena.
 
+Plugin kamera workspace memakai implementasi Sensors dari Fortress 6.18.0 dengan satu mutex lokal yang melindungi penghentian thread render sampai `join()` selesai. Untuk menjalankan regresi dua pemanggil stop bersamaan dari folder `ros2_ws`, gunakan `bash tools/ros.sh python tools/build_contact_monitor.py --check-sensor-stop` saat simulator sudah ditutup. [Sumber upstream](https://github.com/gazebosim/gz-sim/tree/ignition-gazebo6_6.18.0/src/systems/sensors).
+
 Pada host campuran Ubuntu 24.04 / Fortress 22.04 ini, header Protobuf sistem 3.21 tidak cocok dengan binary Fortress ber-ABI 3.12. Header 3.12 diekstrak lokal ke `.native-deps/protobuf-3.12`; script memilih header tersebut dan `libprotobuf.so.23` yang sudah tersedia. Paket sistem tidak diganti. Pada Ubuntu 22.04 yang konsisten, header sistem dipakai langsung. Untuk menyiapkan ulang host campuran ini:
 
 ```bash

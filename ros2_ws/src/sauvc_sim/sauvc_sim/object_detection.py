@@ -162,6 +162,18 @@ def detect_objects(data, width, height, step, encoding='rgb8', camera='front', a
                     detections.append(candidate(colour+'_flare', part['bbox'], width, height,
                                                 area_px=part['area_px']))
     elif arena == 'finals':
+        r,g,b = (rgb[:,:,i] for i in range(3))
+        lo = np.minimum(np.minimum(r,g),b)
+        hi = np.maximum(np.maximum(r,g),b)
+        balls = []
+        for obj in components((lo > 110) & (hi-lo < 40), min_area=250):
+            l,t,r,b = obj['bbox']
+            w,h = r-l,b-t
+            if (0<l<r<width and 0<t<b<height and 18<=min(w,h)<=max(w,h)<=130
+                    and .8<=w/h<=1.25 and .65<obj['area_px']/(w*h)<.9):
+                balls.append(candidate('payload_ball',obj['bbox'],width,height))
+        if len(balls)==1:
+            detections.extend(balls)
         # shortcut: round coloured regions are drum candidates, not proof of a physical drum.
         for colour in ('blue','red'):
             for part in components(masks[colour]):

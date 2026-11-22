@@ -5,7 +5,7 @@ setup(
     name='sauvc_sim',
     version='0.1.0',
     packages=['sauvc_sim'],
-    package_data={'sauvc_sim': ['*.so', 'meshes/*.obj', 'meshes/*.mtl', 'meshes/*.json', 'pool_assets/*.obj', 'pool_assets/*.png']},
+    package_data={'sauvc_sim': ['*.so', 'fortress_sensors/LICENSE', 'meshes/*.obj', 'meshes/*.mtl', 'meshes/*.json', 'pool_assets/*.obj', 'pool_assets/*.png']},
     data_files=[
         ('share/ament_index/resource_index/packages', ['resource/sauvc_sim']),
         ('share/sauvc_sim', ['package.xml']),

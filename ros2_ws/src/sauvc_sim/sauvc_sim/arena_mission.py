@@ -3,7 +3,7 @@ import math
 from sauvc_sim.camera_geometry import CameraModel, to_world
 from sauvc_sim.referee import wrap
 from sauvc_sim.arena import floor_z, PICKUP_X, PICKUP_Z
-from sauvc_sim.vehicle_geometry import PICKUP_RIM_CLEARANCE
+from sauvc_sim.vehicle_geometry import COMPACT_CAMERA_TILT, COMPACT_RIM_CLEARANCE, PICKUP_RIM_CLEARANCE
 from sauvc_sim.rules2027 import floor_z as floor2027
 
 
@@ -19,7 +19,8 @@ def valid_order(value):
 
 
 class ArenaController:
-    def __init__(self, extended=False,edition='2026',physical=False):
+    def __init__(self, extended=False,edition='2026',physical=False,prefer_pinger=False,compact=False):
+        self.compact=compact
         self.physical=physical
         self.cruise_depth=-.3 if physical else -.12
         self.edition=edition
@@ -40,10 +41,19 @@ class ArenaController:
         self.aligned_since = None
         self.release = False
         self.scan = []
+        self.prefer_pinger=prefer_pinger or extended
+        self.selected_drum=None
         self.extended=extended
+        self.grasp_since=None
         self.grip=False
         self.acoustic_target=None
         self.acoustic_time=-math.inf
+        self.tilt_since=None
+        self.attitude=(0.,0.)
+        self.lowering=False
+        self.ball_fix_time=-math.inf
+        self.ball_fix_count=0
+        self.ball_fix=None
         self.acquisition_goal=None
 
     def change(self, state, t, reason=''):
@@ -54,9 +64,28 @@ class ArenaController:
     def observe(self, packet, pose):
         if not packet.get('fresh') or not packet.get('valid_image'):
             return
-        camera=CameraModel(packet.get('width',640),packet.get('height',480))
+        camera=CameraModel(packet.get('width',640),packet.get('height',480),
+                           bottom_tilt=COMPACT_CAMERA_TILT if self.compact else 0.)
         candidates={}
         for obj in packet['detections']:
+            if (self.compact and self.state in ('ALIGN_PICKUP','DESCEND_PICKUP')
+                    and packet.get('camera')=='bottom' and obj['label']=='payload_ball'
+                    and obj.get('confirmed')):
+                ray, origin = camera.ray(obj['center_px'],'bottom')
+                cr,sr=math.cos(self.attitude[0]),math.sin(self.attitude[0])
+                cp,sp=math.cos(self.attitude[1]),math.sin(self.attitude[1])
+                def level(vec):
+                    x,y,z=vec
+                    return (cp*x+sp*(sr*y+cr*z),cr*y-sr*z,-sp*x+cp*(sr*y+cr*z))
+                origin,ray=level(origin),level(ray)
+                if ray[2]>=-.1:continue
+                distance = (pose[2]+origin[2]+1.96)/(-ray[2])
+                point = to_world([o+distance*r for o,r in zip(origin,ray)],pose)
+                if distance>0 and math.dist(point[:2],self.acquisition_goal[:2])<.28:
+                    stamp=packet['stamp']
+                    self.ball_fix_time=stamp['sec']+stamp['nanosec']*1e-9
+                    self.ball_fix_count+=1
+                    self.ball_fix=point
             if not obj.get('confirmed') or 'position_body_m' not in obj:
                 continue
             label = obj['label']
@@ -113,7 +142,7 @@ class ArenaController:
             self.change('ABORT',t,judgement.get('reason','referee_failed'))
             return zero
         if self.started is None:
-            if self.extended and PICKUP_RIM_CLEARANCE<0:
+            if self.extended and (COMPACT_RIM_CLEARANCE if self.compact else PICKUP_RIM_CLEARANCE)<0:
                 self.change('ABORT',t,'fixed_gripper_unreachable');return zero
             self.started=t
             self.change('DIVE',t)
@@ -213,11 +242,14 @@ class ArenaController:
                 self.change('SCAN_DRUMS',t)
             return self.go(pose,self.goal,.7,depth=self.cruise_depth)
         if self.state == 'SCAN_DRUMS':
-            if self.extended and self.acoustic_target is not None:
+            if self.prefer_pinger and self.acoustic_target is not None and t-self.acoustic_time<=.5:
+                self.scan_resume_goal=self.goal
+                self.selected_drum='pinger'
                 self.goal=[*self.acoustic_target, self.cruise_depth]
                 self.change('ALIGN_DRUM',t)
                 return zero
             if not self.extended and 'blue_drum' in self.targets:
+                self.selected_drum='blue'
                 self.goal=list(self.targets['blue_drum'])
                 self.change('ALIGN_DRUM',t)
                 return zero
@@ -228,14 +260,26 @@ class ArenaController:
                 self.goal=self.scan.pop(0)
             return self.go(pose,self.goal,.15,depth=self.cruise_depth)
         if self.state == 'ALIGN_DRUM':
-            if self.extended:
+            if self.extended or self.selected_drum=='pinger':
+                if not self.extended and t-self.acoustic_time>.5:
+                    self.prefer_pinger=False
+                    self.selected_drum=None
+                    self.aligned_since=None
+                    self.goal=self.scan_resume_goal
+                    self.change('SCAN_DRUMS',t,'pinger_stale_use_blue');return zero
                 if t-self.acoustic_time>.5:
                     self.change('ABORT',t,'stale_acoustics');return zero
                 self.goal=[*self.acoustic_target,self.cruise_depth]
             else:self.goal=list(self.targets.get('blue_drum',self.goal))
             # Both loading and pickup use the centered gripper.
             dx,dy=self.goal[0]-(x+PICKUP_X*math.cos(yaw)),self.goal[1]-(y+PICKUP_X*math.sin(yaw))
-            if math.hypot(dx,dy) < .025:
+            drop_depth=self.cruise_depth
+            if self.compact:
+                if math.hypot(dx,dy)<.035 or self.lowering:
+                    self.lowering=True
+                    drop_depth=-2.+.39-PICKUP_Z
+            if math.hypot(dx,dy) < (.015 if self.compact else .025) and (
+                    not self.compact or abs(z-drop_depth)<.008):
                 if self.aligned_since is None: self.aligned_since=t
                 if t-self.aligned_since > 1:
                     self.acquisition_goal=list(self.goal)
@@ -246,9 +290,9 @@ class ArenaController:
             vx,vy=dx*.8,dy*.8
             return (max(-.2,min(.2,vx*math.cos(yaw)+vy*math.sin(yaw))),
                     max(-.2,min(.2,-vx*math.sin(yaw)+vy*math.cos(yaw))),
-                    max(-.2,min(.2,(self.cruise_depth-z)*1.5)),0.)
+                    max(-.2,min(.2,(drop_depth-z)*1.5)),0.)
         if self.state == 'WAIT_PAYLOAD':
-            if judgement.get('payload_acquired' if self.extended else 'payload_in_blue'):
+            if judgement.get('payload_acquired' if self.extended else ('payload_in_pinger' if self.selected_drum=='pinger' else 'payload_in_blue')):
                 if self.extended:
                     if self.edition=='2027':
                         self.goal=[20.3,self.acquisition_goal[1]]
@@ -258,7 +302,7 @@ class ArenaController:
                     self.change('TO_REACQUISITION_GATE',t)
                 else:self.change('TO_SQUARE',t) if self.edition=='2027' else self.change('SURFACE',t)
             elif t-self.since > 8:
-                self.change('ABORT',t,'payload_not_inside_blue_drum')
+                self.change('ABORT',t,'payload_not_inside_selected_drum')
             return zero
         if self.state=='EXIT_TARGET_ZONE':
             if judgement.get('target_zone_exited'):
@@ -300,24 +344,68 @@ class ArenaController:
                 self.aligned_since=None;self.change('ALIGN_PICKUP',t)
             return self.go(pose,self.goal,.65,depth=self.cruise_depth)
         if self.state in ('ALIGN_PICKUP','DESCEND_PICKUP','LIFT_PICKUP'):
-            if PICKUP_RIM_CLEARANCE<0:
+            if (COMPACT_RIM_CLEARANCE if self.compact else PICKUP_RIM_CLEARANCE)<0:
                 self.change('ABORT',t,'fixed_gripper_unreachable');return zero
             dx,dy=self.goal[0]-(x+PICKUP_X*math.cos(yaw)),self.goal[1]-(y+PICKUP_X*math.sin(yaw))
-            if self.state=='ALIGN_PICKUP' and math.hypot(dx,dy)<.012:
+            if self.compact and self.state!='LIFT_PICKUP':
+                if self.state=='DESCEND_PICKUP' and not self.grip and t-self.ball_fix_time>.5:
+                    if t-self.ball_fix_time>3.:
+                        self.change('ABORT',t,'pickup_ball_track_lost')
+                    return zero
+                if self.ball_fix is None:
+                    survey=-2.+.39-PICKUP_Z
+                    if t-self.since>40:
+                        self.change('ABORT',t,'pickup_ball_not_visible');return zero
+                    # Stay above the rim while searching from the acquisition location.
+                    return (max(-.1,min(.1,(dx*math.cos(yaw)+dy*math.sin(yaw)))),
+                            max(-.1,min(.1,(-dx*math.sin(yaw)+dy*math.cos(yaw)))),
+                            max(-.10,min(.10,survey-z)),0.)
+                self.goal=list(self.ball_fix)
+                dx,dy=self.goal[0]-x,self.goal[1]-y
+            if (self.state=='ALIGN_PICKUP' and math.hypot(dx,dy)<.012 and
+                    (not self.compact or (abs(z-(-2.+.39-PICKUP_Z))<.012 and t-self.ball_fix_time<.3))):
                 self.change('DESCEND_PICKUP',t)
             if self.state=='DESCEND_PICKUP':
-                self.grip=True
+                if self.compact:
+                    if abs(z-(-2.+.08-PICKUP_Z))<.002 and math.hypot(dx,dy)<.003:
+                        if self.aligned_since is None:self.aligned_since=t
+                        if t-self.aligned_since>.4:self.grip=True
+                    else:self.aligned_since=None
+                else:self.grip=True
                 if judgement.get('payload_grasped'):
-                    self.change('LIFT_PICKUP',t)
-                elif t-self.since>15:
+                    if self.grasp_since is None:self.grasp_since=t
+                    if not self.compact or t-self.grasp_since>=2.:
+                        self.change('LIFT_PICKUP',t)
+                    else:return zero
+                elif t-self.since>(45 if self.compact else 15):
                     self.change('ABORT',t,'pickup_not_proven');return zero
+                else:self.grasp_since=None
+            if self.compact and self.state=='LIFT_PICKUP' and not judgement.get('payload_grasped'):
+                self.change('ABORT',t,'pickup_lost_during_lift');return zero
             if self.state=='LIFT_PICKUP' and z>(self.cruise_depth-.06 if self.physical else -.3):
+                if self.compact and not judgement.get('payload_retrieved'):
+                    self.change('ABORT',t,'pickup_lift_unverified');return zero
                 self.change('TO_SQUARE' if self.edition=='2027' else 'SURFACE',t);return zero
             # A 2 mm contact approach makes the roof touch the ball before settling.
-            depth=self.cruise_depth if self.state in ('ALIGN_PICKUP','LIFT_PICKUP') else (-2. if self.edition=='2027' else floor_z(self.goal[0]))-PICKUP_Z+.038
+            depth=self.cruise_depth if self.state in ('ALIGN_PICKUP','LIFT_PICKUP') else (-2. if self.edition=='2027' else floor_z(self.goal[0]))-PICKUP_Z+(.08 if self.compact else .038)
+            if self.compact and self.state=='ALIGN_PICKUP':
+                depth=-2.+.39-PICKUP_Z
+            vz=max(-.12,min(.12,(depth-z)*1.5))
+            if self.compact and self.state=='LIFT_PICKUP':
+                vz=min(.08,vz)
+            if self.compact and self.state=='DESCEND_PICKUP':
+                if z-depth<.24:
+                    vz=max(-.04,vz)
+                if max(map(abs,self.attitude))>math.radians(8):
+                    if self.tilt_since is None:self.tilt_since=t
+                    if t-self.tilt_since>.5:
+                        self.change('ABORT',t,'pickup_excess_tilt');return zero
+                    vz=0.
+                else:self.tilt_since=None
+                if math.hypot(dx,dy)>.015:vz=max(0.,vz)
             return (max(-.12,min(.12,(dx*math.cos(yaw)+dy*math.sin(yaw))*.8)),
                     max(-.12,min(.12,(-dx*math.sin(yaw)+dy*math.cos(yaw))*.8)),
-                    max(-.12,min(.12,(depth-z)*1.5)),0.)
+                    vz,0.)
         if self.state == 'SURFACE':
             if z >= -.055:
                 self.change('STOP',t)

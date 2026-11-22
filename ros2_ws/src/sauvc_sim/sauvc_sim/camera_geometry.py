@@ -14,6 +14,7 @@ class CameraModel:
     width: int = 640
     height: int = 480
     hfov: float = 1.22173
+    bottom_tilt: float = 0.
 
     def __post_init__(self):
         if self.width <= 0 or self.height <= 0 or not 0 < self.hfov < math.pi:
@@ -34,7 +35,8 @@ class CameraModel:
         if camera == 'front':
             return (1., -a, -b), (.32, 0., 0.)
         if camera == 'bottom':
-            return (-b, -a, -1.), BOTTOM_CAMERA_POSITION
+            c,s=math.cos(self.bottom_tilt),math.sin(self.bottom_tilt)
+            return (-c*b-s, -a, s*b-c), BOTTOM_CAMERA_POSITION
         raise ValueError('unknown camera')
 
     def pixel(self, point, camera):
@@ -43,7 +45,8 @@ class CameraModel:
             depth, a, b = x-.32, -y, -z
         elif camera == 'bottom':
             ox,oy,oz=BOTTOM_CAMERA_POSITION
-            depth, a, b = oz-z, oy-y, ox-x
+            c,s=math.cos(self.bottom_tilt),math.sin(self.bottom_tilt)
+            depth, a, b = s*(ox-x)+c*(oz-z), oy-y, c*(ox-x)-s*(oz-z)
         else:
             raise ValueError('unknown camera')
         if depth <= 0:

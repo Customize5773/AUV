@@ -460,6 +460,14 @@
 		},
 		{
 			"isExternal" : true,
+			"path" : "/opt/ros/humble/share/ament_cmake_core/cmake/ament_cmake_coreConfig-version.cmake"
+		},
+		{
+			"isExternal" : true,
+			"path" : "/opt/ros/humble/share/ament_cmake_core/cmake/ament_cmake_coreConfig.cmake"
+		},
+		{
+			"isExternal" : true,
 			"path" : "/opt/ros/humble/share/ament_cmake_python/cmake/ament_python_install_module.cmake"
 		},
 		{

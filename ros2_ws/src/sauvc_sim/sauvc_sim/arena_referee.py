@@ -8,8 +8,15 @@ from sauvc_sim.arena_layout import layout
 from sauvc_sim.arena_scoring import ArenaScore
 
 
+MISSION_STATUS_FIELDS = (
+    'phase', 'reason', 'navigation_passed', 'fallen_flares', 'payload_in_blue',
+    'payload_in_pinger', 'payload_acquired', 'payload_grasped', 'reacquisition_crossed',
+    'payload_retrieved', 'target_zone_exited', 'passed',
+)
+
+
 class ArenaJudge:
-    def __init__(self, order='B-R-Y', scene_variant=0, blue_drum=1, extended=False, pinger_drum=0,edition='2026',physical=False):
+    def __init__(self, order='B-R-Y', scene_variant=0, blue_drum=1, extended=False, pinger_drum=0,edition='2026',physical=False,prefer_pinger=False):
         self.physical=physical
         self.edition=edition
         self.square_contact=False
@@ -26,9 +33,10 @@ class ArenaJudge:
         self.square_center=SQUARE
         if blue_drum not in (1,2,3,4): raise ValueError('invalid blue drum index')
         self.blue_drum=blue_drum-1
+        self.prefer_pinger=prefer_pinger
         self.extended=extended
         if pinger_drum==0:pinger_drum=next(i for i in range(1,5) if i!=blue_drum)
-        self.score=ArenaScore(self.order,self.blue_drum,pinger_drum-1 if extended else None,edition=edition)
+        self.score=ArenaScore(self.order,self.blue_drum,pinger_drum-1 if extended or prefer_pinger else None,edition=edition)
         self.payload_acquired=False
         self.payload_grasped=False
         self.payload_retrieved=False
@@ -114,7 +122,7 @@ class ArenaJudge:
         elif zh>=0:
             self.score.finish(t,'surface',square=self.square_inside and not self.square_contact)
             if not (self.navigation and len(self.fallen)==3 and
-                    (self.payload_acquired and self.payload_retrieved if self.extended else self.payload_in_blue)):
+                    self.drop_task_complete()):
                 self.fail('premature_surface',t);return
             if not self.surface:
                 self.surface=True;self.event('SURFACE',t)
@@ -199,20 +207,24 @@ class ArenaJudge:
             bx,bz=bx*math.cos(pitch)+bz*math.sin(pitch),-bx*math.sin(pitch)+bz*math.cos(pitch)
             point=(pose[0]+bx*math.cos(yaw)-by*math.sin(yaw),
                    pose[1]+bx*math.sin(yaw)+by*math.cos(yaw),pose[2]+bz)
-            attached=bool(data.get('payload_attached')) and math.dist((x,y,z),point)<.075
-            self.payload_grasped=attached and self.score.retrieval_crossing
+            joint=bool(data.get('payload_attached'))
+            contact_grip=data.get('unlatched_bilateral_grip') is True
+            near_tool=math.dist((x,y,z),point)<.075
+            self.payload_grasped=(joint or contact_grip) and near_tool and self.score.retrieval_crossing
             if self.payload_grasped:
                 if self.grasp_since is None:
                     self.grasp_since=t;self.event('PAYLOAD_GRASPED',t,position=[x,y,z])
-                if t-self.grasp_since>.5 and not self.payload_retrieved:
-                    self.payload_retrieved=True
-                    self.score.award('retrieval',t,ball_id='payload',held=True)
             else:
                 self.grasp_since=None
-                if self.payload_retrieved:
+            # For contact-only grasp, the ball must also clear the drum rim.
+            rim_z=(-2. if self.edition=='2027' else floor_z(24))+.32
+            retained=(self.grasp_since is not None and t-self.grasp_since>.5
+                      and (joint or z-.02>rim_z))
+            if retained!=self.payload_retrieved:
+                if not retained:
                     self.event('PAYLOAD_RETENTION_LOST',t)
-                    self.score.award('retrieval',t,ball_id='payload',held=False)
-                self.payload_retrieved=False
+                self.payload_retrieved=retained
+                self.score.award('retrieval',t,ball_id='payload',held=retained)
         if drum is not None and self.first_drum is None:
             self.first_drum=drum;self.event('FIRST_PAYLOAD_INSIDE_DRUM',t,drum=drum+1,position=[x,y,z])
         if drum==self.blue_drum and self.first_drum==self.blue_drum and self.navigation and len(self.fallen)==3:
@@ -222,15 +234,23 @@ class ArenaJudge:
         else:
             self.inside_since=None
 
+    def payload_in_pinger(self):
+        return self.score.acquisition is not None and self.score.acquisition==self.score.pinger_drum
+
+    def drop_task_complete(self):
+        if self.extended:
+            return self.payload_acquired and self.payload_retrieved
+        return self.payload_in_blue or (self.prefer_pinger and self.payload_in_pinger())
+
     def result(self):
         return dict(rulebook=VERSION if self.edition=='2027' else '2026 v6.1.0',
                     coordinate_frame='arena_UV' if self.edition=='2027' else 'world',
                     target_zone_exited=self.score.retrieval_crossing if self.edition=='2027' else False,
-                    payload_acquired=self.payload_acquired,payload_grasped=self.payload_grasped,
+                    payload_in_pinger=self.payload_in_pinger(),payload_acquired=self.payload_acquired,payload_grasped=self.payload_grasped,
                     payload_retrieved=self.payload_retrieved,reacquisition_crossed=self.edition=='2026' and self.score.retrieval_crossing,
                     score=self.score.result(),scoring_policy='rulebook_penalties' if self.edition=='2027' else 'strict_training_abort',phase=self.phase,reason=self.reason,navigation_passed=self.navigation,
                     fallen_flares=self.fallen,payload_in_blue=self.payload_in_blue,
                     surface_completed=self.surface,stopped=self.stopped,
                     passed=self.phase!='FAILED' and self.navigation and len(self.fallen)==3
-                           and (self.payload_acquired and self.payload_retrieved if self.extended else self.payload_in_blue) and self.surface and self.stopped,
+                           and self.drop_task_complete() and self.surface and self.stopped,
                     events=self.events)

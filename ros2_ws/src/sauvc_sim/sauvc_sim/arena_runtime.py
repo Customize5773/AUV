@@ -17,7 +17,7 @@ from ros_gz_interfaces.msg import Contacts
 from std_msgs.msg import String, Bool
 
 from sauvc_sim.arena_mission import ArenaController, valid_order, level_rates
-from sauvc_sim.arena_referee import ArenaJudge
+from sauvc_sim.arena_referee import ArenaJudge, MISSION_STATUS_FIELDS
 from sauvc_sim.runtime import STATUS_QOS, values, preflight_timed_out
 from sauvc_sim.camera_geometry import PoseHistory
 from sauvc_sim.acoustics import AcousticTracker
@@ -43,7 +43,10 @@ class ArenaRuntime(Node):
         self.surface_hold=self.get_parameter('surface_hold').value
         self.declare_parameter('extended',False)
         self.extended=self.get_parameter('extended').value
-        self.ctrl=ArenaController(extended=self.extended,edition=self.edition,physical=self.physical)
+        self.declare_parameter('prefer_pinger',False)
+        self.prefer_pinger=self.get_parameter('prefer_pinger').value
+        self.ctrl=ArenaController(extended=self.extended,edition=self.edition,physical=self.physical,prefer_pinger=self.prefer_pinger,
+                                  compact=self.declare_parameter('compact',False).value)
         self.acoustic=AcousticTracker(bounds=(0.,25.,-8.,42.) if self.edition=='2027' else (0.,25.,0.,16.))
         if referee:
             self.declare_parameter('scene_variant',0)
@@ -51,7 +54,7 @@ class ArenaRuntime(Node):
             self.declare_parameter('pinger_drum',0)
             self.judge=ArenaJudge(self.order,self.get_parameter('scene_variant').value,
                                   self.get_parameter('blue_drum').value,self.extended,
-                                  self.get_parameter('pinger_drum').value,edition=self.edition,physical=self.physical)
+                                  self.get_parameter('pinger_drum').value,edition=self.edition,physical=self.physical,prefer_pinger=self.prefer_pinger)
         self.pose=None
         self.attitude=(0.,0.)
         self.t=0.
@@ -89,7 +92,7 @@ class ArenaRuntime(Node):
         else:
             self.create_subscription(String,'/sauvc/arena/status' if self.physical else '/sauvc/arena/result',self.result,STATUS_QOS)
             self.create_subscription(String,'/sauvc/arena/flare_order',self.order_received,STATUS_QOS)
-            if self.extended:self.create_subscription(String,'/sauvc/acoustics',self.ping,10)
+            if self.extended or self.prefer_pinger:self.create_subscription(String,'/sauvc/acoustics',self.ping,10)
             for camera in ('front','bottom'):
                 self.create_subscription(String,'/sauvc/perception/'+camera,
                                          lambda m,c=camera:self.perception(m,c),1)
@@ -136,6 +139,7 @@ class ArenaRuntime(Node):
         yaw=math.atan2(2*(q.w*q.z+q.x*q.y),1-2*(q.y*q.y+q.z*q.z))
         self.attitude=(math.atan2(2*(q.w*q.x+q.y*q.z),1-2*(q.x*q.x+q.y*q.y)),
                        math.asin(max(-1.,min(1.,2*(q.w*q.y-q.z*q.x)))))
+        self.ctrl.attitude=self.attitude
         self.pose=(p.x,p.y,p.z,yaw)
         if self.edition=='2027':self.pose=to_local(self.pose)
         self.pose_history.add(msg.header.stamp.sec+msg.header.stamp.nanosec*1e-9,self.pose)
@@ -186,9 +190,7 @@ class ArenaRuntime(Node):
 
     def result(self,msg):
         packet=json.loads(msg.data)
-        self.judgement={key:packet[key] for key in
-                        ('phase','reason','navigation_passed','fallen_flares','payload_in_blue','payload_acquired','payload_grasped','reacquisition_crossed','payload_retrieved','target_zone_exited','passed')
-                        if key in packet}
+        self.judgement={key:packet[key] for key in MISSION_STATUS_FIELDS if key in packet}
         self.received['referee']=time.monotonic()
 
     def order_received(self,msg):
@@ -224,7 +226,7 @@ class ArenaRuntime(Node):
             result=self.judge.result()
             result['stop_mode']='surface_hold' if self.surface_hold else 'motor_off'
             self.report.publish(String(data=json.dumps(result)))
-            if self.status_pub:self.status_pub.publish(String(data=json.dumps({key:result[key] for key in ('phase','reason','navigation_passed','fallen_flares','payload_in_blue','payload_acquired','payload_grasped','reacquisition_crossed','payload_retrieved','target_zone_exited','passed')})))
+            if self.status_pub:self.status_pub.publish(String(data=json.dumps({key:result[key] for key in MISSION_STATUS_FIELDS})))
             if self.judge.navigation: self.order_pub.publish(String(data=self.order))
             if result['passed'] or result['phase']=='FAILED': self.save('-referee',result)
             return
@@ -256,8 +258,10 @@ class ArenaRuntime(Node):
             self.save('-controller',dict(state=ctrl.state,reason=ctrl.reason,history=ctrl.history,
                                         state_source='pressure_gyro_magnetometer_dvl' if self.physical else 'ground_truth',
                                         targets=ctrl.targets,order=ctrl.order,release_sent=self.release_sent,
+                                        pickup_ball_fix=ctrl.ball_fix,pickup_fix_time=ctrl.ball_fix_time if ctrl.ball_fix_count else None,
+                                        pickup_fix_count=ctrl.ball_fix_count,
                                         acoustic_target=ctrl.acoustic_target,acoustic_rays=len(self.acoustic.rays),
-                                        extended=self.extended,grip_requested=ctrl.grip))
+                                        selected_drum=ctrl.selected_drum,extended=self.extended,grip_requested=ctrl.grip))
 
 
 def run(referee=False):

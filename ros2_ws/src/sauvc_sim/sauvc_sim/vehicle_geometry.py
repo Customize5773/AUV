@@ -16,6 +16,12 @@ PICKUP_X=0.
 PICKUP_Z=-.21
 # Settled ball center 4 cm above floor; drum rim 32 cm above floor.
 PICKUP_RIM_CLEARANCE=.04-PICKUP_Z+HULL_MIN[2]-.32
+COMPACT_SPLIT_Z = .075
+COMPACT_RADIUS = .24999
+# Vertical gap at the upper shoulder and radial gap for a 2 cm approach offset.
+COMPACT_RIM_CLEARANCE = min(.04-PICKUP_Z+COMPACT_SPLIT_Z-.32,
+                            .28-COMPACT_RADIUS-.02)
+COMPACT_CAMERA_TILT = .72
 BOTTOM_CAMERA_POSITION=(.16,0.,-.12)
 STOWED_CORNERS=HULL_CORNERS+tuple(product((PICKUP_X-.062,PICKUP_X+.062),(-.062,.062),(PICKUP_Z-.054,-.09)))
 
