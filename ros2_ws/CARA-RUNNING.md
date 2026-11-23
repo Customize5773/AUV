@@ -74,7 +74,7 @@ PICKUP_DROP_CASE=3 PICKUP_OFFSET_MM=20 IGN_PARTITION=sauvc_pickup_square ROS_DOM
 ```
 
 
-Gripper pendek saat ini memiliki clearance pickup −17 cm. `autonomous:=true extended:=true` ditolak dengan `fixed_gripper_unreachable` sebelum bergerak. Untuk melihat arena/pinger tanpa menjalankan misi:
+Pada badan default, gripper pendek memiliki clearance pickup −17 cm. Untuk badan kompak gunakan profil di bagian akhir panduan. `autonomous:=true extended:=true` ditolak dengan `fixed_gripper_unreachable` sebelum bergerak. Untuk melihat arena/pinger tanpa menjalankan misi:
 
 ```bash
 cd /home/rasya/AUV/ros2_ws
@@ -309,8 +309,16 @@ Bukti optik sebelum revisi gripper fixed: profil ringan 0,025/m dan dua fixture 
 
 ### Uji integrasi badan kompak dari starting zone
 
-Jalankan dari folder `ros2_ws`. Profil eksperimen ini memakai badan bawah radius 25 cm dan gripper tetap 8 cm. Pemeriksa merekam hasil misi termasuk alasan abort.
+Jalankan dari folder `ros2_ws`. Profil ini memakai badan bawah radius 25 cm dan gripper tetap 8 cm. Hasil lengkap tersimpan di berkas keluaran. Periksa `passed`, `extended_proof`, `physical_retention`, `surfacing_square_verified` dan `shutdown_clean`. [Run penerimaan drum pinger 3 dengan pengukuran kamera](evidence/compact-start/visual-yaw-aCjx/mission.json).
 
 ```bash
 bash tools/ros.sh python tools/check_arena.py --compact --extended --vehicle-model dynamic --pinger-drum 3 --output evidence/compact-start/local/mission.json
 ```
+
+Untuk menonton lintasan yang sama di Gazebo dengan POV depan dan bawah berlabel, tambahkan `--gui --pov`. Gunakan folder baru agar laporan headless sebelumnya tetap tersedia.
+
+```bash
+bash tools/ros.sh python tools/check_arena.py --compact --extended --vehicle-model dynamic --pinger-drum 3 --gui --pov --output evidence/compact-start/local-gui/mission.json
+```
+
+Sebagai pembanding saat menonton, [grafik run headless](evidence/compact-start/visual-yaw-aCjx/misi-lengkap.png) menampilkan lintasan AUV serta tinggi gripper dan bola sejak release hingga stop.

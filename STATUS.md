@@ -1,6 +1,6 @@
 # Posisi kita — simulasi ROS SAUVC
 
-Diperbarui **23 November 2026**. Ini ringkasan utama untuk mengikuti progres; laporan bernomor menyimpan rincian dan bukti historis.
+Diperbarui **24 November 2026**. Ini ringkasan utama untuk mengikuti progres; laporan bernomor menyimpan rincian dan bukti historis.
 
 **Tujuan:** menguji misi autonomous berdasarkan rulebook sebelum dipindahkan ke AUV nyata. Kualifikasi mengejar waktu tercepat dengan pelintasan yang sah; ARENA menyelesaikan tugas dan skor. Bukti saat ini masih pada simulator.
 
@@ -9,6 +9,12 @@ Diperbarui **23 November 2026**. Ini ringkasan utama untuk mengikuti progres; la
 [Unduh PNG](doc/diagrams/status-simulasi-sauvc.png) · [SVG untuk diperbesar](doc/diagrams/status-simulasi-sauvc.svg) · [Sumber diagram](doc/diagrams/status-simulasi-sauvc.dot)
 
 **Rulebook: halaman resmi dicek 19 November tetap 2027.3.2.** Pemeriksaan repo/arsip pada 18 November: versi publik tetap 2027.3.2 (30 Oktober), repo resmi identik dengan arsip; tidak ada migrasi aturan baru. [Bukti](doc/sources/rulebook-check-20261118.json).
+
+## Penerimaan ARENA extended dari starting zone, drum pinger 3
+
+ARENA extended telah mencapai DONE dari starting zone dengan badan kompak dan gripper tetap 8 cm. Pada seed 42, varian kamera bawah memperkirakan posisi relatif bola dan pusat drum, mengatur arah hadap, mengambil kembali bola yang sama, lalu membawanya ke Surfacing Square. Skor simulator 289,05858, waktu thrust–surface 264,714 s dan penalti nol. Setelah kredit retrieval, 1.389 frame fisika berturut-turut mencatat kontak jari tanpa fixed joint. Ulangan seed sensor 91 juga mencapai DONE, dengan skor 289,19604, waktu thrust–surface 260,132 s dan penalti 0. Kedua run dengan kode kamera bawah yang sama lulus pada drum pinger 3. Varian sebelumnya berbasis pusat akustik juga lulus satu run. [Grafik lintasan dan pengangkatan bola](ros2_ws/evidence/compact-start/visual-yaw-aCjx/misi-lengkap.png) · [Ringkasan penerimaan](ros2_ws/evidence/compact-start/visual-yaw-aCjx/verification.json) · [Cara mengulang](ros2_ws/CARA-RUNNING.md) · [Laporan 83](plan/83-pickup-live-dan-transfer-square.md).
+
+Pada drum pinger 4, satu run seed 42 juga lulus dengan skor 289,34658, thrust–surface 255,114 s dan penalti nol. Bola berada 2,82 cm dari pusat drum saat AUV mulai turun. Uji terpisah pada offset 25 cm mengonfirmasi benturan badan dengan bibir drum sebelum mencapai tinggi pickup. [Penerimaan drum 4](ros2_ws/evidence/compact-start/pinger4-0TUZ/mission.json) · [Uji dekat dinding](ros2_ws/evidence/compact-start/pinger4-0TUZ/hull-descent-250mm/result.json).
 
 ## Pickup dengan kamera live dan tujuh thruster, 23 November
 

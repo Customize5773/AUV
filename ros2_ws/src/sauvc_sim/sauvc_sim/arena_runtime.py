@@ -57,6 +57,7 @@ class ArenaRuntime(Node):
                                   self.get_parameter('pinger_drum').value,edition=self.edition,physical=self.physical,prefer_pinger=self.prefer_pinger)
         self.pose=None
         self.attitude=(0.,0.)
+        self.release_velocity=(0.,0.,0.)
         self.t=0.
         self.first_clock=None
         self.received={}
@@ -139,6 +140,11 @@ class ArenaRuntime(Node):
         yaw=math.atan2(2*(q.w*q.z+q.x*q.y),1-2*(q.y*q.y+q.z*q.z))
         self.attitude=(math.atan2(2*(q.w*q.x+q.y*q.z),1-2*(q.x*q.x+q.y*q.y)),
                        math.asin(max(-1.,min(1.,2*(q.w*q.y-q.z*q.x)))))
+        v=msg.twist.twist.linear
+        # Filter signed DVL velocity before taking the norm for the settling check.
+        self.release_velocity=tuple(.85*old+.15*new for old,new in zip(
+            self.release_velocity,(v.x,v.y,v.z)))
+        self.ctrl.estimated_speed=math.hypot(*self.release_velocity)
         self.ctrl.attitude=self.attitude
         self.pose=(p.x,p.y,p.z,yaw)
         if self.edition=='2027':self.pose=to_local(self.pose)
@@ -259,7 +265,7 @@ class ArenaRuntime(Node):
                                         state_source='pressure_gyro_magnetometer_dvl' if self.physical else 'ground_truth',
                                         targets=ctrl.targets,order=ctrl.order,release_sent=self.release_sent,
                                         pickup_ball_fix=ctrl.ball_fix,pickup_fix_time=ctrl.ball_fix_time if ctrl.ball_fix_count else None,
-                                        pickup_fix_count=ctrl.ball_fix_count,
+                                        pickup_fix_count=ctrl.ball_fix_count,pickup_alignment=ctrl.pickup_alignment,
                                         acoustic_target=ctrl.acoustic_target,acoustic_rays=len(self.acoustic.rays),
                                         selected_drum=ctrl.selected_drum,extended=self.extended,grip_requested=ctrl.grip))
 

@@ -85,7 +85,22 @@ def striped_posts(parts):
     return [s for s in stacks if s['stripes'] >= 2 and s['bbox'][3]-s['bbox'][1] >= 15]
 
 
-def detect_objects(data, width, height, step, encoding='rgb8', camera='front', arena='finals'):
+def drum_floor_edge(rgb, red):
+    # Sample the bright base to shaded inner-wall transition across the drum.
+    xs=np.arange(4,rgb.shape[1]-4,10)
+    levels=rgb[:,xs,0].astype(float)
+    mask=red[:,xs]
+    edge=(mask[:-5]&mask[5:]&(levels[:-5]>1.5*levels[5:])&(levels[:-5]>150))
+    points=[]
+    for i,x in enumerate(xs):
+        ys=np.flatnonzero(edge[:,i])
+        if len(ys) and ys[-1]>6:
+            points.append([int(x),int(ys[-1]+2)])
+    return points
+
+
+def detect_objects(data, width, height, step, encoding='rgb8', camera='front', arena='finals',
+                   pickup_geometry=False):
     if camera not in ('front', 'bottom') or arena not in ('qualification', 'finals'):
         raise ValueError('unknown camera or arena')
     rgb = decode_rgb(data, width, height, step, encoding)
@@ -173,6 +188,8 @@ def detect_objects(data, width, height, step, encoding='rgb8', camera='front', a
                     and .8<=w/h<=1.25 and .65<obj['area_px']/(w*h)<.9):
                 balls.append(candidate('payload_ball',obj['bbox'],width,height))
         if len(balls)==1:
+            if pickup_geometry:
+                balls[0]['drum_floor_edge_px']=drum_floor_edge(rgb,masks['red'])
             detections.extend(balls)
         # shortcut: round coloured regions are drum candidates, not proof of a physical drum.
         for colour in ('blue','red'):

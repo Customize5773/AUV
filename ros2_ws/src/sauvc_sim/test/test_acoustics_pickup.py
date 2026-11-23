@@ -295,11 +295,22 @@ def test_compact_release_needs_low_pose_and_pickup_needs_visible_ball():
     assert command(1.,-.3)[2]<0
     command(3.,-.3)
     assert not ctrl.release
-    command(4.,-1.4)
-    command(5.1,-1.4)
+    ctrl.estimated_speed=.04
+    command(3.2,-1.68)
+    assert ctrl.aligned_since is None and not ctrl.release
+    ctrl.estimated_speed=0.
+    command(4.,-1.68)
+    command(5.1,-1.68)
+    assert ctrl.state=='BRAKE_RELEASE' and not ctrl.release
+    command(7.2,-1.68)
     assert ctrl.release
-    ctrl.change('ALIGN_PICKUP',6.)
-    command(47.,-1.4)
+    ctrl.command((22.,17.,-1.68,0.),7.3,{'payload_acquired':True})
+    assert ctrl.state=='CLEAR_DRUM'
+    assert command(7.4,-1.5)==(0.,0.,.10,0.)
+    command(7.9,-1.19)
+    assert ctrl.state=='EXIT_TARGET_ZONE'
+    ctrl.change('ALIGN_PICKUP',8.)
+    command(49.,-1.4)
     assert ctrl.reason=='pickup_ball_not_visible'
     assert not ctrl.grip
 
@@ -335,3 +346,67 @@ def test_compact_lift_requires_sustained_grasp_and_retention():
     assert ctrl.state=='LIFT_PICKUP'
     assert ctrl.command(pose,3.2,{})==(0.,0.,0.,0.)
     assert ctrl.reason=='pickup_lost_during_lift'
+
+
+def test_compact_brake_rejects_persistent_lateral_drift():
+    ctrl=ArenaController(extended=True,edition='2027',physical=True,compact=True)
+    ctrl.started=ctrl.aligned_since=0.
+    ctrl.acquisition_goal=ctrl.brake_origin=(22.,17.)
+    ctrl.change('BRAKE_RELEASE',0.)
+    for tick in range(2,13,2):
+        assert ctrl.command((22.+.002*tick,17.,-1.68,0.),tick,{})==(0.,0.,0.,0.)
+        assert not ctrl.release
+    ctrl.command((22.024,17.,-1.68,0.),12.1,{})
+    assert ctrl.reason=='release_motion_not_settled'
+
+
+def test_pickup_heading_keeps_long_axis_tangent_and_chooses_shorter_turn():
+    from sauvc_sim.arena_mission import pickup_heading
+    assert abs(pickup_heading((0.,-.034),(0.,0.),.4))<1e-9
+    assert abs(pickup_heading((0.,-.034),(0.,0.),3.)-math.pi)<1e-9
+    assert pickup_heading((0.,.002),(0.,0.),1.3)==1.3
+
+
+def test_drum_center_requires_curved_arc_of_inner_radius():
+    from sauvc_sim.arena_mission import drum_center
+    points=[(1+.28*math.cos(i*.09),2+.28*math.sin(i*.09)) for i in range(32)]
+    assert math.dist(drum_center(points),(1.,2.))<1e-9
+    assert drum_center([(i*.02,2.) for i in range(32)]) is None
+    assert drum_center([(x*2,y*2) for x,y in points]) is None
+
+
+def test_compact_descent_waits_for_measured_heading():
+    c=ArenaController(extended=True,edition='2027',physical=True,compact=True)
+    c.started=0.
+    c.change('ALIGN_PICKUP',2.)
+    c.goal=c.ball_fix=[22.,16.97,-1.96]
+    c.acquisition_goal=[22.,17.]
+    c.visual_drum_center=[22.,17.]
+    c.ball_fix_time=3.
+    cmd=c.command((22.,16.97,-1.4,.5),3.,{})
+    assert c.state=='ALIGN_PICKUP' and cmd[3]<0
+    assert c.pickup_alignment['source']=='bottom_camera'
+    c.command((22.,16.97,-1.4,0.),3.1,{})
+    assert c.state=='DESCEND_PICKUP'
+
+
+def test_pickup_clearance_includes_measurement_margin():
+    from sauvc_sim.arena_mission import pickup_clearance
+    assert pickup_clearance((0.,0.),(0.,0.),0.)>0
+    assert pickup_clearance((0.,-.034),(0.,0.),0.)>0
+    assert pickup_clearance((0.,-.045),(0.,0.),0.)<0
+    assert all(pickup_clearance((.25,0.),(0.,0.),i*math.pi/180)<0 for i in range(360))
+
+
+def test_near_wall_pickup_reobserves_then_aborts_above_rim():
+    c=ArenaController(extended=True,edition='2027',physical=True,compact=True)
+    c.started=0.
+    c.change('ALIGN_PICKUP',1.)
+    c.goal=c.ball_fix=[22.,16.75,-1.96]
+    c.acquisition_goal=c.visual_drum_center=[22.,17.]
+    for t in (2.,3.,4.,5.1):
+        c.ball_fix_time=t
+        command=c.command((22.,16.75,-1.4,0.),t,{})
+        assert command==(0.,0.,0.,0.)
+        assert not c.grip
+    assert c.reason=='pickup_clearance_unverified'

@@ -1,14 +1,47 @@
 """Visual ARENA mission. The target map contains camera estimates, never prop poses."""
 import math
+import numpy as np
 from sauvc_sim.camera_geometry import CameraModel, to_world
 from sauvc_sim.referee import wrap
 from sauvc_sim.arena import floor_z, PICKUP_X, PICKUP_Z
-from sauvc_sim.vehicle_geometry import COMPACT_CAMERA_TILT, COMPACT_RIM_CLEARANCE, PICKUP_RIM_CLEARANCE
+from sauvc_sim.vehicle_geometry import HULL_SIZE, COMPACT_RADIUS, COMPACT_CAMERA_TILT, COMPACT_RIM_CLEARANCE, PICKUP_RIM_CLEARANCE
 from sauvc_sim.rules2027 import floor_z as floor2027
 
 
 def level_rates(roll,pitch):
     return tuple(max(-.4,min(.4,-2*v)) for v in (roll,pitch))
+
+
+def drum_center(points):
+    if len(points)<10:return None
+    xy=np.asarray(points)[:,:2]
+    mean=xy.mean(axis=0)
+    xy=xy-mean
+    if np.linalg.svd(xy,compute_uv=False)[-1]<.10:return None
+    fit=np.linalg.lstsq(np.column_stack((2*xy,np.ones(len(xy)))),
+                        np.sum(xy*xy,axis=1),rcond=None)[0][:2]
+    radii=np.linalg.norm(xy-fit,axis=1)
+    if abs(radii.mean()-.28)>.018 or np.max(abs(radii-radii.mean()))>.009:return None
+    return (fit+mean).tolist()
+
+
+def pickup_clearance(ball, center, yaw):
+    """Conservative circular inner wall, including 5 mm horizontal uncertainty."""
+    scale=COMPACT_RADIUS/math.hypot(HULL_SIZE[0]/2,HULL_SIZE[1]/2)
+    c,s=math.cos(yaw),math.sin(yaw)
+    dx,dy=ball[0]-center[0],ball[1]-center[1]
+    radii=[math.hypot(dx+c*x-s*y,dy+s*x+c*y)
+           for x in (-HULL_SIZE[0]*scale/2,HULL_SIZE[0]*scale/2)
+           for y in (-HULL_SIZE[1]*scale/2,HULL_SIZE[1]*scale/2)]
+    return .28-max(radii)-.005
+
+
+def pickup_heading(ball, center, yaw):
+    dx,dy=ball[0]-center[0],ball[1]-center[1]
+    if math.hypot(dx,dy)<.012:return yaw
+    # Place the long side tangential to the rim; either end may lead.
+    tangent=math.atan2(dy,dx)+math.pi/2
+    return yaw+min((wrap(tangent-yaw),wrap(tangent+math.pi-yaw)),key=abs)
 
 
 def valid_order(value):
@@ -50,8 +83,13 @@ class ArenaController:
         self.acoustic_time=-math.inf
         self.tilt_since=None
         self.attitude=(0.,0.)
+        self.estimated_speed=0.
+        self.brake_origin=None
         self.lowering=False
         self.ball_fix_time=-math.inf
+        self.visual_drum_center=None
+        self.clearance_wait=None
+        self.pickup_alignment=None
         self.ball_fix_count=0
         self.ball_fix=None
         self.acquisition_goal=None
@@ -71,17 +109,23 @@ class ArenaController:
             if (self.compact and self.state in ('ALIGN_PICKUP','DESCEND_PICKUP')
                     and packet.get('camera')=='bottom' and obj['label']=='payload_ball'
                     and obj.get('confirmed')):
-                ray, origin = camera.ray(obj['center_px'],'bottom')
                 cr,sr=math.cos(self.attitude[0]),math.sin(self.attitude[0])
                 cp,sp=math.cos(self.attitude[1]),math.sin(self.attitude[1])
                 def level(vec):
                     x,y,z=vec
                     return (cp*x+sp*(sr*y+cr*z),cr*y-sr*z,-sp*x+cp*(sr*y+cr*z))
-                origin,ray=level(origin),level(ray)
-                if ray[2]>=-.1:continue
-                distance = (pose[2]+origin[2]+1.96)/(-ray[2])
-                point = to_world([o+distance*r for o,r in zip(origin,ray)],pose)
-                if distance>0 and math.dist(point[:2],self.acquisition_goal[:2])<.28:
+                def project(pixel,height):
+                    ray,origin=camera.ray(pixel,'bottom')
+                    origin,ray=level(origin),level(ray)
+                    if ray[2]>=-.1:return None
+                    distance=(height-pose[2]-origin[2])/ray[2]
+                    if distance<=0:return None
+                    return to_world([o+distance*r for o,r in zip(origin,ray)],pose)
+                point=project(obj['center_px'],-1.96)
+                if point and math.dist(point[:2],self.acquisition_goal[:2])<.28:
+                    if self.state=='ALIGN_PICKUP':
+                        edge=(project(px,-1.98) for px in obj.get('drum_floor_edge_px',[]))
+                        self.visual_drum_center=drum_center([p for p in edge if p is not None])
                     stamp=packet['stamp']
                     self.ball_fix_time=stamp['sec']+stamp['nanosec']*1e-9
                     self.ball_fix_count+=1
@@ -277,24 +321,48 @@ class ArenaController:
             if self.compact:
                 if math.hypot(dx,dy)<.035 or self.lowering:
                     self.lowering=True
-                    drop_depth=-2.+.39-PICKUP_Z
+                    drop_depth=-2.+.11-PICKUP_Z
             if math.hypot(dx,dy) < (.015 if self.compact else .025) and (
-                    not self.compact or abs(z-drop_depth)<.008):
+                    not self.compact or (abs(z-drop_depth)<.010 and self.estimated_speed<.015)):
                 if self.aligned_since is None: self.aligned_since=t
                 if t-self.aligned_since > 1:
                     self.acquisition_goal=list(self.goal)
+                    if self.compact:
+                        self.brake_origin=pose[:2]
+                        self.aligned_since=t
+                        self.change('BRAKE_RELEASE',t)
+                        return zero
                     self.release=True
                     self.change('WAIT_PAYLOAD',t)
-                return zero
-            self.aligned_since=None
+                    return zero
+                if not self.compact:return zero
+            else:self.aligned_since=None
+            vz=(drop_depth-z)*1.5
+            if self.compact and z< -1.42:vz=max(-.045,vz)
             vx,vy=dx*.8,dy*.8
             return (max(-.2,min(.2,vx*math.cos(yaw)+vy*math.sin(yaw))),
                     max(-.2,min(.2,-vx*math.sin(yaw)+vy*math.cos(yaw))),
-                    max(-.2,min(.2,(drop_depth-z)*1.5)),0.)
+                    max(-.2,min(.2,vz)),0.)
+        if self.state=='BRAKE_RELEASE':
+            if math.dist(self.acquisition_goal[:2],pose[:2])>.025 or abs(z-(-2.+.11-PICKUP_Z))>.025:
+                self.aligned_since=None
+                self.change('ALIGN_DRUM',t)
+            elif t-self.since>12:
+                self.change('ABORT',t,'release_motion_not_settled')
+            elif t-self.aligned_since>=2.:
+                # Bound lateral drift across a window, instead of one noisy DVL sample.
+                if math.dist(self.brake_origin,pose[:2])<=.003 and self.estimated_speed<.015:
+                    self.release=True
+                    self.change('WAIT_PAYLOAD',t)
+                self.brake_origin=pose[:2]
+                self.aligned_since=t
+            return zero
         if self.state == 'WAIT_PAYLOAD':
             if judgement.get('payload_acquired' if self.extended else ('payload_in_pinger' if self.selected_drum=='pinger' else 'payload_in_blue')):
                 if self.extended:
                     if self.edition=='2027':
+                        if self.compact:
+                            self.change('CLEAR_DRUM',t);return zero
                         self.goal=[20.3,self.acquisition_goal[1]]
                         self.change('EXIT_TARGET_ZONE',t);return zero
                     gate=self.targets['navigation_gate']
@@ -303,6 +371,12 @@ class ArenaController:
                 else:self.change('TO_SQUARE',t) if self.edition=='2027' else self.change('SURFACE',t)
             elif t-self.since > 8:
                 self.change('ABORT',t,'payload_not_inside_selected_drum')
+            return zero
+        if self.state=='CLEAR_DRUM':
+            if z< -1.2:
+                return 0.,0.,.10,0.
+            self.goal=[20.3,self.acquisition_goal[1]]
+            self.change('EXIT_TARGET_ZONE',t)
             return zero
         if self.state=='EXIT_TARGET_ZONE':
             if judgement.get('target_zone_exited'):
@@ -362,12 +436,42 @@ class ArenaController:
                             max(-.10,min(.10,survey-z)),0.)
                 self.goal=list(self.ball_fix)
                 dx,dy=self.goal[0]-x,self.goal[1]-y
+            pickup_depth=-2.+.08-PICKUP_Z if self.compact else None
+            if self.compact and self.ball_fix is not None:
+                roll,pitch=self.attitude
+                lever_x=PICKUP_Z*math.sin(pitch)*math.cos(roll)
+                lever_y=-PICKUP_Z*math.sin(roll)
+                dx-=lever_x*math.cos(yaw)-lever_y*math.sin(yaw)
+                dy-=lever_x*math.sin(yaw)+lever_y*math.cos(yaw)
+                pickup_depth=-2.+.08-PICKUP_Z*math.cos(pitch)*math.cos(roll)
+            yaw_error=0.
+            if self.compact and self.state=='ALIGN_PICKUP' and self.ball_fix is not None:
+                if self.pickup_alignment is None and abs(z-(-2.+.39-PICKUP_Z))<.04 and t-self.ball_fix_time<.3:
+                    center=self.acoustic_target if self.acoustic_target is not None and t-self.acoustic_time<.5 else self.acquisition_goal
+                    source='acoustic'
+                    if (self.visual_drum_center is not None and
+                            math.dist(self.ball_fix[:2],self.visual_drum_center)<.26):
+                        center=self.visual_drum_center
+                        source='bottom_camera'
+                    heading=pickup_heading(self.ball_fix,center,yaw)
+                    self.pickup_alignment=dict(time=t,heading=heading,center=center[:2],ball=self.ball_fix[:2],source=source)
+            if self.compact and self.pickup_alignment is not None:
+                yaw_error=wrap(self.pickup_alignment['heading']-yaw)
             if (self.state=='ALIGN_PICKUP' and math.hypot(dx,dy)<.012 and
-                    (not self.compact or (abs(z-(-2.+.39-PICKUP_Z))<.012 and t-self.ball_fix_time<.3))):
+                    (not self.compact or (abs(z-(-2.+.39-PICKUP_Z))<.012 and t-self.ball_fix_time<.3
+                                          and self.pickup_alignment is not None and abs(yaw_error)<.035))):
+                center=self.visual_drum_center
+                clearance=pickup_clearance(self.ball_fix,center,yaw) if center is not None else -math.inf
+                if clearance<=0:
+                    if self.clearance_wait is None:self.clearance_wait=t
+                    if t-self.clearance_wait>3:
+                        self.change('ABORT',t,'pickup_clearance_unverified')
+                    return zero
+                self.clearance_wait=None
                 self.change('DESCEND_PICKUP',t)
             if self.state=='DESCEND_PICKUP':
                 if self.compact:
-                    if abs(z-(-2.+.08-PICKUP_Z))<.002 and math.hypot(dx,dy)<.003:
+                    if abs(z-pickup_depth)<.002 and math.hypot(dx,dy)<.003:
                         if self.aligned_since is None:self.aligned_since=t
                         if t-self.aligned_since>.4:self.grip=True
                     else:self.aligned_since=None
@@ -388,6 +492,7 @@ class ArenaController:
                 self.change('TO_SQUARE' if self.edition=='2027' else 'SURFACE',t);return zero
             # A 2 mm contact approach makes the roof touch the ball before settling.
             depth=self.cruise_depth if self.state in ('ALIGN_PICKUP','LIFT_PICKUP') else (-2. if self.edition=='2027' else floor_z(self.goal[0]))-PICKUP_Z+(.08 if self.compact else .038)
+            if self.compact and self.state=='DESCEND_PICKUP':depth=pickup_depth
             if self.compact and self.state=='ALIGN_PICKUP':
                 depth=-2.+.39-PICKUP_Z
             vz=max(-.12,min(.12,(depth-z)*1.5))
@@ -405,7 +510,7 @@ class ArenaController:
                 if math.hypot(dx,dy)>.015:vz=max(0.,vz)
             return (max(-.12,min(.12,(dx*math.cos(yaw)+dy*math.sin(yaw))*.8)),
                     max(-.12,min(.12,(-dx*math.sin(yaw)+dy*math.cos(yaw))*.8)),
-                    vz,0.)
+                    vz,max(-.4,min(.4,yaw_error)))
         if self.state == 'SURFACE':
             if z >= -.055:
                 self.change('STOP',t)

@@ -153,3 +153,16 @@ class ObjectsTest(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+def test_pickup_geometry_uses_shaded_wall_below_bright_red_base():
+    from sauvc_sim.object_detection import drum_floor_edge
+    rgb=np.zeros((160,220,3),dtype=np.uint8)
+    rgb[30:120,20:200]=(116,17,18)
+    rgb[30:90,20:200]=(236,44,44)
+    red=rgb[:,:,0]>0
+    points=drum_floor_edge(rgb,red)
+    assert len(points)>=10
+    assert all(20<=x<200 and abs(y-90)<=2 for x,y in points)
+    rgb[red]=(116,17,18)
+    assert drum_floor_edge(rgb,red)==[]

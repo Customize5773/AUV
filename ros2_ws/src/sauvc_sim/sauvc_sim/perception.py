@@ -52,7 +52,7 @@ class Perception(Node):
         start = time.monotonic()
         self.last_received[camera] = start
         result = detect_objects(msg.data, msg.width, msg.height, msg.step,
-                                msg.encoding, camera, self.arena)
+                                msg.encoding, camera, self.arena, pickup_geometry=bool(self.bottom_tilt))
         stamp = msg.header.stamp.sec+msg.header.stamp.nanosec*1e-9
         if result['valid_image']:
             model = CameraModel(msg.width,msg.height,bottom_tilt=self.bottom_tilt)

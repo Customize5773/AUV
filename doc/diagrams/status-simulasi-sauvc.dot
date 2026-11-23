@@ -1,7 +1,7 @@
 digraph progress {
   graph [rankdir=TB, newrank=true, bgcolor="#F7F9FC", pad="0.35", nodesep="0.38", ranksep="0.42", splines=ortho,
          fontname="DejaVu Sans", labelloc=t,
-         label=<<FONT POINT-SIZE="25"><B>Posisi kita — simulasi ROS SAUVC</B></FONT><BR/><FONT POINT-SIZE="12">Status 19 November 2026 • profil simulator SAUVC 2027.3.2</FONT>>];
+         label=<<FONT POINT-SIZE="25"><B>Posisi kita — simulasi ROS SAUVC</B></FONT><BR/><FONT POINT-SIZE="12">Status 23 November 2026 • profil simulator SAUVC 2027.3.2</FONT>>];
   node [shape=box, style="rounded,filled", fontname="DejaVu Sans", fontsize=13,
         color="#CDD7E5", fillcolor="white", fontcolor="#172C47", margin="0.22,0.16", penwidth=1.3];
   edge [color="#7D8DA5", arrowsize=0.7, penwidth=1.5];
@@ -28,22 +28,15 @@ digraph progress {
     a4 [label="Surfacing Square → surface → stop\nBlue drum 210,14494 poin • penalti nol\nThrust–surface 228,502 s", fillcolor="#DCEBFF"];
     a1 -> a2 -> a3 -> a4;
   }
-  blocked [fillcolor="#FFF3DB", color="#D6A445", fontsize=12,
-           label="EXTENDED — BELUM DIDUKUNG BATANG PENDEK\nClearance pickup mendatar: −17 cm\nDitolak sebelum thrust: fixed_gripper_unreachable\nPickup laporan 79 memakai batang panjang lama"];
-  platform -> q1; platform -> a1;
-  platform -> blocked [style=dashed, color="#D6A445"];
+  extended [fillcolor="#DCEBFF", color="#2365B4", fontsize=12,
+           label="ARENA EXTENDED • DRUM PINGER 3\nBadan kompak + batang 8 cm\nLepas bola → keluar zona penuh → ambil bola yang sama\nBawa ke Surfacing Square → surface → stop"];
+  platform -> q1; platform -> a1; platform -> extended;
   {rank=same; q1; a1; q1 -> a1 [style=invis];}
-  {rank=same; a3; blocked;}
+  {rank=same; a3; extended;}
 
   now [fillcolor="#DCEBFF", color="#2365B4", penwidth=2.5,
-       label=<<FONT POINT-SIZE="17" COLOR="#144D91"><B>KITA ADA DI SINI</B></FONT><BR/><BR/><B>Gripper ringkas bergaya Newton sudah diterapkan.</B><BR/>Batang 8 cm • build selesai • 202 tes lulus.<BR/>Release fisika, ARENA blue drum dan kualifikasi: diterima.<BR/>Bola awal tetap pada titik grip yang sama.<BR/>Rahang bergerak buka–tutup; release menunggu bukaan aktual.<BR/>Uji normal dan macet lulus; video tersimpan.<BR/>Pengulangan ARENA exit 0; 98 hash source/aset cocok.<BR/><BR/><FONT COLOR="#52627A">Retensi masih latch ideal; bukan aktuator Newton asli. Hardware belum diuji.</FONT>>];
-  q3 -> now; a4 -> now;
-
-  history [fillcolor="#E9EDF3", color="#8491A5", fontsize=11,
-           label="BUKTI RIWAYAT — LAPORAN 79\nPickup lulus dengan batang panjang.\nHasil itu bukan penerimaan pickup\npada gripper pendek sekarang."];
-  {rank=same; now; history;}
-  now -> history [style=dotted, arrowhead=none, constraint=false];
-
+       label=<<FONT POINT-SIZE="17" COLOR="#144D91"><B>HASIL PENERIMAAN EXTENDED</B></FONT><BR/><BR/>Run Gazebo dinamis dari starting zone<BR/>Seed 42 • 289,05858 poin • thrust–surface 264,714 s<BR/>Kamera bawah memandu arah hadap dan pickup.<BR/>Kontak jari sampai akhir • penalti nol.<BR/>Dua seed sensor lulus pada drum pinger 3.>];
+  q3 -> now; a4 -> now; extended -> now;
   real [fillcolor="#E9EDF3", color="#8491A5",
         label="VALIDASI AUV NYATA — BELUM\nKapal belum selesai.\nPengujian kendaraan fisik dikecualikan\nsesuai permintaan pengguna."];
   now -> real [style=dashed];
