@@ -10,6 +10,34 @@ Laptop membuat hotspot **AUV-Link**, Jetson menyambung ke laptop. Tidak memerluk
 
 Profil sudah disiapkan. Akun Jetson: `aero`; alias SSH laptop: `auv-wifi`.
 
+## Cara praktis: Hubungkan Jetson (24 November 2026)
+
+Cari **Hubungkan Jetson** di menu aplikasi laptop, atau jalankan:
+
+```bash
+python3 /home/rasya/AUV/tools/connect_jetson.py
+```
+
+Launcher mengaktifkan AUV-Link hanya jika belum aktif, menunggu SSH hingga sekitar dua menit, memeriksa folder proyek, lalu membuka VS Code. Hotspot tidak otomatis aktif setiap laptop boot agar Wi-Fi internet tidak diambil alih tanpa diminta. Simpan instruksi sebelum klik: chat dapat offline saat hotspot aktif. Jika key SSH memakai passphrase, muat ke ssh-agent terlebih dahulu; launcher tidak meminta password SSH interaktif.
+
+**Profil boot sudah diterapkan dan diverifikasi lewat Ethernet pada 24 November 2026.** Perintah instalasi yang telah dijalankan (tidak perlu diulang):
+
+```bash
+ssh -t aero@192.168.2.2 'sudo bash /home/aero/configure-jetson.sh'
+```
+
+Hasil pemeriksaan langsung: autoconnect AUV-Link `yes`, priority `100`, retries `0` (tanpa batas), power saving `2` (nonaktif), IP `10.42.77.2/24`. Semua lima profil Wi-Fi lain memiliki autoconnect `no` (profil/password tidak dihapus). Koneksi aktif tidak diputus oleh script; Jetson masih memakai Wi-Fi lab saat verifikasi. Untuk transisi pertama, gunakan langkah Ethernet pada bagian 3 setelah hotspot laptop aktif; pada boot berikutnya Jetson diharapkan menunggu AUV-Link.
+
+Rollback pengaturan profil Jetson ke nilai sebelum perubahan:
+
+```bash
+ssh -t aero@192.168.2.2 'sudo bash /home/aero/rollback-jetson.sh'
+```
+
+Salinan setup/rollback ada di laptop pada `~/.local/state/auv-link/`. Uji logika launcher: `python3 tools/test_connect_jetson.py` (5 tes lulus; tidak menyentuh jaringan). Uji jaringan dan boot ulang setelah penerapan masih perlu dilakukan.
+
+Untuk penerimaan: setelah akses pertama berhasil, cabut Ethernet dan periksa SSH serta folder melalui VS Code. Kemudian simpan pekerjaan dan uji beberapa nyala ulang terkontrol dengan AUV-Link tetap aktif. Catat hasil SSH tiap percobaan; jangan menyimpulkan andal hanya dari status Wi-Fi connected.
+
 ## 1. Aktifkan koneksi
 
 **Matikan hotspot HP "Realme" selama pengujian/akses.** Jangan sambungkan Wi-Fi laptop ke jaringan lain: itu menghentikan AUV-Link. Chat internet dapat offline selama akses berlangsung.
@@ -48,6 +76,18 @@ Untuk terminal saja:
 ssh auv-wifi
 cd /home/aero/AUV
 ```
+
+### Jika muncul `Failed to download VS Code Server`
+
+SSH dapat sudah berhasil, tetapi komponen VS Code untuk versi laptop belum lengkap di Jetson. Persiapkan komponen tersebut saat laptop memiliki internet dan Jetson terhubung melalui Ethernet; jangan mengubah profil Wi-Fi untuk memperbaiki error unduhan ini. Buka proyek melalui Ethernet terlebih dahulu:
+
+```bash
+code --new-window --remote ssh-remote+192.168.2.2 /home/aero/AUV
+```
+
+Remote-SSH biasanya mencoba unduhan di Jetson lalu beralih mengunduh di laptop dan menyalinnya. Setelah instalasi lengkap, akses AUV-Link dapat memakai server yang sama tanpa mengunduh ulang. Pembaruan versi VS Code laptop dapat memerlukan komponen versi baru; extension tertentu juga memerlukan internet. [Dokumentasi resmi](https://code.visualstudio.com/docs/remote/ssh).
+
+**Perbaikan 24 November 2026:** server ARM64 `1.147.0`, commit `8a14f0cc1b08d531eb83255ea3764ae22aa932b5`, sudah tersedia di Jetson, tetapi CLI untuk commit itu belum ada. CLI resmi diunduh di laptop dan dipasang sebagai `~/.vscode-server/code-8a14f0cc1b08d531eb83255ea3764ae22aa932b5`; SHA-256 salinan cocok. Log uji VS Code melalui Ethernet menemukan instalasi yang ada dan berhasil membuat sesi remote tanpa unduhan ulang. Pengujian ulang melalui AUV-Link setelah perbaikan masih menunggu pengguna.
 
 ## 3. Jika Jetson belum tersambung
 
